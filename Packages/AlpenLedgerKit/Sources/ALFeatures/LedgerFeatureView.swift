@@ -1,0 +1,131 @@
+import SwiftUI
+import ALDomain
+import ALDesignSystem
+
+@MainActor
+public struct LedgerFeatureView: View {
+    private let accounts: [FinancialAccount]
+    private let selectedAccountId: FinancialAccountID?
+    private let transactions: [ALDomain.Transaction]
+    private let selectedTransactionId: TransactionID?
+    private let linkedDocuments: [Document]
+    private let onSelectAccount: (FinancialAccountID?) -> Void
+    private let onSelectTransaction: (TransactionID?) -> Void
+    private let onImportCSV: () -> Void
+    private let onLinkDocument: () -> Void
+
+    public init(
+        accounts: [FinancialAccount],
+        selectedAccountId: FinancialAccountID?,
+        transactions: [ALDomain.Transaction],
+        selectedTransactionId: TransactionID?,
+        linkedDocuments: [Document],
+        onSelectAccount: @escaping (FinancialAccountID?) -> Void,
+        onSelectTransaction: @escaping (TransactionID?) -> Void,
+        onImportCSV: @escaping () -> Void,
+        onLinkDocument: @escaping () -> Void
+    ) {
+        self.accounts = accounts
+        self.selectedAccountId = selectedAccountId
+        self.transactions = transactions
+        self.selectedTransactionId = selectedTransactionId
+        self.linkedDocuments = linkedDocuments
+        self.onSelectAccount = onSelectAccount
+        self.onSelectTransaction = onSelectTransaction
+        self.onImportCSV = onImportCSV
+        self.onLinkDocument = onLinkDocument
+    }
+
+    public var body: some View {
+        HSplitView {
+            List(selection: accountSelection) {
+                ForEach(accounts, id: \.id) { account in
+                    VStack(alignment: .leading) {
+                        Text(account.displayName)
+                        Text(account.institutionName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .tag(account.id)
+                }
+            }
+            .frame(minWidth: 220)
+
+            VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                HStack {
+                    Text("Transactions")
+                        .font(.title3.weight(.semibold))
+                    Spacer()
+                    Button("Import CSV", action: onImportCSV)
+                        .buttonStyle(.borderedProminent)
+                }
+
+                List(selection: transactionSelection) {
+                    ForEach(transactions, id: \.id) { transaction in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(transaction.counterpartyName)
+                                Text(transaction.memo)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Text(amountString(transaction))
+                                .monospacedDigit()
+                        }
+                        .tag(transaction.id)
+                    }
+                }
+            }
+            .frame(minWidth: 420)
+            .padding(AppTheme.spacingM)
+
+            VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                Text("Inspector")
+                    .font(.title3.weight(.semibold))
+                if selectedTransactionId == nil {
+                    ContentUnavailableView("No Transaction Selected", systemImage: "list.bullet.rectangle")
+                } else {
+                    InspectorPane("Linked Documents") {
+                        if linkedDocuments.isEmpty {
+                            Text("No linked documents yet.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(linkedDocuments, id: \.id) { document in
+                                Text(document.originalFilename)
+                            }
+                        }
+                        Button("Link Document…", action: onLinkDocument)
+                            .buttonStyle(.bordered)
+                    }
+                }
+                Spacer()
+            }
+            .frame(minWidth: 260)
+            .padding(AppTheme.spacingM)
+        }
+    }
+
+    private func amountString(_ transaction: ALDomain.Transaction) -> String {
+        let value = Decimal(transaction.amountMinor) / 100
+        return "\(NSDecimalNumber(decimal: value).stringValue) \(transaction.currency)"
+    }
+
+    private var accountSelection: Binding<FinancialAccountID?> {
+        Binding(
+            get: { selectedAccountId },
+            set: { selection in
+                onSelectAccount(selection)
+            }
+        )
+    }
+
+    private var transactionSelection: Binding<TransactionID?> {
+        Binding(
+            get: { selectedTransactionId },
+            set: { selection in
+                onSelectTransaction(selection)
+            }
+        )
+    }
+}

@@ -1,0 +1,116 @@
+name: AlpenLedgerApp
+options:
+  minimumXcodeGenVersion: 2.45.2
+  xcodeVersion: "26.3.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    SWIFT_ENABLE_EXPLICIT_MODULES: NO
+    MACOSX_DEPLOYMENT_TARGET: 15.6
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGN_IDENTITY: ""
+packages:
+  AlpenLedgerKit:
+    path: Packages/AlpenLedgerKit
+targets:
+  AlpenLedgerApp:
+    type: application
+    platform: macOS
+    deploymentTarget: "15.6"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.alpenledger.app
+    sources:
+      - App/AlpenLedgerApp
+    resources:
+      - Fixtures/Bank/sample-bank-statement.csv
+      - Fixtures/Documents/sample-receipt.pdf
+    info:
+      path: App/AlpenLedgerApp/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: en
+        CFBundleDisplayName: AlpenLedger
+        CFBundleExecutable: "$(EXECUTABLE_NAME)"
+        CFBundleIdentifier: "com.alpenledger.app"
+        CFBundleInfoDictionaryVersion: "6.0"
+        CFBundleName: AlpenLedger
+        CFBundlePackageType: APPL
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "15.6"
+        NSHighResolutionCapable: true
+        NSHumanReadableCopyright: "Copyright © 2026 AlpenLedger"
+        NSMainStoryboardFile: ""
+        NSPrincipalClass: NSApplication
+    dependencies:
+      - package: AlpenLedgerKit
+        product: ALFeatures
+      - package: AlpenLedgerKit
+        product: ALDesignSystem
+      - package: AlpenLedgerKit
+        product: ALWorkspace
+      - package: AlpenLedgerKit
+        product: ALStorage
+      - package: AlpenLedgerKit
+        product: ALAudit
+      - package: AlpenLedgerKit
+        product: ALLedger
+      - package: AlpenLedgerKit
+        product: ALDocuments
+      - package: AlpenLedgerKit
+        product: ALImports
+  AlpenLedgerAppTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "15.6"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.alpenledger.appTests
+    sources:
+      - App/AlpenLedgerAppTests
+    dependencies:
+      - target: AlpenLedgerApp
+      - package: AlpenLedgerKit
+        product: ALFeatures
+      - package: AlpenLedgerKit
+        product: ALWorkspace
+      - package: AlpenLedgerKit
+        product: ALStorage
+      - package: AlpenLedgerKit
+        product: ALLedger
+      - package: AlpenLedgerKit
+        product: ALDocuments
+      - package: AlpenLedgerKit
+        product: ALImports
+  AlpenLedgerAppUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    deploymentTarget: "15.6"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.alpenledger.appUITests
+        TEST_TARGET_NAME: AlpenLedgerApp
+    sources:
+      - App/AlpenLedgerAppUITests
+    dependencies:
+      - target: AlpenLedgerApp
+schemes:
+  AlpenLedgerApp:
+    build:
+      targets:
+        AlpenLedgerApp: all
+    test:
+      gatherCoverageData: true
+      targets:
+        - name: AlpenLedgerAppTests
+        - name: AlpenLedgerAppUITests
+  AlpenLedgerAppCI:
+    build:
+      targets:
+        AlpenLedgerApp: all
+    test:
+      gatherCoverageData: true
+      targets:
+        - name: AlpenLedgerAppTests

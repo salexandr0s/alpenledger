@@ -1,0 +1,48 @@
+name: macOS CI
+
+on:
+  push:
+    branches:
+      - main
+      - "codex/**"
+  pull_request:
+
+jobs:
+  macos-build-and-test:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.3
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.3"
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Project
+        run: xcodegen generate
+
+      - name: Run Package Tests
+        run: swift test --package-path Packages/AlpenLedgerKit
+
+      - name: Build macOS App
+        run: >
+          xcodebuild
+          -project AlpenLedgerApp.xcodeproj
+          -scheme AlpenLedgerApp
+          -destination 'platform=macOS'
+          -derivedDataPath "$RUNNER_TEMP/alpenledger-build-derived"
+          build
+
+      - name: Run App Unit Tests
+        run: >
+          xcodebuild
+          -project AlpenLedgerApp.xcodeproj
+          -scheme AlpenLedgerAppCI
+          -destination 'platform=macOS'
+          -derivedDataPath "$RUNNER_TEMP/alpenledger-test-derived"
+          test

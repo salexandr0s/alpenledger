@@ -1,0 +1,101 @@
+import Foundation
+import UniformTypeIdentifiers
+import ALDomain
+import ALStorage
+import ALAudit
+
+public final class DocumentService: @unchecked Sendable {
+    private let storage: WorkspaceStorage
+    private let auditLogger: AuditLogger
+    private let extractionPipeline: DocumentExtractionPipeline
+
+    public init(
+        storage: WorkspaceStorage,
+        auditLogger: AuditLogger,
+        extractionPipeline: DocumentExtractionPipeline = DocumentExtractionPipeline()
+    ) {
+        self.storage = storage
+        self.auditLogger = auditLogger
+        self.extractionPipeline = extractionPipeline
+    }
+
+    @discardableResult
+    public func importDocument(from url: URL) throws -> Document {
+        let mediaType = detectedMediaType(for: url)
+        let blobHash = try storage.blobStore.store(contentsOf: url)
+
+        if let existing = try storage.documentRepository.fetchDocument(workspaceId: storage.manifest.workspace.id, blobHash: blobHash) {
+            return existing
+        }
+
+        let materializedURL = try storage.blobStore.materialize(hash: blobHash, fileExtension: url.pathExtension.isEmpty ? nil : url.pathExtension)
+        let extractedText = extractionPipeline.extractText(from: materializedURL, mediaType: mediaType)
+        let documentType = extractionPipeline.detectDocumentType(filename: url.lastPathComponent, extractedText: extractedText)
+
+        let document = Document(
+            workspaceId: storage.manifest.workspace.id,
+            blobHash: blobHash,
+            originalFilename: url.lastPathComponent,
+            mediaType: mediaType,
+            documentType: documentType,
+            extractedText: extractedText,
+            metadataStatus: .confirmed
+        )
+        try storage.documentRepository.saveDocument(document)
+        try storage.searchIndex.indexDocument(document)
+        try auditLogger.log(
+            actorType: .user,
+            actorId: "user",
+            eventType: .documentImported,
+            objectRef: ObjectRef(kind: .document, id: document.id.rawValue),
+            payload: document.originalFilename
+        )
+        return document
+    }
+
+    public func binaryRef(for document: Document) throws -> DocumentBinaryRef {
+        let fileExtension = URL(fileURLWithPath: document.originalFilename).pathExtension
+        let materializedURL = try storage.blobStore.materialize(hash: document.blobHash, fileExtension: fileExtension.isEmpty ? nil : fileExtension)
+        return DocumentBinaryRef(documentId: document.id, originalFilename: document.originalFilename, fileURL: materializedURL)
+    }
+
+    public func linkDocument(_ documentId: DocumentID, to transactionId: TransactionID) throws {
+        let link = EvidenceLink(
+            sourceRef: ObjectRef(kind: .document, id: documentId.rawValue),
+            targetRef: ObjectRef(kind: .transaction, id: transactionId.rawValue),
+            linkType: .documentToTransaction,
+            status: .confirmed,
+            confidence: 1.0,
+            createdByKind: .user,
+            approvalRequired: false,
+            reason: "Manual link"
+        )
+        try storage.evidenceLinkRepository.saveEvidenceLink(link)
+        try auditLogger.log(
+            actorType: .user,
+            actorId: "user",
+            eventType: .evidenceLinked,
+            objectRef: ObjectRef(kind: .evidenceLink, id: link.id.rawValue)
+        )
+    }
+
+    public func linkedTransactionIDs(for documentId: DocumentID) throws -> [TransactionID] {
+        let links = try storage.evidenceLinkRepository.fetchEvidenceLinks(for: ObjectRef(kind: .document, id: documentId.rawValue))
+        return links.compactMap { link in
+            if link.sourceRef.kind == .transaction, let uuid = UUID(uuidString: link.sourceRef.id) {
+                return TransactionID(rawValue: uuid)
+            }
+            if link.targetRef.kind == .transaction, let uuid = UUID(uuidString: link.targetRef.id) {
+                return TransactionID(rawValue: uuid)
+            }
+            return nil
+        }
+    }
+
+    private func detectedMediaType(for url: URL) -> String {
+        if let type = UTType(filenameExtension: url.pathExtension), let mimeType = type.preferredMIMEType {
+            return mimeType
+        }
+        return "application/octet-stream"
+    }
+}

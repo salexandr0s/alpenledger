@@ -1,0 +1,4 @@
+booking_date,value_date,amount,currency,counterparty,memo,reference,balance
+2026-01-05,2026-01-05,2500.00,CHF,Acme GmbH,Consulting Invoice,INV-1001,2500.00
+2026-01-08,2026-01-08,-42.50,CHF,Coffee Bar Zurich,Team Coffee,POS-444,2457.50
+2026-01-09,2026-01-09,-120.00,CHF,SBB,Travel Expense,TRV-220,2337.50
