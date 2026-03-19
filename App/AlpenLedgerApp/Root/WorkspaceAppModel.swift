@@ -1,17 +1,7 @@
 import AppKit
 import Foundation
 import Observation
-import ALEvidence
-import ALDomain
-import ALAudit
-import ALDocuments
-import ALFeatures
-import ALImports
-import ALLedger
-import ALStorage
-import ALTaxCH
-import ALTaxCore
-import ALWorkspace
+import ALAppSupport
 
 @MainActor
 @Observable

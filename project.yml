@@ -50,27 +50,7 @@ targets:
         NSPrincipalClass: NSApplication
     dependencies:
       - package: AlpenLedgerKit
-        product: ALFeatures
-      - package: AlpenLedgerKit
-        product: ALDesignSystem
-      - package: AlpenLedgerKit
-        product: ALWorkspace
-      - package: AlpenLedgerKit
-        product: ALStorage
-      - package: AlpenLedgerKit
-        product: ALAudit
-      - package: AlpenLedgerKit
-        product: ALLedger
-      - package: AlpenLedgerKit
-        product: ALDocuments
-      - package: AlpenLedgerKit
-        product: ALImports
-      - package: AlpenLedgerKit
-        product: ALEvidence
-      - package: AlpenLedgerKit
-        product: ALTaxCore
-      - package: AlpenLedgerKit
-        product: ALTaxCH
+        product: ALAppSupport
   AlpenLedgerAppTests:
     type: bundle.unit-test
     platform: macOS
@@ -86,22 +66,6 @@ targets:
       - App/AlpenLedgerAppTests
     dependencies:
       - target: AlpenLedgerApp
-      - package: AlpenLedgerKit
-        product: ALFeatures
-      - package: AlpenLedgerKit
-        product: ALWorkspace
-      - package: AlpenLedgerKit
-        product: ALStorage
-      - package: AlpenLedgerKit
-        product: ALLedger
-      - package: AlpenLedgerKit
-        product: ALDocuments
-      - package: AlpenLedgerKit
-        product: ALImports
-      - package: AlpenLedgerKit
-        product: ALTaxCore
-      - package: AlpenLedgerKit
-        product: ALTaxCH
   AlpenLedgerAppUITests:
     type: bundle.ui-testing
     platform: macOS

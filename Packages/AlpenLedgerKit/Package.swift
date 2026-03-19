@@ -8,6 +8,7 @@ let package = Package(
         .macOS(.v15),
     ],
     products: [
+        .library(name: "ALAppSupport", targets: ["ALAppSupport"]),
         .library(name: "ALDomain", targets: ["ALDomain"]),
         .library(name: "ALAudit", targets: ["ALAudit"]),
         .library(name: "ALStorage", targets: ["ALStorage"]),
@@ -28,6 +29,23 @@ let package = Package(
         .package(path: "../Vendor/GRDB.swift"),
     ],
     targets: [
+        .target(
+            name: "ALAppSupport",
+            dependencies: [
+                "ALDomain",
+                "ALAudit",
+                "ALStorage",
+                "ALWorkspace",
+                "ALLedger",
+                "ALDocuments",
+                "ALImports",
+                "ALEvidence",
+                "ALTaxCore",
+                "ALTaxCH",
+                "ALDesignSystem",
+                "ALFeatures",
+            ]
+        ),
         .target(
             name: "ALDomain"
         ),
