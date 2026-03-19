@@ -81,18 +81,24 @@ public struct StatusBadge: View {
     }
 
     public var body: some View {
+        let resolvedSystemImage = resolvedSystemImage
         let content = Group {
-            if let systemImage {
-                Label(title, systemImage: systemImage)
+            if let resolvedSystemImage {
+                Label(title, systemImage: resolvedSystemImage)
             } else {
                 Text(title)
             }
         }
-        .font(.caption.weight(.semibold))
+        .font(.caption.bold())
+        .symbolRenderingMode(AppTheme.symbolRenderingMode)
         .padding(.horizontal, AppTheme.spacingS)
         .padding(.vertical, AppTheme.spacingXS)
         .foregroundStyle(tone.foregroundStyle)
         .background(tone.backgroundStyle, in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(tone.foregroundStyle.opacity(0.16), lineWidth: 1)
+        )
         .accessibilityLabel(title)
 
         if let accessibilityIdentifier {
@@ -100,6 +106,27 @@ public struct StatusBadge: View {
                 .accessibilityIdentifier(accessibilityIdentifier)
         } else {
             content
+        }
+    }
+
+    private var resolvedSystemImage: String? {
+        if let systemImage {
+            return systemImage
+        }
+
+        switch tone {
+        case .neutral:
+            return nil
+        case .info:
+            return "info.circle"
+        case .success:
+            return "checkmark.circle"
+        case .warning:
+            return "exclamationmark.triangle"
+        case .critical:
+            return "exclamationmark.octagon"
+        case .accent:
+            return nil
         }
     }
 }

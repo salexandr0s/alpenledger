@@ -114,8 +114,7 @@ public struct TaxStudioFeatureView: View {
                 .frame(minWidth: 420)
 
                 VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                    Text("Blockers & Requirements")
-                        .font(.title3.weight(.semibold))
+                    PaneHeader("Blockers & Requirements", subtitle: "Open issues, pending requirements, and missing fact concepts.")
 
                     if issues.isEmpty && requirements.isEmpty {
                         ContentUnavailableView("No Open Blockers", systemImage: "checkmark.seal")
@@ -124,12 +123,11 @@ public struct TaxStudioFeatureView: View {
                             if issues.isEmpty == false {
                                 Section("Issues") {
                                     ForEach(issues, id: \.id) { issue in
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(issue.summary)
-                                            Text(issue.severity.rawValue)
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
+                                        SourceListRow(
+                                            title: issue.summary,
+                                            subtitle: issue.severity.rawValue.capitalized,
+                                            systemImage: issue.severity == .blocking ? "exclamationmark.octagon" : "exclamationmark.triangle"
+                                        )
                                         .accessibilityIdentifier("taxStudio.issue.\(accessibilitySlug(issue.summary))")
                                     }
                                 }
@@ -137,12 +135,11 @@ public struct TaxStudioFeatureView: View {
                             if requirements.isEmpty == false {
                                 Section("Requirements") {
                                     ForEach(requirements, id: \.id) { requirement in
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(requirement.summary)
-                                            Text(requirement.status.rawValue)
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
+                                        SourceListRow(
+                                            title: requirement.summary,
+                                            subtitle: requirement.status.rawValue.capitalized,
+                                            systemImage: "list.bullet.clipboard"
+                                        )
                                         .accessibilityIdentifier("taxStudio.requirement.\(accessibilitySlug(requirement.summary))")
                                     }
                                 }
@@ -150,8 +147,10 @@ public struct TaxStudioFeatureView: View {
                             if readinessSummary.missingConceptCodes.isEmpty == false {
                                 Section("Missing Facts") {
                                     ForEach(readinessSummary.missingConceptCodes, id: \.self) { conceptCode in
-                                        Text(conceptCode)
-                                            .font(.caption)
+                                        SourceListRow(
+                                            title: conceptCode,
+                                            systemImage: "questionmark.circle"
+                                        )
                                     }
                                 }
                             }
@@ -167,16 +166,12 @@ public struct TaxStudioFeatureView: View {
                     if let selectedFact {
                         InspectorPane("Tax Fact") {
                             StatusBadge(selectedFact.status.rawValue.capitalized, tone: statusTone(selectedFact.status))
-                            Text(selectedFact.conceptCode)
-                                .font(.body.monospaced())
-                            Text(valueString(for: selectedFact))
-                            Text("Ruleset: \(selectedFact.rulesetVersion)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            InspectorSectionRow("Concept", value: selectedFact.conceptCode)
+                            InspectorSectionRow("Value", value: valueString(for: selectedFact))
+                            InspectorSectionRow("Ruleset", value: selectedFact.rulesetVersion)
 
                             if selectedFact.provenanceRefs.isEmpty {
                                 Text("No provenance refs")
-                                    .font(.caption)
                                     .foregroundStyle(.secondary)
                             } else {
                                 ForEach(selectedFact.provenanceRefs, id: \.stringValue) { ref in

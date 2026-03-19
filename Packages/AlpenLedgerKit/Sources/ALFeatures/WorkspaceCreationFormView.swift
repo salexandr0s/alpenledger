@@ -25,12 +25,12 @@ public struct WorkspaceCreationFormView: View {
     public var body: some View {
         InspectorPane(title, subtitle: detail) {
             VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-                VStack(alignment: .leading, spacing: AppTheme.spacingXS) {
-                    Text("Workspace Name")
-                        .font(.headline)
+                StatusBadge("Encrypted locally", tone: .info)
 
+                LabeledContent("Workspace Name") {
                     TextField("Workspace name", text: $workspaceName)
                         .textFieldStyle(.roundedBorder)
+                        .frame(minWidth: 220)
                         .accessibilityIdentifier("workspace.nameField")
                         .onSubmit(onCreateWorkspace)
                 }

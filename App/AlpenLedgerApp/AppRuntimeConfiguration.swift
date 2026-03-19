@@ -1,4 +1,5 @@
 import Foundation
+import ALDomain
 import ALStorage
 import ALWorkspace
 
@@ -6,6 +7,7 @@ struct AppRuntimeConfiguration {
     let workspacesRootURL: URL?
     let secretStore: any SecretStore
     let recentDefaults: UserDefaults
+    let uiDefaults: UserDefaults
     let nowProvider: @Sendable () -> Date
 
     static func fromEnvironment() -> AppRuntimeConfiguration {
@@ -19,10 +21,13 @@ struct AppRuntimeConfiguration {
         }
 
         let recentDefaults: UserDefaults
+        let uiDefaults: UserDefaults
         if let suiteName = environment["ALPENLEDGER_DEFAULTS_SUITE"], let defaults = UserDefaults(suiteName: suiteName) {
             recentDefaults = defaults
+            uiDefaults = defaults
         } else {
             recentDefaults = .standard
+            uiDefaults = .standard
         }
 
         let nowProvider: @Sendable () -> Date
@@ -37,6 +42,7 @@ struct AppRuntimeConfiguration {
             workspacesRootURL: workspacesRootURL,
             secretStore: secretStore,
             recentDefaults: recentDefaults,
+            uiDefaults: uiDefaults,
             nowProvider: nowProvider
         )
     }
@@ -52,5 +58,29 @@ struct AppRuntimeConfiguration {
             recentStore: recentStore,
             nowProvider: nowProvider
         )
+    }
+
+    func makeUIPreferencesStore() -> WorkspaceUIPreferencesStore {
+        WorkspaceUIPreferencesStore(defaults: uiDefaults)
+    }
+}
+
+final class WorkspaceUIPreferencesStore {
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    func inspectorVisible(workspaceId: WorkspaceID, section: AppSection) -> Bool {
+        defaults.object(forKey: key(for: workspaceId, section: section)) as? Bool ?? true
+    }
+
+    func setInspectorVisible(_ isVisible: Bool, workspaceId: WorkspaceID, section: AppSection) {
+        defaults.set(isVisible, forKey: key(for: workspaceId, section: section))
+    }
+
+    private func key(for workspaceId: WorkspaceID, section: AppSection) -> String {
+        "workspace-ui.\(workspaceId.description).\(section.rawValue).inspectorVisible"
     }
 }

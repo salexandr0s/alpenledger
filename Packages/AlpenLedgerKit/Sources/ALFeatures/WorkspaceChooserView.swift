@@ -5,6 +5,7 @@ import ALWorkspace
 import ALDesignSystem
 
 public struct WorkspaceChooserView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding private var newWorkspaceName: String
     private let recentWorkspaces: [RecentWorkspaceReference]
     private let onCreateWorkspace: () -> Void
@@ -45,6 +46,7 @@ public struct WorkspaceChooserView: View {
             }
             .padding(AppTheme.spacingXL)
             .frame(maxWidth: .infinity, alignment: .top)
+            .transition(AppTheme.chromeTransition(reduceMotion: reduceMotion))
         }
         .accessibilityIdentifier("workspace.chooser")
     }
@@ -54,6 +56,7 @@ public struct WorkspaceChooserView: View {
             VStack(alignment: .leading, spacing: AppTheme.spacingS) {
                 Image(systemName: "lock.shield")
                     .font(.system(size: 28, weight: .semibold))
+                    .symbolRenderingMode(AppTheme.symbolRenderingMode)
                     .foregroundStyle(.blue)
 
                 Text("AlpenLedger")
@@ -66,18 +69,10 @@ public struct WorkspaceChooserView: View {
 
             InspectorPane("Why Start Here", subtitle: "The app behaves like a native document workspace rather than a cloud dashboard.") {
                 VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                    reassuranceRow(
-                        "Everything stays on this Mac by default.",
-                        systemImage: "internaldrive"
-                    )
-                    reassuranceRow(
-                        "Workspace data is encrypted and opened intentionally.",
-                        systemImage: "key.horizontal"
-                    )
-                    reassuranceRow(
-                        "Ledger, documents, and tax readiness stay grounded in the same local workspace.",
-                        systemImage: "checklist"
-                    )
+                    StatusBadge("Local-first", tone: .info)
+                    reassuranceRow("Everything stays on this Mac by default.", systemImage: "internaldrive")
+                    reassuranceRow("Workspace data is encrypted and opened intentionally.", systemImage: "key.horizontal")
+                    reassuranceRow("Ledger, documents, and tax readiness stay grounded in the same local workspace.", systemImage: "checklist")
                 }
             }
 
@@ -90,23 +85,15 @@ public struct WorkspaceChooserView: View {
                             Button {
                                 onOpenWorkspace(recent)
                             } label: {
-                                VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
-                                    Text(recent.name)
-                                        .foregroundStyle(.primary)
-
-                                    Text(recent.path)
-                                        .font(.subheadline)
-                                        .foregroundStyle(AppTheme.subduedForegroundColor)
-
-                                    Text(relativeDateString(for: recent.lastOpenedAt))
-                                        .font(.caption)
-                                        .foregroundStyle(.tertiary)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.vertical, AppTheme.spacingXXS)
-                                .contentShape(Rectangle())
+                                SourceListRow(
+                                    title: recent.name,
+                                    subtitle: recent.path,
+                                    systemImage: "folder",
+                                    badgeText: relativeDateString(for: recent.lastOpenedAt)
+                                )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("workspace.recent.\(accessibilitySlug(recent.name))")
                         }
                     }
                 }

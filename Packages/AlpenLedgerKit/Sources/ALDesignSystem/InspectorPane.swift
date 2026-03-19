@@ -12,25 +12,36 @@ public struct InspectorPane<Content: View>: View {
     }
 
     public var body: some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: AppTheme.spacingM) {
+        VStack(alignment: .leading, spacing: AppTheme.inspectorSectionSpacing) {
+            VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                Text(title)
+                    .font(AppTheme.paneTitleFont)
+                    .bold()
+
+                if let subtitle, subtitle.isEmpty == false {
+                    Text(subtitle)
+                        .font(AppTheme.paneSubtitleFont)
+                        .foregroundStyle(AppTheme.subduedForegroundColor)
+                }
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: AppTheme.inspectorRowSpacing) {
                 content
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, AppTheme.spacingXS)
-        } label: {
-            VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
-                Text(title)
-                    .font(.headline)
-
-                if let subtitle, subtitle.isEmpty == false {
-                    Text(subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(AppTheme.subduedForegroundColor)
-                }
-            }
         }
-        .groupBoxStyle(.automatic)
+        .padding(AppTheme.panelPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                .fill(AppTheme.elevatedSurfaceColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                .stroke(AppTheme.strokeColor, lineWidth: 1)
+        )
     }
 }

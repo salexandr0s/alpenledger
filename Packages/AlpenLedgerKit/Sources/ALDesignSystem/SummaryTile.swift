@@ -30,12 +30,15 @@ public struct SummaryTile: View {
     public var body: some View {
         let content = VStack(alignment: .leading, spacing: AppTheme.spacingS) {
             Label(title, systemImage: systemImage)
-                .font(.subheadline.weight(.medium))
+                .font(AppTheme.summaryTitleFont)
                 .foregroundStyle(AppTheme.subduedForegroundColor)
+                .symbolRenderingMode(AppTheme.symbolRenderingMode)
 
             Text(value)
-                .font(.title2.weight(.semibold))
+                .font(AppTheme.summaryValueFont)
+                .bold()
                 .monospacedDigit()
+                .contentTransition(.numericText())
 
             if let subtitle, subtitle.isEmpty == false {
                 StatusBadge(subtitle, tone: tone)
@@ -45,12 +48,13 @@ public struct SummaryTile: View {
         .padding(AppTheme.panelPadding)
         .background(
             RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .fill(AppTheme.surfaceColor)
+                .fill(AppTheme.elevatedSurfaceColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
                 .stroke(AppTheme.strokeColor, lineWidth: 1)
         )
+        .animation(AppTheme.countAnimation, value: value)
 
         if let accessibilityIdentifier {
             content

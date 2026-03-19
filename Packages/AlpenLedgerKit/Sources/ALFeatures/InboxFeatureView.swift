@@ -68,12 +68,11 @@ public struct InboxFeatureView: View {
                 List(selection: $selection) {
                     Section("Import Jobs") {
                         ForEach(importJobs, id: \.id) { job in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(job.source)
-                                Text("\(job.kind.rawValue) • \(job.status.rawValue)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                            SourceListRow(
+                                title: job.source,
+                                subtitle: "\(job.kind.rawValue) • \(job.status.rawValue)",
+                                systemImage: "tray.full"
+                            )
                             .tag(InboxSelection.importJob(job.id))
                             .accessibilityIdentifier("inbox.importJob.\(accessibilitySlug("\(job.kind.rawValue)-\(job.source)"))")
                         }
@@ -81,12 +80,11 @@ public struct InboxFeatureView: View {
 
                     Section("Proposals") {
                         ForEach(proposals, id: \.id) { proposal in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(proposal.summary)
-                                Text("\(proposal.status.rawValue) • \(Int(proposal.confidence * 100))%")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                            SourceListRow(
+                                title: proposal.summary,
+                                subtitle: "\(proposal.status.rawValue) • \(Int(proposal.confidence * 100))%",
+                                systemImage: "wand.and.stars"
+                            )
                             .tag(InboxSelection.proposal(proposal.id))
                             .accessibilityIdentifier("inbox.proposal.\(accessibilitySlug(proposal.summary))")
                         }
@@ -94,12 +92,11 @@ public struct InboxFeatureView: View {
 
                     Section("Issues") {
                         ForEach(issues, id: \.id) { issue in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(issue.summary)
-                                Text("\(issue.severity.rawValue) • \(issue.status.rawValue)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                            SourceListRow(
+                                title: issue.summary,
+                                subtitle: "\(issue.severity.rawValue) • \(issue.status.rawValue)",
+                                systemImage: issue.severity == .blocking ? "exclamationmark.octagon" : "exclamationmark.triangle"
+                            )
                             .tag(InboxSelection.issue(issue.id))
                             .accessibilityIdentifier("inbox.issue.\(accessibilitySlug(issue.summary))")
                         }
@@ -134,11 +131,11 @@ public struct InboxFeatureView: View {
     private func importJobInspector(_ importJobId: ImportJobID) -> some View {
         if let importJob = importJobs.first(where: { $0.id == importJobId }) {
             InspectorPane("Import Job") {
-                Text(importJob.source)
-                Text("Kind: \(importJob.kind.rawValue)")
-                Text("Status: \(importJob.status.rawValue)")
-                Text("Parser: \(importJob.parserKey) \(importJob.parserVersion)")
-                Text("Warnings: \(importJob.warningCount)")
+                StatusBadge(importJob.status.rawValue.capitalized, tone: importJob.status == .completed ? .success : .warning)
+                InspectorSectionRow("Source", value: importJob.source)
+                InspectorSectionRow("Kind", value: importJob.kind.rawValue)
+                InspectorSectionRow("Parser", value: "\(importJob.parserKey) \(importJob.parserVersion)")
+                InspectorSectionRow("Warnings", value: importJob.warningCount.formatted())
             }
             .accessibilityIdentifier("inbox.inspector.importJob")
         } else {
@@ -150,13 +147,11 @@ public struct InboxFeatureView: View {
     private func proposalInspector(_ proposalId: AgentProposalID) -> some View {
         if let proposal = proposals.first(where: { $0.id == proposalId }) {
             InspectorPane("Proposal") {
-                StatusBadge(proposal.status.rawValue.capitalized, tint: .orange)
-                Text(proposal.summary)
+                StatusBadge(proposal.status.rawValue.capitalized, tone: .warning)
+                InspectorSectionRow("Summary", value: proposal.summary)
+                InspectorSectionRow("Confidence", value: "\(Int(proposal.confidence * 100))%")
+                InspectorSectionRow("Target", value: proposal.targetRef.stringValue)
                 Text(proposal.rationale)
-                    .foregroundStyle(.secondary)
-                Text("Confidence: \(Int(proposal.confidence * 100))%")
-                Text("Target: \(proposal.targetRef.stringValue)")
-                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
             .accessibilityIdentifier("inbox.inspector.proposal")
@@ -169,16 +164,15 @@ public struct InboxFeatureView: View {
     private func issueInspector(_ issueId: IssueID) -> some View {
         if let issue = issues.first(where: { $0.id == issueId }) {
             InspectorPane("Issue") {
-                StatusBadge(issue.severity.rawValue.capitalized, tint: issue.severity == .blocking ? .red : .orange)
-                Text(issue.summary)
-                Text("Status: \(issue.status.rawValue)")
-                Text("Object: \(issue.objectRef.stringValue)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                StatusBadge(
+                    issue.severity.rawValue.capitalized,
+                    tone: issue.severity == .blocking ? .critical : .warning
+                )
+                InspectorSectionRow("Summary", value: issue.summary)
+                InspectorSectionRow("Status", value: issue.status.rawValue.capitalized)
+                InspectorSectionRow("Object", value: issue.objectRef.stringValue)
                 if let relatedRef = issue.relatedRef {
-                    Text("Related: \(relatedRef.stringValue)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    InspectorSectionRow("Related", value: relatedRef.stringValue)
                 }
             }
             .accessibilityIdentifier("inbox.inspector.issue")

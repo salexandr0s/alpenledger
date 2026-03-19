@@ -27,6 +27,8 @@ struct AlpenLedgerApp: App {
         .defaultSize(width: 1440, height: 900)
         .commands {
             WorkspaceCommandMenu(model: model)
+            SelectionCommandMenu(model: model)
+            ViewCommandMenu(model: model)
             SidebarCommands()
         }
     }
@@ -73,6 +75,13 @@ private struct WorkspaceCommandMenu: Commands {
 
             Button("Import Sample Data", action: model.importSampleData)
                 .disabled(model.canImportSampleData == false)
+
+#if DEBUG
+            Divider()
+
+            Button("Import QA Validation Fixtures", action: model.importQAValidationFixtures)
+                .disabled(model.hasWorkspace == false)
+#endif
         }
 
         CommandMenu("Go") {
@@ -83,6 +92,32 @@ private struct WorkspaceCommandMenu: Commands {
                 .keyboardShortcut(section.keyboardShortcut, modifiers: [.command])
                 .disabled(model.hasWorkspace == false)
             }
+        }
+    }
+}
+
+private struct SelectionCommandMenu: Commands {
+    let model: WorkspaceAppModel
+
+    var body: some Commands {
+        CommandMenu("Selection") {
+            Button("Link Document…", action: model.presentDocumentLinkSheet)
+                .disabled(model.canLinkSelectedDocument == false)
+
+            Button("Link Transaction…", action: model.presentTransactionLinkSheet)
+                .disabled(model.canLinkSelectedTransaction == false)
+        }
+    }
+}
+
+private struct ViewCommandMenu: Commands {
+    let model: WorkspaceAppModel
+
+    var body: some Commands {
+        CommandGroup(after: .sidebar) {
+            Button(model.activeInspectorToggleTitle, action: model.toggleInspectorForActiveSection)
+                .keyboardShortcut("0", modifiers: [.command, .option])
+                .disabled(model.canToggleActiveInspector == false)
         }
     }
 }

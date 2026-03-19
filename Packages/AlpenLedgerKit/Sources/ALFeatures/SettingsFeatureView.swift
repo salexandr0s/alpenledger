@@ -26,20 +26,21 @@ public struct SettingsFeatureView: View {
                 PaneHeader("Settings", subtitle: "Workspace-level controls and entity setup.")
 
                 InspectorPane("Workspace", subtitle: "The active local workspace.") {
-                    Text(workspaceName)
+                    InspectorSectionRow("Name", value: workspaceName)
                 }
 
                 InspectorPane("Entities", subtitle: "Legal entities currently configured in this workspace.") {
                     ForEach(entities, id: \.id) { entity in
-                        HStack {
-                            Text(entity.displayName)
-                            Spacer()
-                            StatusBadge(entity.kind.rawValue, tone: .info)
-                        }
+                        SourceListRow(
+                            title: entity.displayName,
+                            subtitle: entity.kind.rawValue.capitalized,
+                            systemImage: entity.kind == .naturalPerson ? "person.crop.circle" : "briefcase"
+                        )
                     }
                 }
 
                 InspectorPane("Add Sole Proprietor", subtitle: "Create a business entity without leaving the app shell.") {
+                    InspectorSectionRow("Workspace Type", value: "Local encrypted workspace")
                     HStack {
                         TextField("Business name", text: $newSolePropName)
                             .accessibilityIdentifier("settings.solePropNameField")

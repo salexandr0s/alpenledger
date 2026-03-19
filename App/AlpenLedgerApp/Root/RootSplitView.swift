@@ -5,6 +5,7 @@ import ALDomain
 import ALFeatures
 
 struct RootSplitView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var model: WorkspaceAppModel
 
     var body: some View {
@@ -37,30 +38,28 @@ struct RootSplitView: View {
             detailView
         }
         .toolbar(content: shellToolbar)
+        .animation(AppTheme.panelAnimation(reduceMotion: reduceMotion), value: model.selectedSection)
     }
 
     private var sidebarView: some View {
         List(selection: $model.selectedSection) {
             ForEach(AppSection.Group.allCases) { group in
-                Section(group.title) {
+                Section {
                     ForEach(group.sections) { section in
                         NavigationLink(value: section) {
-                            HStack(spacing: AppTheme.spacingS) {
-                                Label(section.title, systemImage: section.systemImage)
-
-                                Spacer(minLength: AppTheme.spacingS)
-
-                                if let badge = model.sidebarBadgeText(for: section) {
-                                    Text(badge)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .monospacedDigit()
-                                }
-                            }
-                            .contentShape(Rectangle())
+                            SourceListRow(
+                                title: section.title,
+                                systemImage: section.systemImage,
+                                badgeText: model.sidebarBadgeText(for: section)
+                            )
                         }
                         .accessibilityIdentifier("nav.\(section.rawValue)")
                     }
+                } header: {
+                    Text(group.title)
+                        .font(AppTheme.sidebarSectionHeaderFont)
+                        .foregroundStyle(.tertiary)
+                        .textCase(.uppercase)
                 }
             }
         }
@@ -73,18 +72,32 @@ struct RootSplitView: View {
     private func shellToolbar() -> some ToolbarContent {
         ToolbarItem(placement: .navigation) {
             Button("Toggle Sidebar", systemImage: "sidebar.leading", action: toggleSidebar)
+                .accessibilityIdentifier("toolbar.toggleSidebar")
         }
 
         ToolbarItem(placement: .principal) {
             VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
                 Text(model.workspaceName)
-                    .font(.headline)
+                    .font(AppTheme.windowTitleFont)
+                    .bold()
+                    .contentTransition(.opacity)
 
                 Text(model.currentSectionSubtitle)
-                    .font(.caption)
+                    .font(AppTheme.windowSubtitleFont)
                     .foregroundStyle(.secondary)
+                    .contentTransition(.opacity)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        ToolbarItem {
+            if model.selectedSection == .overview, let action = model.contextualToolbarAction {
+                Button(action.title, systemImage: action.systemImage) {
+                    model.performToolbarAction(action)
+                }
+                .disabled(model.canPerform(action) == false)
+                .accessibilityIdentifier("toolbar.contextAction")
+            }
         }
 
         ToolbarItem {
@@ -106,14 +119,62 @@ struct RootSplitView: View {
                 Button("Import Sample Data", action: model.importSampleData)
                     .disabled(model.canImportSampleData == false)
             }
+            .accessibilityIdentifier("toolbar.importMenu")
         }
 
-        ToolbarItem {
-            if let action = model.contextualToolbarAction {
-                Button(action.title, systemImage: action.systemImage) {
-                    model.performToolbarAction(action)
+        if model.selectedSection == .ledger {
+            ToolbarItemGroup {
+                ToolbarAccessoryChip(
+                    "Shown",
+                    value: model.ledgerToolbarCountValue,
+                    systemImage: "list.number",
+                    accessibilityIdentifier: "toolbar.ledger.visibleCount"
+                )
+
+                Menu {
+                    ForEach(LedgerTransactionScope.allCases) { scope in
+                        Button(scope.title) {
+                            model.setLedgerTransactionScope(scope)
+                        }
+                    }
+                } label: {
+                    Label(model.ledgerTransactionScope.title, systemImage: "line.3.horizontal.decrease.circle")
                 }
-                .disabled(model.canPerform(action) == false)
+                .accessibilityLabel(model.ledgerTransactionScope.title)
+                .accessibilityIdentifier("toolbar.ledger.scope")
+
+                Button("Import CSV", systemImage: "tablecells", action: model.importCSVFromPanel)
+                    .disabled(model.canImportCSV == false)
+                    .accessibilityIdentifier("toolbar.ledger.importCSV")
+
+                Button(model.ledgerInspectorButtonTitle, systemImage: "sidebar.right") {
+                    model.toggleLedgerInspector()
+                }
+                .labelStyle(.iconOnly)
+                .accessibilityLabel(model.ledgerInspectorButtonTitle)
+                .accessibilityIdentifier("toolbar.ledger.toggleInspector")
+            }
+        }
+
+        if model.selectedSection == .documents {
+            ToolbarItemGroup {
+                ToolbarAccessoryChip(
+                    "Shown",
+                    value: model.documentsToolbarCountValue,
+                    systemImage: "doc.on.doc",
+                    accessibilityIdentifier: "toolbar.documents.visibleCount"
+                )
+
+                Button("Import Document", systemImage: "plus", action: model.importDocumentFromPanel)
+                    .disabled(model.canImportDocument == false)
+                    .accessibilityIdentifier("toolbar.documents.import")
+
+                Button(model.documentsInspectorButtonTitle, systemImage: "sidebar.right") {
+                    model.toggleDocumentsInspector()
+                }
+                .labelStyle(.iconOnly)
+                .accessibilityLabel(model.documentsInspectorButtonTitle)
+                .accessibilityIdentifier("toolbar.documents.toggleInspector")
             }
         }
     }
@@ -137,28 +198,40 @@ struct RootSplitView: View {
             LedgerFeatureView(
                 accounts: model.financialAccounts,
                 selectedAccountId: model.selectedAccountId,
-                transactions: model.transactions,
+                transactions: model.visibleTransactions,
+                allTransactionsCount: model.transactionCount,
+                transactionScope: model.ledgerTransactionScope,
                 selectedTransactionId: model.selectedTransactionId,
                 linkedDocuments: model.linkedDocuments,
+                isInspectorVisible: model.isLedgerInspectorVisible,
+                isActive: model.selectedSection == .ledger,
                 onSelectAccount: model.selectAccount,
                 onSelectTransaction: model.selectTransaction,
                 onImportCSV: model.importCSVFromPanel,
+                onResetScope: model.resetLedgerScope,
                 onLinkDocument: model.presentDocumentLinkSheet
             )
         case .documents:
             DocumentsFeatureView(
                 query: $model.documentSearchQuery,
-                documents: model.documents,
+                scope: Binding(
+                    get: { model.documentFilterScope },
+                    set: { model.setDocumentFilterScope($0) }
+                ),
+                documents: model.visibleDocuments,
+                allDocumentsCount: model.documentCount,
                 selectedDocumentId: model.selectedDocumentId,
                 previewURL: model.selectedDocumentPreviewURL,
                 linkedTransactions: model.linkedTransactions,
+                isInspectorVisible: model.isDocumentsInspectorVisible,
+                isActive: model.selectedSection == .documents,
                 onSelectDocument: model.selectDocument,
                 onImportDocument: model.importDocumentFromPanel,
+                onRefreshSearchResults: model.filterDocuments,
+                onClearSearch: model.clearDocumentSearch,
+                onResetScope: model.resetDocumentScope,
                 onLinkTransaction: model.presentTransactionLinkSheet
             )
-            .onChange(of: model.documentSearchQuery) { _, _ in
-                model.filterDocuments()
-            }
         case .taxStudio:
             TaxStudioFeatureView(
                 selectedEntityId: $model.selectedTaxEntityId,
@@ -198,8 +271,14 @@ struct DocumentLinkSheet: View {
     var body: some View {
         NavigationStack {
             List(model.documents, id: \.id) { document in
-                Button(document.originalFilename) {
+                Button {
                     model.linkSelectedDocumentToCurrentTransaction(documentId: document.id)
+                } label: {
+                    SourceListRow(
+                        title: document.originalFilename,
+                        subtitle: document.documentType.rawValue.capitalized,
+                        systemImage: "doc.text"
+                    )
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("sheet.document.\(accessibilitySlug(document.originalFilename))")
@@ -225,8 +304,14 @@ struct TransactionLinkSheet: View {
     var body: some View {
         NavigationStack {
             List(model.transactions, id: \.id) { transaction in
-                Button(transaction.counterpartyName) {
+                Button {
                     model.linkCurrentDocumentToTransaction(transactionId: transaction.id)
+                } label: {
+                    SourceListRow(
+                        title: transaction.counterpartyName,
+                        subtitle: transaction.memo,
+                        systemImage: "list.bullet.rectangle"
+                    )
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("sheet.transaction.\(accessibilitySlug(transaction.counterpartyName))")

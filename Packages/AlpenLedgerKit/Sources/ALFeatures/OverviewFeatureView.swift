@@ -2,6 +2,7 @@ import SwiftUI
 import ALDesignSystem
 
 public struct OverviewFeatureView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let snapshot: OverviewSnapshot
     private let performAction: (OverviewAction) -> Void
 
@@ -31,6 +32,7 @@ public struct OverviewFeatureView: View {
                 }
             }
             .padding(AppTheme.contentPadding)
+            .transition(AppTheme.chromeTransition(reduceMotion: reduceMotion))
         }
     }
 
@@ -103,13 +105,11 @@ public struct OverviewFeatureView: View {
                     VStack(alignment: .leading, spacing: AppTheme.spacingS) {
                         ForEach(snapshot.recentImports) { item in
                             HStack(alignment: .top, spacing: AppTheme.spacingM) {
-                                VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
-                                    Text(item.title)
-
-                                    Text(item.subtitle)
-                                        .font(.subheadline)
-                                        .foregroundStyle(AppTheme.subduedForegroundColor)
-                                }
+                                SourceListRow(
+                                    title: item.title,
+                                    subtitle: item.subtitle,
+                                    systemImage: "tray.and.arrow.down"
+                                )
 
                                 Spacer()
 
@@ -131,13 +131,11 @@ public struct OverviewFeatureView: View {
                     VStack(alignment: .leading, spacing: AppTheme.spacingS) {
                         ForEach(snapshot.reviewQueue) { item in
                             HStack(alignment: .top, spacing: AppTheme.spacingS) {
-                                VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
-                                    Text(item.title)
-
-                                    Text(item.subtitle)
-                                        .font(.subheadline)
-                                        .foregroundStyle(AppTheme.subduedForegroundColor)
-                                }
+                                SourceListRow(
+                                    title: item.title,
+                                    subtitle: item.subtitle,
+                                    systemImage: item.tone == .critical ? "exclamationmark.octagon" : "list.bullet.rectangle"
+                                )
 
                                 Spacer()
 

@@ -70,11 +70,11 @@ enum AppSection: String, CaseIterable, Hashable, Identifiable {
 
     var systemImage: String {
         switch self {
-        case .overview: "rectangle.grid.2x2"
+        case .overview: "rectangle.stack"
         case .inbox: "tray.full"
-        case .ledger: "list.bullet.rectangle.portrait"
-        case .documents: "doc.text.image"
-        case .taxStudio: "checklist.checked"
+        case .ledger: "list.bullet.rectangle"
+        case .documents: "doc.text"
+        case .taxStudio: "checkmark.shield"
         case .settings: "gearshape"
         }
     }

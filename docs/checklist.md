@@ -658,6 +658,7 @@ Use this file as the operational build checklist for AlpenLedger.
 - [ ] Backup/restore tests
 - [ ] Performance tests
 - [ ] UI smoke tests
+  Evidence: run [ui-smoke-pass-macos.md](ui-smoke-pass-macos.md) in default motion and Reduce Motion modes.
 
 ### Fixtures
 - [ ] CSV fixture pack
@@ -710,6 +711,8 @@ Use this file as the operational build checklist for AlpenLedger.
 ---
 
 ## 31. Manual acceptance scenarios
+
+Run the dedicated desktop checklist in [ui-smoke-pass-macos.md](ui-smoke-pass-macos.md) before marking these scenarios complete.
 
 ### Personal-finance scenario
 - [ ] Create a fresh workspace

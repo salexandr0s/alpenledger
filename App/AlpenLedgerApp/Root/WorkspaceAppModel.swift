@@ -46,11 +46,14 @@ final class WorkspaceAppModel {
     }
 
     private let container: DependencyContainer
+    private let uiPreferencesStore: WorkspaceUIPreferencesStore
 
     var recentWorkspaces: [RecentWorkspaceReference] = []
     var newWorkspaceName = ""
     var newSolePropName = ""
     var documentSearchQuery = ""
+    var ledgerTransactionScope: LedgerTransactionScope = .all
+    var documentFilterScope: DocumentFilterScope = .all
     var selectedSection: AppSection = .overview
     var selectedAccountId: FinancialAccountID?
     var selectedTransactionId: TransactionID?
@@ -60,6 +63,8 @@ final class WorkspaceAppModel {
     var selectedTaxYearId: TaxYearID?
     var selectedTaxFactId: TaxFactID?
     var isShowingNewWorkspaceSheet = false
+    var isLedgerInspectorVisible = true
+    var isDocumentsInspectorVisible = true
     var isShowingDocumentLinkSheet = false
     var isShowingTransactionLinkSheet = false
     var errorMessage: String?
@@ -104,6 +109,7 @@ final class WorkspaceAppModel {
 
     init(container: DependencyContainer) {
         self.container = container
+        self.uiPreferencesStore = container.uiPreferencesStore
         reloadRecentWorkspaces()
     }
 
@@ -120,6 +126,38 @@ final class WorkspaceAppModel {
     var canImportDocument: Bool { hasWorkspace }
     var canImportSampleData: Bool { hasWorkspace }
     var currentSectionSubtitle: String { selectedSection.subtitle }
+    var visibleTransactions: [Transaction] { transactions.filter { ledgerTransactionScope.matches($0) } }
+    var visibleDocuments: [Document] {
+        documents.filter { documentFilterScope.matches($0) && documentMatchesSearch($0) }
+    }
+    var ledgerToolbarCountValue: String { visibleTransactions.count.formatted() }
+    var documentsToolbarCountValue: String { visibleDocuments.count.formatted() }
+    var ledgerInspectorButtonTitle: String { isLedgerInspectorVisible ? "Hide Inspector" : "Show Inspector" }
+    var documentsInspectorButtonTitle: String { isDocumentsInspectorVisible ? "Hide Inspector" : "Show Inspector" }
+    var activeInspectorToggleTitle: String {
+        switch selectedSection {
+        case .ledger:
+            return ledgerInspectorButtonTitle
+        case .documents:
+            return documentsInspectorButtonTitle
+        case .overview, .inbox, .taxStudio, .settings:
+            return "Toggle Inspector"
+        }
+    }
+    var selectedAccountTitle: String? { selectedAccountName }
+    var selectedDocumentName: String? {
+        documents.first(where: { $0.id == selectedDocumentId })?.originalFilename
+            ?? visibleDocuments.first?.originalFilename
+    }
+    var canToggleActiveInspector: Bool {
+        hasWorkspace && (selectedSection == .ledger || selectedSection == .documents)
+    }
+    var canLinkSelectedDocument: Bool {
+        selectedSection == .ledger && selectedTransactionId != nil
+    }
+    var canLinkSelectedTransaction: Bool {
+        selectedSection == .documents && selectedDocumentId != nil
+    }
 
     var contextualToolbarAction: ToolbarAction? {
         guard hasWorkspace else { return nil }
@@ -127,11 +165,7 @@ final class WorkspaceAppModel {
         switch selectedSection {
         case .overview:
             return .openInbox
-        case .ledger:
-            return .importCSV
-        case .documents:
-            return .importDocument
-        case .inbox, .taxStudio, .settings:
+        case .ledger, .documents, .inbox, .taxStudio, .settings:
             return nil
         }
     }
@@ -209,6 +243,41 @@ final class WorkspaceAppModel {
 
     func navigate(to section: AppSection) {
         selectedSection = section
+    }
+
+    func setLedgerTransactionScope(_ scope: LedgerTransactionScope) {
+        ledgerTransactionScope = scope
+        perform {
+            try reconcileTransactionSelection()
+        }
+    }
+
+    func setDocumentFilterScope(_ scope: DocumentFilterScope) {
+        documentFilterScope = scope
+        perform {
+            try reconcileDocumentSelection()
+        }
+    }
+
+    func toggleLedgerInspector() {
+        isLedgerInspectorVisible.toggle()
+        persistInspectorVisibility(for: .ledger, isVisible: isLedgerInspectorVisible)
+    }
+
+    func toggleDocumentsInspector() {
+        isDocumentsInspectorVisible.toggle()
+        persistInspectorVisibility(for: .documents, isVisible: isDocumentsInspectorVisible)
+    }
+
+    func toggleInspectorForActiveSection() {
+        switch selectedSection {
+        case .ledger:
+            toggleLedgerInspector()
+        case .documents:
+            toggleDocumentsInspector()
+        case .overview, .inbox, .taxStudio, .settings:
+            break
+        }
     }
 
     func performOverviewAction(_ action: OverviewAction) {
@@ -344,8 +413,21 @@ final class WorkspaceAppModel {
 
     func filterDocuments() {
         perform {
-            try refreshDocuments()
+            try reconcileDocumentSelection()
         }
+    }
+
+    func clearDocumentSearch() {
+        documentSearchQuery = ""
+        filterDocuments()
+    }
+
+    func resetLedgerScope() {
+        setLedgerTransactionScope(.all)
+    }
+
+    func resetDocumentScope() {
+        setDocumentFilterScope(.all)
     }
 
     func sidebarBadgeText(for section: AppSection) -> String? {
@@ -354,9 +436,9 @@ final class WorkspaceAppModel {
             let total = openIssueCount + pendingProposalCount
             return total > 0 ? total.formatted() : nil
         case .ledger:
-            return transactions.isEmpty ? nil : transactions.count.formatted()
+            return visibleTransactions.isEmpty ? nil : visibleTransactions.count.formatted()
         case .documents:
-            return documents.isEmpty ? nil : documents.count.formatted()
+            return visibleDocuments.isEmpty ? nil : visibleDocuments.count.formatted()
         case .taxStudio:
             let total = taxReadinessSummary.openIssueCount + taxReadinessSummary.pendingRequirementCount
             return total > 0 ? total.formatted() : nil
@@ -375,6 +457,29 @@ final class WorkspaceAppModel {
             return canImportDocument
         }
     }
+
+#if DEBUG
+    func importQAValidationFixtures() {
+        guard hasWorkspace else { return }
+
+        perform {
+            let fixtureDirectory = try materializeQAValidationFixtures()
+            let bankStatementURL = fixtureDirectory.appendingPathComponent("qa-ledger-stress-bank-statement.csv")
+            importCSV(url: bankStatementURL)
+
+            let documentURLs = try FileManager.default.contentsOfDirectory(
+                at: fixtureDirectory,
+                includingPropertiesForKeys: nil
+            )
+            .filter { $0.lastPathComponent != bankStatementURL.lastPathComponent }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+
+            for documentURL in documentURLs {
+                importDocument(url: documentURL)
+            }
+        }
+    }
+#endif
 
     private func importCSV(url: URL) {
         guard let importJobService, let selectedAccount = selectedAccountId ?? financialAccounts.first?.id else {
@@ -398,6 +503,9 @@ final class WorkspaceAppModel {
         self.storage = storage
         selectedSection = .overview
         documentSearchQuery = ""
+        ledgerTransactionScope = .all
+        documentFilterScope = .all
+        restoreInspectorVisibility(for: storage.manifest.workspace.id)
 
         let auditLogger = AuditLogger(storage: storage)
         self.auditLogger = auditLogger
@@ -458,29 +566,54 @@ final class WorkspaceAppModel {
     private func refreshTransactions() throws {
         guard let transactionService, let selectedAccount = selectedAccountId else {
             transactions = []
+            selectedTransactionId = nil
             linkedDocuments = []
             return
         }
 
         transactions = try transactionService.listTransactions(accountId: selectedAccount)
-        if transactions.contains(where: { $0.id == selectedTransactionId }) == false {
-            selectedTransactionId = transactions.first?.id
-        }
-        try refreshSelectionArtifacts()
+        try reconcileTransactionSelection()
     }
 
     private func refreshDocuments() throws {
         guard let documentQueryService else {
             documents = []
+            selectedDocumentId = nil
             linkedTransactions = []
             return
         }
 
-        documents = try documentQueryService.listDocuments(query: documentSearchQuery)
-        if documents.contains(where: { $0.id == selectedDocumentId }) == false {
-            selectedDocumentId = documents.first?.id
+        documents = try documentQueryService.listDocuments()
+        try reconcileDocumentSelection()
+    }
+
+    private func reconcileTransactionSelection() throws {
+        if visibleTransactions.contains(where: { $0.id == selectedTransactionId }) == false {
+            selectedTransactionId = visibleTransactions.first?.id
         }
         try refreshSelectionArtifacts()
+    }
+
+    private func reconcileDocumentSelection() throws {
+        if visibleDocuments.contains(where: { $0.id == selectedDocumentId }) == false {
+            selectedDocumentId = visibleDocuments.first?.id
+        }
+        try refreshSelectionArtifacts()
+    }
+
+    private func documentMatchesSearch(_ document: Document) -> Bool {
+        let trimmedQuery = documentSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedQuery.isEmpty == false else { return true }
+
+        let searchableContent = [
+            document.originalFilename,
+            document.extractedText ?? "",
+            document.mediaType,
+            document.documentType.rawValue
+        ]
+        .joined(separator: "\n")
+
+        return searchableContent.localizedCaseInsensitiveContains(trimmedQuery)
     }
 
     private func refreshSelectionArtifacts() throws {
@@ -506,6 +639,118 @@ final class WorkspaceAppModel {
             selectedDocumentPreviewURL = nil
         }
     }
+
+    private func restoreInspectorVisibility(for workspaceId: WorkspaceID) {
+        isLedgerInspectorVisible = uiPreferencesStore.inspectorVisible(workspaceId: workspaceId, section: .ledger)
+        isDocumentsInspectorVisible = uiPreferencesStore.inspectorVisible(workspaceId: workspaceId, section: .documents)
+    }
+
+    private func persistInspectorVisibility(for section: AppSection, isVisible: Bool) {
+        guard let workspaceId = storage?.manifest.workspace.id else { return }
+        uiPreferencesStore.setInspectorVisible(isVisible, workspaceId: workspaceId, section: section)
+    }
+
+#if DEBUG
+    private func materializeQAValidationFixtures() throws -> URL {
+        let fixtureDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AlpenLedger-QAValidationFixtures", isDirectory: true)
+        try? FileManager.default.removeItem(at: fixtureDirectory)
+        try FileManager.default.createDirectory(at: fixtureDirectory, withIntermediateDirectories: true)
+
+        let csvContents = """
+        booking_date,value_date,amount,currency,counterparty,memo,reference,balance
+        2026-01-05,2026-01-05,2500.00,CHF,Acme GmbH,Consulting Invoice,INV-1001,2500.00
+        2026-01-08,2026-01-08,-42.50,CHF,Coffee Bar Zurich,Team Coffee,POS-444,2457.50
+        2026-01-09,2026-01-09,-120.00,CHF,SBB,Travel Expense,TRV-220,2337.50
+        2026-01-12,2026-01-12,-890.00,CHF,Confederation Insurance Cooperative of Zurich and Winterthur,Quarterly premium adjustment,INS-2026-01,1447.50
+        2026-01-16,2026-01-16,-245.40,CHF,Swisscom Business Direct,Broadband and mobile bundle January,SCOM-7842,1202.10
+        2026-01-20,2026-01-20,6400.00,CHF,Client Project Helvetia AG,Monthly retainer January,RET-2026-01,7602.10
+        2026-01-21,2026-01-21,-18.60,CHF,Coffee Bar Zurich,Client meeting espresso bar receipt,POS-512,7583.50
+        2026-01-23,2026-01-23,-1320.00,CHF,SBB Business Travel,Intercity half-fare plus meetings across cantons,TRV-449,6263.50
+        2026-01-24,2026-01-24,-76.15,CHF,Office World Zürich HB,Archival folders and printer paper,OFF-2201,6187.35
+        2026-01-25,2026-01-25,-540.00,CHF,Steuerberatung Muster & Partner AG,Quarterly bookkeeping review,CONS-912,5647.35
+        2026-01-28,2026-01-28,-68.90,CHF,Coop City Bahnhofstrasse Zurich,Team lunch and supplies,POS-601,5578.45
+        2026-01-30,2026-01-30,1200.00,CHF,Client Reimbursement Long Name Demonstration GmbH,Expense reimbursement batch A,REM-1200,6778.45
+        """
+        try csvContents.write(
+            to: fixtureDirectory.appendingPathComponent("qa-ledger-stress-bank-statement.csv"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        if let sampleReceiptURL = Bundle.main.url(forResource: "sample-receipt", withExtension: "pdf") {
+            let pdfCopies = [
+                "2026-01-08 Coffee Bar Zurich receipt with an intentionally long archival filename for narrow-column verification.pdf",
+                "2026-01-21 Coffee Bar Zurich second receipt long-name preview validation copy.pdf"
+            ]
+            for filename in pdfCopies {
+                try? FileManager.default.removeItem(at: fixtureDirectory.appendingPathComponent(filename))
+                try FileManager.default.copyItem(
+                    at: sampleReceiptURL,
+                    to: fixtureDirectory.appendingPathComponent(filename)
+                )
+            }
+        }
+
+        let textFixtures: [(String, String)] = [
+            (
+                "2026 Zurich main operating account statement with long descriptive filename for scope filtering and truncation.txt",
+                """
+                document_type: bank statement
+                tax_year: 2026
+                statement period: january 2026
+                institution: Zuercher Kantonalbank
+                """
+            ),
+            (
+                "2026 Swiss health insurance annual tax certificate long descriptive filename.txt",
+                """
+                document_type: health insurance certificate
+                tax_year: 2026
+                health_insurance_premiums_minor: 420000
+                currency: CHF
+                """
+            ),
+            (
+                "2026 Salary certificate archived with long filename for preview-unavailable validation.txt",
+                """
+                document_type: salary certificate
+                tax_year: 2026
+                salary_gross_minor: 9800000
+                currency: CHF
+                """
+            ),
+            (
+                "2026 Pillar 3a annual contribution certificate with long filename.txt",
+                """
+                document_type: pillar 3a certificate
+                tax_year: 2026
+                pillar3a_contributions_minor: 705600
+                currency: CHF
+                """
+            ),
+            (
+                "2026 supplier invoice exceptionally long filename for invoice grouping and search scope checks.txt",
+                """
+                document_type: invoice
+                tax_year: 2026
+                vendor: Swisscom Business Direct
+                currency: CHF
+                """
+            )
+        ]
+
+        for (filename, contents) in textFixtures {
+            try contents.write(
+                to: fixtureDirectory.appendingPathComponent(filename),
+                atomically: true,
+                encoding: .utf8
+            )
+        }
+
+        return fixtureDirectory
+    }
+#endif
 
     private func refreshInbox() throws {
         importJobs = try importJobService?.listImportJobs() ?? []
