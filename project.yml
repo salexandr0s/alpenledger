@@ -21,6 +21,7 @@ targets:
     deploymentTarget: "15.6"
     settings:
       base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGNING_ALLOWED: YES
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "-"

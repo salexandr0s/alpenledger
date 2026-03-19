@@ -17,6 +17,7 @@
 		5D772021C4C17D1DB2C3D443 /* AppRuntimeConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = F919D5DCAB173C30B54E18A5 /* AppRuntimeConfiguration.swift */; };
 		60786F4E915C8C2429A0F2F7 /* ALTaxCH in Frameworks */ = {isa = PBXBuildFile; productRef = 2D469EE7377120D9D839805C /* ALTaxCH */; };
 		74530272624D6E493602CB43 /* ALImports in Frameworks */ = {isa = PBXBuildFile; productRef = 2724495F31748F8FF0AF40A9 /* ALImports */; };
+		75884702789DCA988E654C0C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9A0B1B63A5DC5CDA2FAEF4AC /* Assets.xcassets */; };
 		77EB47F89434B72C5191B25B /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCAD84BC3F7A3A98C9FC03A /* DependencyContainer.swift */; };
 		78E6BFFF8D656CE789A0EB8B /* sample-receipt.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 959B2437D86F5C90CA1970A6 /* sample-receipt.pdf */; };
 		999E7C4DE8D3B52927B25301 /* ALFeatures in Frameworks */ = {isa = PBXBuildFile; productRef = A81AAB4890010D7244718A07 /* ALFeatures */; };
@@ -58,6 +59,7 @@
 		8035903DE2C3B1A45595B82C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		84F9BD3CC4DD1B16350FBA0B /* AppSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSection.swift; sourceTree = "<group>"; };
 		959B2437D86F5C90CA1970A6 /* sample-receipt.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "sample-receipt.pdf"; sourceTree = "<group>"; };
+		9A0B1B63A5DC5CDA2FAEF4AC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C3097DFB9BC6B9C41C7B87C1 /* AlpenLedgerAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlpenLedgerAppTests.swift; sourceTree = "<group>"; };
 		D6FCD6E58B289D0CF0A667CB /* AlpenLedgerAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AlpenLedgerAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3B78CFCC4EFB751A575111C /* AlpenLedgerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlpenLedgerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -164,6 +166,7 @@
 			children = (
 				4D83B6474B6C7E6FC36E7806 /* AlpenLedgerApp.swift */,
 				F919D5DCAB173C30B54E18A5 /* AppRuntimeConfiguration.swift */,
+				9A0B1B63A5DC5CDA2FAEF4AC /* Assets.xcassets */,
 				0CCAD84BC3F7A3A98C9FC03A /* DependencyContainer.swift */,
 				8035903DE2C3B1A45595B82C /* Info.plist */,
 				12CA9B5F541E6D5356D3DCCF /* Navigation */,
@@ -315,6 +318,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				75884702789DCA988E654C0C /* Assets.xcassets in Resources */,
 				40B90FF7A140D0116D1CF1DE /* sample-bank-statement.csv in Resources */,
 				78E6BFFF8D656CE789A0EB8B /* sample-receipt.pdf in Resources */,
 			);

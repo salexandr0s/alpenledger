@@ -40,6 +40,10 @@ public struct TaxStudioFeatureView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingM) {
+            PaneHeader("Tax Studio", subtitle: "Inspect filing readiness, missing requirements, and current tax facts.")
+                .padding(.horizontal, AppTheme.contentPadding)
+                .padding(.top, AppTheme.spacingM)
+
             HStack(spacing: AppTheme.spacingM) {
                 Picker("Entity", selection: $selectedEntityId) {
                     ForEach(entities, id: \.id) { entity in
@@ -61,36 +65,44 @@ public struct TaxStudioFeatureView: View {
 
                 Spacer()
             }
-            .padding(.horizontal, AppTheme.spacingM)
-            .padding(.top, AppTheme.spacingM)
+            .padding(.horizontal, AppTheme.contentPadding)
 
             HStack(spacing: AppTheme.spacingM) {
-                summaryCard(
+                SummaryTile(
                     "Readiness",
-                    label: readinessSummary.state.rawValue,
-                    tint: readinessTint(readinessSummary.state),
-                    identifier: "taxStudio.readiness"
+                    value: readinessTitle(readinessSummary.state),
+                    subtitle: "Current state",
+                    tone: readinessTone(readinessSummary.state),
+                    systemImage: "checkmark.shield",
+                    accessibilityIdentifier: "taxStudio.readiness",
+                    accessibilityLabel: readinessSummary.state.rawValue
                 )
-                summaryCard(
+                SummaryTile(
                     "Open Issues",
-                    label: readinessSummary.openIssueCount.formatted(),
-                    tint: .red,
-                    identifier: "taxStudio.issueCount"
+                    value: readinessSummary.openIssueCount.formatted(),
+                    subtitle: "Need attention",
+                    tone: .critical,
+                    systemImage: "exclamationmark.bubble",
+                    accessibilityIdentifier: "taxStudio.issueCount"
                 )
-                summaryCard(
+                SummaryTile(
                     "Pending Requirements",
-                    label: readinessSummary.pendingRequirementCount.formatted(),
-                    tint: .orange,
-                    identifier: "taxStudio.requirementCount"
+                    value: readinessSummary.pendingRequirementCount.formatted(),
+                    subtitle: "Still missing",
+                    tone: .warning,
+                    systemImage: "list.bullet.clipboard",
+                    accessibilityIdentifier: "taxStudio.requirementCount"
                 )
-                summaryCard(
+                SummaryTile(
                     "Current Facts",
-                    label: readinessSummary.currentFactCount.formatted(),
-                    tint: .blue,
-                    identifier: "taxStudio.factCount"
+                    value: readinessSummary.currentFactCount.formatted(),
+                    subtitle: "In scope",
+                    tone: .info,
+                    systemImage: "text.document",
+                    accessibilityIdentifier: "taxStudio.factCount"
                 )
             }
-            .padding(.horizontal, AppTheme.spacingM)
+            .padding(.horizontal, AppTheme.contentPadding)
 
             HSplitView {
                 List(selection: $selectedTaxFactId) {
@@ -150,12 +162,11 @@ public struct TaxStudioFeatureView: View {
                 .frame(minWidth: 320)
 
                 VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                    Text("Inspector")
-                        .font(.title3.weight(.semibold))
+                    PaneHeader("Inspector", subtitle: "Provenance and details for the selected tax fact.")
 
                     if let selectedFact {
                         InspectorPane("Tax Fact") {
-                            StatusBadge(selectedFact.status.rawValue.capitalized, tint: statusTint(selectedFact.status))
+                            StatusBadge(selectedFact.status.rawValue.capitalized, tone: statusTone(selectedFact.status))
                             Text(selectedFact.conceptCode)
                                 .font(.body.monospaced())
                             Text(valueString(for: selectedFact))
@@ -257,38 +268,36 @@ public struct TaxStudioFeatureView: View {
         }
     }
 
-    @ViewBuilder
-    private func summaryCard(_ title: String, label: String, tint: Color, identifier: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            StatusBadge(title, tint: tint)
-            Text(label)
-                .font(.title3.weight(.semibold))
-                .accessibilityIdentifier(identifier)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(AppTheme.spacingM)
-        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
-    }
-
-    private func readinessTint(_ state: TaxReadinessState) -> Color {
+    private func readinessTone(_ state: TaxReadinessState) -> StatusBadge.Tone {
         switch state {
         case .notStarted:
-            return .gray
+            return .neutral
         case .needsAttention:
-            return .orange
+            return .warning
         case .readyForReview:
-            return .green
+            return .success
         }
     }
 
-    private func statusTint(_ status: TaxFactStatus) -> Color {
+    private func statusTone(_ status: TaxFactStatus) -> StatusBadge.Tone {
         switch status {
         case .observed:
-            return .blue
+            return .info
         case .derived:
-            return .green
+            return .success
         case .overridden:
-            return .orange
+            return .warning
+        }
+    }
+
+    private func readinessTitle(_ state: TaxReadinessState) -> String {
+        switch state {
+        case .notStarted:
+            return "Not Started"
+        case .needsAttention:
+            return "Needs Attention"
+        case .readyForReview:
+            return "Ready for Review"
         }
     }
 }

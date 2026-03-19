@@ -29,13 +29,40 @@ public struct InboxFeatureView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingM) {
+            PaneHeader("Inbox", subtitle: "Review imports, proposals, and issues before they become filing surprises.")
+                .padding(.horizontal, AppTheme.contentPadding)
+                .padding(.top, AppTheme.spacingM)
+
             HStack(spacing: AppTheme.spacingM) {
-                summaryCard("\(importJobs.count) import jobs", tint: .blue, identifier: "inbox.count.importJobs")
-                summaryCard("\(proposals.filter { $0.status == .pending }.count) pending proposals", tint: .orange, identifier: "inbox.count.proposals")
-                summaryCard("\(issues.filter { $0.status == .open }.count) open issues", tint: .red, identifier: "inbox.count.issues")
+                SummaryTile(
+                    "Import Jobs",
+                    value: importJobs.count.formatted(),
+                    subtitle: "Active",
+                    tone: .info,
+                    systemImage: "tray.full",
+                    accessibilityIdentifier: "inbox.count.importJobs",
+                    accessibilityLabel: "\(importJobs.count) import jobs"
+                )
+                SummaryTile(
+                    "Pending Proposals",
+                    value: proposals.filter { $0.status == .pending }.count.formatted(),
+                    subtitle: "Awaiting review",
+                    tone: .warning,
+                    systemImage: "wand.and.stars",
+                    accessibilityIdentifier: "inbox.count.proposals",
+                    accessibilityLabel: "\(proposals.filter { $0.status == .pending }.count) pending proposals"
+                )
+                SummaryTile(
+                    "Open Issues",
+                    value: issues.filter { $0.status == .open }.count.formatted(),
+                    subtitle: "Need attention",
+                    tone: .critical,
+                    systemImage: "exclamationmark.bubble",
+                    accessibilityIdentifier: "inbox.count.issues",
+                    accessibilityLabel: "\(issues.filter { $0.status == .open }.count) open issues"
+                )
             }
-            .padding(.horizontal, AppTheme.spacingM)
-            .padding(.top, AppTheme.spacingM)
+            .padding(.horizontal, AppTheme.contentPadding)
 
             HSplitView {
                 List(selection: $selection) {
@@ -79,11 +106,10 @@ public struct InboxFeatureView: View {
                     }
                 }
                 .accessibilityIdentifier("inbox.list")
-                .frame(minWidth: 360)
+                .frame(minWidth: 360, idealWidth: AppTheme.sidebarIdealWidth + 140)
 
                 VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                    Text("Inspector")
-                        .font(.title3.weight(.semibold))
+                    PaneHeader("Inspector", subtitle: "Details for the currently selected inbox item.")
 
                     switch selection {
                     case let .importJob(importJobId):
@@ -98,8 +124,8 @@ public struct InboxFeatureView: View {
 
                     Spacer()
                 }
-                .padding(AppTheme.spacingM)
-                .frame(minWidth: 320)
+                .padding(AppTheme.contentPadding)
+                .frame(minWidth: AppTheme.inspectorIdealWidth)
             }
         }
     }
@@ -161,13 +187,4 @@ public struct InboxFeatureView: View {
         }
     }
 
-    @ViewBuilder
-    private func summaryCard(_ label: String, tint: Color, identifier: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            StatusBadge(label, tint: tint, accessibilityIdentifier: identifier)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(AppTheme.spacingM)
-        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
-    }
 }

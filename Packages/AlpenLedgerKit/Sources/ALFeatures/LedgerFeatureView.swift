@@ -50,14 +50,11 @@ public struct LedgerFeatureView: View {
                     .accessibilityIdentifier("ledger.account.\(accessibilitySlug(account.displayName))")
                 }
             }
-            .frame(minWidth: 220)
+            .frame(minWidth: AppTheme.sidebarIdealWidth)
 
             VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                HStack {
-                    Text("Transactions")
-                        .font(.title3.weight(.semibold))
-                    Spacer()
-                    Button("Import CSV", action: onImportCSV)
+                PaneHeader("Transactions", subtitle: "Review statement rows and keep evidence linked to the ledger.") {
+                    Button("Import CSV", systemImage: "tablecells", action: onImportCSV)
                         .buttonStyle(.borderedProminent)
                         .accessibilityIdentifier("ledger.importCSV")
                 }
@@ -82,11 +79,10 @@ public struct LedgerFeatureView: View {
                 .accessibilityIdentifier("ledger.transactions")
             }
             .frame(minWidth: 420)
-            .padding(AppTheme.spacingM)
+            .padding(AppTheme.contentPadding)
 
             VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                Text("Inspector")
-                    .font(.title3.weight(.semibold))
+                PaneHeader("Inspector", subtitle: "Linked evidence for the selected transaction.")
                 if selectedTransactionId == nil {
                     ContentUnavailableView("No Transaction Selected", systemImage: "list.bullet.rectangle")
                 } else {
@@ -106,8 +102,8 @@ public struct LedgerFeatureView: View {
                 }
                 Spacer()
             }
-            .frame(minWidth: 260)
-            .padding(AppTheme.spacingM)
+            .frame(minWidth: AppTheme.inspectorIdealWidth)
+            .padding(AppTheme.contentPadding)
         }
     }
 

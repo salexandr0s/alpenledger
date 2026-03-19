@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import ALDomain
 import ALWorkspace
@@ -25,51 +26,127 @@ public struct WorkspaceChooserView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-            Text("AlpenLedger")
-                .font(.largeTitle.weight(.bold))
-            Text("Create or open an encrypted local workspace.")
-                .foregroundStyle(.secondary)
+        ScrollView {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: AppTheme.spacingXL) {
+                    reassuranceColumn
+                        .frame(maxWidth: 420, alignment: .leading)
 
-            InspectorPane("Create Workspace") {
+                    workspaceColumn
+                        .frame(maxWidth: 460, alignment: .leading)
+                }
+                .frame(maxWidth: AppTheme.chooserMaxWidth, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: AppTheme.spacingL) {
+                    reassuranceColumn
+                    workspaceColumn
+                }
+                .frame(maxWidth: AppTheme.chooserMaxWidth, alignment: .leading)
+            }
+            .padding(AppTheme.spacingXL)
+            .frame(maxWidth: .infinity, alignment: .top)
+        }
+        .accessibilityIdentifier("workspace.chooser")
+    }
+
+    private var reassuranceColumn: some View {
+        VStack(alignment: .leading, spacing: AppTheme.spacingL) {
+            VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                Image(systemName: "lock.shield")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(.blue)
+
+                Text("AlpenLedger")
+                    .font(.largeTitle.weight(.bold))
+
+                Text("A calm, local-first Swiss finance workspace for records, evidence, and filing readiness.")
+                    .font(.title3)
+                    .foregroundStyle(AppTheme.subduedForegroundColor)
+            }
+
+            InspectorPane("Why Start Here", subtitle: "The app behaves like a native document workspace rather than a cloud dashboard.") {
                 VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                    TextField("Workspace name", text: $newWorkspaceName)
-                        .accessibilityIdentifier("workspace.nameField")
-                    Button("Create Workspace", action: onCreateWorkspace)
-                        .buttonStyle(.borderedProminent)
-                        .disabled(newWorkspaceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        .accessibilityIdentifier("workspace.createButton")
+                    reassuranceRow(
+                        "Everything stays on this Mac by default.",
+                        systemImage: "internaldrive"
+                    )
+                    reassuranceRow(
+                        "Workspace data is encrypted and opened intentionally.",
+                        systemImage: "key.horizontal"
+                    )
+                    reassuranceRow(
+                        "Ledger, documents, and tax readiness stay grounded in the same local workspace.",
+                        systemImage: "checklist"
+                    )
                 }
             }
 
-            InspectorPane("Recent Workspaces") {
+            InspectorPane("Recent Workspaces", subtitle: "Open a workspace you used recently.") {
                 if recentWorkspaces.isEmpty {
-                    Text("No recent workspaces yet.")
-                        .foregroundStyle(.secondary)
+                    ContentUnavailableView("No Recent Workspaces", systemImage: "folder")
                 } else {
-                    ForEach(recentWorkspaces, id: \.workspaceId) { recent in
-                        Button {
-                            onOpenWorkspace(recent)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(recent.name)
-                                Text(recent.path)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: AppTheme.spacingXS) {
+                        ForEach(recentWorkspaces, id: \.workspaceId) { recent in
+                            Button {
+                                onOpenWorkspace(recent)
+                            } label: {
+                                VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                                    Text(recent.name)
+                                        .foregroundStyle(.primary)
+
+                                    Text(recent.path)
+                                        .font(.subheadline)
+                                        .foregroundStyle(AppTheme.subduedForegroundColor)
+
+                                    Text(relativeDateString(for: recent.lastOpenedAt))
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, AppTheme.spacingXXS)
+                                .contentShape(Rectangle())
                             }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
-
-            Button("Open Existing Workspace…", action: onOpenExistingWorkspace)
-                .buttonStyle(.bordered)
-                .accessibilityIdentifier("workspace.openExistingButton")
-            Spacer()
         }
-        .padding(32)
-        .frame(minWidth: 720, minHeight: 480, alignment: .topLeading)
-        .accessibilityIdentifier("workspace.chooser")
+    }
+
+    private var workspaceColumn: some View {
+        VStack(alignment: .leading, spacing: AppTheme.spacingL) {
+            WorkspaceCreationFormView(
+                workspaceName: $newWorkspaceName,
+                title: "Create Workspace",
+                detail: "Start with a fresh encrypted workspace bundle for this Mac.",
+                onCreateWorkspace: onCreateWorkspace
+            )
+
+            InspectorPane("Open Existing Workspace", subtitle: "Choose a workspace folder that already exists on disk.") {
+                VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                    Text("Open an existing workspace when you want to continue working with a previously created bundle.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.subduedForegroundColor)
+
+                    Button("Open Existing Workspace…", action: onOpenExistingWorkspace)
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("workspace.openExistingButton")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func reassuranceRow(_ title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.body)
+            .foregroundStyle(.primary)
+    }
+
+    private func relativeDateString(for date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return formatter.localizedString(for: date, relativeTo: .now)
     }
 }

@@ -2,92 +2,238 @@ import SwiftUI
 import ALDesignSystem
 
 public struct OverviewFeatureView: View {
-    private let workspaceName: String
-    private let entityCount: Int
-    private let accountCount: Int
-    private let transactionCount: Int
-    private let documentCount: Int
-    private let importJobCount: Int
-    private let proposalCount: Int
-    private let issueCount: Int
-    private let onImportSampleCSV: () -> Void
-    private let onImportSampleDocument: () -> Void
-    private let onOpenInbox: () -> Void
+    private let snapshot: OverviewSnapshot
+    private let performAction: (OverviewAction) -> Void
 
     public init(
-        workspaceName: String,
-        entityCount: Int,
-        accountCount: Int,
-        transactionCount: Int,
-        documentCount: Int,
-        importJobCount: Int,
-        proposalCount: Int,
-        issueCount: Int,
-        onImportSampleCSV: @escaping () -> Void,
-        onImportSampleDocument: @escaping () -> Void,
-        onOpenInbox: @escaping () -> Void
+        snapshot: OverviewSnapshot,
+        performAction: @escaping (OverviewAction) -> Void
     ) {
-        self.workspaceName = workspaceName
-        self.entityCount = entityCount
-        self.accountCount = accountCount
-        self.transactionCount = transactionCount
-        self.documentCount = documentCount
-        self.importJobCount = importJobCount
-        self.proposalCount = proposalCount
-        self.issueCount = issueCount
-        self.onImportSampleCSV = onImportSampleCSV
-        self.onImportSampleDocument = onImportSampleDocument
-        self.onOpenInbox = onOpenInbox
+        self.snapshot = snapshot
+        self.performAction = performAction
     }
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-                Text(workspaceName)
-                    .font(.largeTitle.weight(.bold))
-                Text("Vertical proof slice")
-                    .foregroundStyle(.secondary)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: AppTheme.spacingXL) {
+                    primaryColumn
+                        .frame(maxWidth: 680, alignment: .leading)
 
-                HStack(spacing: AppTheme.spacingM) {
-                    metricCard("Entities", value: entityCount, tint: .blue)
-                    metricCard("Accounts", value: accountCount, tint: .teal)
-                    metricCard("Transactions", value: transactionCount, tint: .green)
-                    metricCard("Documents", value: documentCount, tint: .orange)
+                    secondaryColumn
+                        .frame(maxWidth: 420, alignment: .leading)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                HStack(spacing: AppTheme.spacingM) {
-                    metricCard("Imports", value: importJobCount, tint: .indigo)
-                    metricCard("Proposals", value: proposalCount, tint: .yellow)
-                    metricCard("Issues", value: issueCount, tint: .red)
-                }
-
-                InspectorPane("Quick Actions") {
-                    HStack {
-                        Button("Import Sample CSV", action: onImportSampleCSV)
-                            .buttonStyle(.borderedProminent)
-                            .accessibilityIdentifier("overview.importSampleCSV")
-                        Button("Import Sample PDF", action: onImportSampleDocument)
-                            .buttonStyle(.bordered)
-                            .accessibilityIdentifier("overview.importSamplePDF")
-                        Button("Open Inbox", action: onOpenInbox)
-                            .buttonStyle(.bordered)
-                            .accessibilityIdentifier("overview.openInbox")
-                    }
+                VStack(alignment: .leading, spacing: AppTheme.spacingL) {
+                    primaryColumn
+                    secondaryColumn
                 }
             }
-            .padding(24)
+            .padding(AppTheme.contentPadding)
         }
     }
 
-    @ViewBuilder
-    private func metricCard(_ title: String, value: Int, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            StatusBadge(title, tint: tint)
-            Text(value.formatted())
-                .font(.title.weight(.semibold))
+    private var primaryColumn: some View {
+        VStack(alignment: .leading, spacing: AppTheme.spacingL) {
+            PaneHeader(snapshot.workspaceName, subtitle: snapshot.workspaceSubtitle)
+
+            InspectorPane("Workspace Health", subtitle: "A compact view of the current workspace state.") {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(minimum: 180), spacing: AppTheme.spacingM),
+                        GridItem(.flexible(minimum: 180), spacing: AppTheme.spacingM),
+                    ],
+                    spacing: AppTheme.spacingM
+                ) {
+                    ForEach(snapshot.healthItems) { item in
+                        SummaryTile(
+                            item.title,
+                            value: item.value,
+                            subtitle: item.subtitle,
+                            tone: item.tone,
+                            systemImage: item.systemImage
+                        )
+                    }
+                }
+            }
+
+            InspectorPane("Next Actions", subtitle: "Follow the highest-signal tasks before diving into detail.") {
+                if snapshot.nextSteps.isEmpty {
+                    ContentUnavailableView("No Immediate Actions", systemImage: "checkmark.circle")
+                } else {
+                    VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                        ForEach(snapshot.nextSteps) { step in
+                            Button(action: {
+                                performAction(step.action)
+                            }) {
+                                HStack(alignment: .top, spacing: AppTheme.spacingS) {
+                                    Image(systemName: step.systemImage)
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 18)
+
+                                    VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                                        Text(step.title)
+                                            .foregroundStyle(.primary)
+
+                                        Text(step.subtitle)
+                                            .font(.subheadline)
+                                            .foregroundStyle(AppTheme.subduedForegroundColor)
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+
+            InspectorPane("Recent Imports", subtitle: "The newest statement and document intake work.") {
+                if snapshot.recentImports.isEmpty {
+                    ContentUnavailableView("No Imports Yet", systemImage: "tray")
+                } else {
+                    VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                        ForEach(snapshot.recentImports) { item in
+                            HStack(alignment: .top, spacing: AppTheme.spacingM) {
+                                VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                                    Text(item.title)
+
+                                    Text(item.subtitle)
+                                        .font(.subheadline)
+                                        .foregroundStyle(AppTheme.subduedForegroundColor)
+                                }
+
+                                Spacer()
+
+                                StatusBadge(item.detail, tone: item.tone)
+                            }
+                        }
+                    }
+                }
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(AppTheme.spacingM)
-        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
+    }
+
+    private var secondaryColumn: some View {
+        VStack(alignment: .leading, spacing: AppTheme.spacingL) {
+            InspectorPane("Review Queue", subtitle: "Open proposals and issues that still need attention.") {
+                if snapshot.reviewQueue.isEmpty {
+                    ContentUnavailableView("Review Queue Clear", systemImage: "checkmark.seal")
+                } else {
+                    VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                        ForEach(snapshot.reviewQueue) { item in
+                            HStack(alignment: .top, spacing: AppTheme.spacingS) {
+                                VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                                    Text(item.title)
+
+                                    Text(item.subtitle)
+                                        .font(.subheadline)
+                                        .foregroundStyle(AppTheme.subduedForegroundColor)
+                                }
+
+                                Spacer()
+
+                                StatusBadge(item.toneLabel, tone: item.tone)
+                            }
+                        }
+                    }
+                }
+            }
+
+            InspectorPane("Tax Readiness", subtitle: snapshot.taxReadiness.detail) {
+                VStack(alignment: .leading, spacing: AppTheme.spacingM) {
+                    HStack {
+                        StatusBadge(snapshot.taxReadiness.summary, tone: snapshot.taxReadiness.tone)
+                        Spacer()
+                        Button("Open Tax Studio", action: {
+                            performAction(.openTaxStudio)
+                        })
+                        .buttonStyle(.bordered)
+                    }
+
+                    Text(snapshot.taxReadiness.title)
+                        .font(.body.weight(.medium))
+
+                    if snapshot.taxReadiness.missingFacts.isEmpty == false {
+                        VStack(alignment: .leading, spacing: AppTheme.spacingXS) {
+                            Text("Missing Facts")
+                                .font(.headline)
+
+                            ForEach(snapshot.taxReadiness.missingFacts, id: \.self) { fact in
+                                Label(fact, systemImage: "circle.fill")
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppTheme.subduedForegroundColor)
+                            }
+                        }
+                    }
+                }
+            }
+
+            InspectorPane("Workspace Snapshot", subtitle: "A concise inventory of entities, accounts, documents, and facts.") {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(minimum: 150), spacing: AppTheme.spacingM),
+                        GridItem(.flexible(minimum: 150), spacing: AppTheme.spacingM),
+                    ],
+                    spacing: AppTheme.spacingM
+                ) {
+                    ForEach(snapshot.workspaceFacts) { fact in
+                        SummaryTile(
+                            fact.title,
+                            value: fact.value,
+                            subtitle: fact.subtitle,
+                            systemImage: fact.systemImage
+                        )
+                    }
+                }
+            }
+
+            InspectorPane("Sample Data", subtitle: "Keep the accepted sample import path available without making it the focus of the dashboard.") {
+                VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                    Button("Import Sample CSV", systemImage: "tablecells", action: {
+                        performAction(.importSampleCSV)
+                    })
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("overview.importSampleCSV")
+
+                    Button("Import Sample PDF", systemImage: "doc.richtext", action: {
+                        performAction(.importSampleDocument)
+                    })
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("overview.importSamplePDF")
+
+                    Button("Open Inbox", systemImage: "tray.full", action: {
+                        performAction(.openInbox)
+                    })
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("overview.openInbox")
+                }
+            }
+        }
+    }
+}
+
+private extension OverviewSnapshot.ReviewQueueItem {
+    var toneLabel: String {
+        switch tone {
+        case .critical:
+            return "Blocking"
+        case .warning:
+            return "Open"
+        case .info:
+            return "Pending"
+        case .success:
+            return "Ready"
+        default:
+            return "Review"
+        }
     }
 }

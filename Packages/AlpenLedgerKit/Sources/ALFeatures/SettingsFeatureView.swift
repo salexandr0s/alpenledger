@@ -23,21 +23,23 @@ public struct SettingsFeatureView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-                Text("Settings")
-                    .font(.largeTitle.weight(.bold))
-                InspectorPane("Workspace") {
+                PaneHeader("Settings", subtitle: "Workspace-level controls and entity setup.")
+
+                InspectorPane("Workspace", subtitle: "The active local workspace.") {
                     Text(workspaceName)
                 }
-                InspectorPane("Entities") {
+
+                InspectorPane("Entities", subtitle: "Legal entities currently configured in this workspace.") {
                     ForEach(entities, id: \.id) { entity in
                         HStack {
                             Text(entity.displayName)
                             Spacer()
-                            StatusBadge(entity.kind.rawValue, tint: .blue)
+                            StatusBadge(entity.kind.rawValue, tone: .info)
                         }
                     }
                 }
-                InspectorPane("Add Sole Proprietor") {
+
+                InspectorPane("Add Sole Proprietor", subtitle: "Create a business entity without leaving the app shell.") {
                     HStack {
                         TextField("Business name", text: $newSolePropName)
                             .accessibilityIdentifier("settings.solePropNameField")
@@ -48,7 +50,7 @@ public struct SettingsFeatureView: View {
                     }
                 }
             }
-            .padding(24)
+            .padding(AppTheme.contentPadding)
         }
     }
 }

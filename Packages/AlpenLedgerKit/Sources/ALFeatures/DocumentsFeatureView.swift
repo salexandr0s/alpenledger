@@ -36,35 +36,36 @@ public struct DocumentsFeatureView: View {
     public var body: some View {
         HSplitView {
             VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                HStack {
-                    TextField("Search documents", text: $query)
-                        .textFieldStyle(.roundedBorder)
-                        .accessibilityIdentifier("documents.searchField")
-                    Button("Import Document", action: onImportDocument)
+                PaneHeader("Documents", subtitle: "Search receipts, statements, and other source documents.") {
+                    Button("Import Document", systemImage: "plus", action: onImportDocument)
                         .buttonStyle(.borderedProminent)
                         .accessibilityIdentifier("documents.importButton")
                 }
 
-                List(selection: documentSelection) {
-                    ForEach(documents, id: \.id) { document in
-                        VStack(alignment: .leading) {
-                            Text(document.originalFilename)
-                            Text(document.documentType.rawValue)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                if documents.isEmpty && query.isEmpty == false {
+                    ContentUnavailableView.search
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List(selection: documentSelection) {
+                        ForEach(documents, id: \.id) { document in
+                            VStack(alignment: .leading) {
+                                Text(document.originalFilename)
+                                Text(document.documentType.rawValue)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .tag(document.id)
+                            .accessibilityIdentifier("documents.document.\(accessibilitySlug(document.originalFilename))")
                         }
-                        .tag(document.id)
-                        .accessibilityIdentifier("documents.document.\(accessibilitySlug(document.originalFilename))")
                     }
+                    .accessibilityIdentifier("documents.list")
                 }
-                .accessibilityIdentifier("documents.list")
             }
             .frame(minWidth: 320)
-            .padding(AppTheme.spacingM)
+            .padding(AppTheme.contentPadding)
 
             VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                Text("Preview")
-                    .font(.title3.weight(.semibold))
+                PaneHeader("Preview", subtitle: "Inspect the selected document without leaving the vault.")
                 if let selectedDocument = documents.first(where: { $0.id == selectedDocumentId }) {
                     DocumentPreviewHost(fileURL: previewURL, mediaType: selectedDocument.mediaType)
                 } else {
@@ -72,11 +73,10 @@ public struct DocumentsFeatureView: View {
                 }
             }
             .frame(minWidth: 420)
-            .padding(AppTheme.spacingM)
+            .padding(AppTheme.contentPadding)
 
             VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                Text("Inspector")
-                    .font(.title3.weight(.semibold))
+                PaneHeader("Inspector", subtitle: "Transactions linked to the selected document.")
                 if selectedDocumentId == nil {
                     ContentUnavailableView("No Document Selected", systemImage: "sidebar.right")
                 } else {
@@ -96,9 +96,10 @@ public struct DocumentsFeatureView: View {
                 }
                 Spacer()
             }
-            .frame(minWidth: 260)
-            .padding(AppTheme.spacingM)
+            .frame(minWidth: AppTheme.inspectorIdealWidth)
+            .padding(AppTheme.contentPadding)
         }
+        .searchable(text: $query, placement: .toolbar, prompt: "Search documents")
     }
 
     private var documentSelection: Binding<DocumentID?> {

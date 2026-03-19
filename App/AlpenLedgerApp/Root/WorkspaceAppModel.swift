@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import Observation
 import ALAudit
+import ALDesignSystem
 import ALDocuments
 import ALDomain
 import ALEvidence
@@ -16,6 +17,34 @@ import ALWorkspace
 @MainActor
 @Observable
 final class WorkspaceAppModel {
+    enum ToolbarAction: Hashable {
+        case openInbox
+        case importCSV
+        case importDocument
+
+        var title: String {
+            switch self {
+            case .openInbox:
+                return "Open Inbox"
+            case .importCSV:
+                return "Import CSV"
+            case .importDocument:
+                return "Import Document"
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .openInbox:
+                return "tray.full"
+            case .importCSV:
+                return "tablecells"
+            case .importDocument:
+                return "plus"
+            }
+        }
+    }
+
     private let container: DependencyContainer
 
     var recentWorkspaces: [RecentWorkspaceReference] = []
@@ -30,6 +59,7 @@ final class WorkspaceAppModel {
     var selectedTaxEntityId: LegalEntityID?
     var selectedTaxYearId: TaxYearID?
     var selectedTaxFactId: TaxFactID?
+    var isShowingNewWorkspaceSheet = false
     var isShowingDocumentLinkSheet = false
     var isShowingTransactionLinkSheet = false
     var errorMessage: String?
@@ -81,10 +111,43 @@ final class WorkspaceAppModel {
         storage?.manifest.workspace.name ?? "AlpenLedger"
     }
 
+    var hasWorkspace: Bool { storage != nil }
     var transactionCount: Int { transactions.count }
     var documentCount: Int { documents.count }
     var openIssueCount: Int { issues.filter { $0.status == .open }.count }
     var pendingProposalCount: Int { agentProposals.filter { $0.status == .pending }.count }
+    var canImportCSV: Bool { hasWorkspace && (selectedAccountId != nil || financialAccounts.isEmpty == false) }
+    var canImportDocument: Bool { hasWorkspace }
+    var canImportSampleData: Bool { hasWorkspace }
+    var currentSectionSubtitle: String { selectedSection.subtitle }
+
+    var contextualToolbarAction: ToolbarAction? {
+        guard hasWorkspace else { return nil }
+
+        switch selectedSection {
+        case .overview:
+            return .openInbox
+        case .ledger:
+            return .importCSV
+        case .documents:
+            return .importDocument
+        case .inbox, .taxStudio, .settings:
+            return nil
+        }
+    }
+
+    var overviewSnapshot: OverviewSnapshot {
+        OverviewSnapshot(
+            workspaceName: workspaceName,
+            workspaceSubtitle: workspaceSummarySubtitle,
+            healthItems: overviewHealthItems,
+            nextSteps: overviewNextSteps,
+            recentImports: overviewRecentImports,
+            reviewQueue: overviewReviewQueue,
+            taxReadiness: overviewTaxReadiness,
+            workspaceFacts: overviewWorkspaceFacts
+        )
+    }
 
     func reloadRecentWorkspaces() {
         recentWorkspaces = container.workspaceService.recentWorkspaces()
@@ -94,6 +157,7 @@ final class WorkspaceAppModel {
         perform {
             let openedStorage = try container.workspaceService.createWorkspace(named: newWorkspaceName)
             newWorkspaceName = ""
+            isShowingNewWorkspaceSheet = false
             configure(openedStorage)
         }
     }
@@ -101,6 +165,7 @@ final class WorkspaceAppModel {
     func openWorkspace(_ reference: RecentWorkspaceReference) {
         perform {
             let openedStorage = try container.workspaceService.openWorkspace(at: URL(fileURLWithPath: reference.path))
+            isShowingNewWorkspaceSheet = false
             configure(openedStorage)
         }
     }
@@ -114,9 +179,19 @@ final class WorkspaceAppModel {
         if panel.runModal() == .OK, let url = panel.url {
             perform {
                 let openedStorage = try container.workspaceService.openWorkspace(at: url)
+                isShowingNewWorkspaceSheet = false
                 configure(openedStorage)
             }
         }
+    }
+
+    func presentNewWorkspaceSheet() {
+        newWorkspaceName = ""
+        isShowingNewWorkspaceSheet = true
+    }
+
+    func dismissNewWorkspaceSheet() {
+        isShowingNewWorkspaceSheet = false
     }
 
     func createSoleProp() {
@@ -130,6 +205,43 @@ final class WorkspaceAppModel {
 
     func openInbox() {
         selectedSection = .inbox
+    }
+
+    func navigate(to section: AppSection) {
+        selectedSection = section
+    }
+
+    func performOverviewAction(_ action: OverviewAction) {
+        switch action {
+        case .openInbox:
+            openInbox()
+        case .openLedger:
+            selectedSection = .ledger
+        case .openDocuments:
+            selectedSection = .documents
+        case .openTaxStudio:
+            selectedSection = .taxStudio
+        case .importSampleCSV:
+            importSampleCSV()
+        case .importSampleDocument:
+            importSampleDocument()
+        }
+    }
+
+    func performToolbarAction(_ action: ToolbarAction) {
+        switch action {
+        case .openInbox:
+            openInbox()
+        case .importCSV:
+            importCSVFromPanel()
+        case .importDocument:
+            importDocumentFromPanel()
+        }
+    }
+
+    func importSampleData() {
+        importSampleCSV()
+        importSampleDocument()
     }
 
     func selectTaxEntity(_ entityId: LegalEntityID?) {
@@ -236,6 +348,34 @@ final class WorkspaceAppModel {
         }
     }
 
+    func sidebarBadgeText(for section: AppSection) -> String? {
+        switch section {
+        case .inbox:
+            let total = openIssueCount + pendingProposalCount
+            return total > 0 ? total.formatted() : nil
+        case .ledger:
+            return transactions.isEmpty ? nil : transactions.count.formatted()
+        case .documents:
+            return documents.isEmpty ? nil : documents.count.formatted()
+        case .taxStudio:
+            let total = taxReadinessSummary.openIssueCount + taxReadinessSummary.pendingRequirementCount
+            return total > 0 ? total.formatted() : nil
+        case .overview, .settings:
+            return nil
+        }
+    }
+
+    func canPerform(_ action: ToolbarAction) -> Bool {
+        switch action {
+        case .openInbox:
+            return hasWorkspace
+        case .importCSV:
+            return canImportCSV
+        case .importDocument:
+            return canImportDocument
+        }
+    }
+
     private func importCSV(url: URL) {
         guard let importJobService, let selectedAccount = selectedAccountId ?? financialAccounts.first?.id else {
             return
@@ -256,6 +396,9 @@ final class WorkspaceAppModel {
 
     private func configure(_ storage: WorkspaceStorage) {
         self.storage = storage
+        selectedSection = .overview
+        documentSearchQuery = ""
+
         let auditLogger = AuditLogger(storage: storage)
         self.auditLogger = auditLogger
         provenanceTraceService = ProvenanceTraceService(storage: storage)
@@ -268,8 +411,10 @@ final class WorkspaceAppModel {
         documentQueryService = DocumentQueryService(storage: storage)
         importJobService = ImportJobService(storage: storage, auditLogger: auditLogger)
         evidenceRefreshService = EvidenceRefreshService(storage: storage, auditLogger: auditLogger, nowProvider: container.nowProvider)
+
         let rulePackRegistry = RulePackRegistry()
         rulePackRegistry.registerPersonalTaxRulePack(ZurichPersonalTaxAdapter2026())
+
         let taxFactService = TaxFactService(storage: storage)
         self.taxFactService = taxFactService
         taxComputationService = TaxComputationService(
@@ -279,6 +424,7 @@ final class WorkspaceAppModel {
             nowProvider: container.nowProvider
         )
         taxValidationService = TaxValidationService(storage: storage, rulePackRegistry: rulePackRegistry)
+
         reloadRecentWorkspaces()
         perform {
             try refreshData(recomputeEvidence: true)
@@ -290,6 +436,7 @@ final class WorkspaceAppModel {
         if recomputeEvidence {
             try evidenceRefreshService?.refresh()
         }
+
         entities = try legalEntityService.listEntities()
         let sortedAccounts = try entities
             .flatMap { try financialAccountService.listAccounts(entityId: $0.id) }
@@ -314,6 +461,7 @@ final class WorkspaceAppModel {
             linkedDocuments = []
             return
         }
+
         transactions = try transactionService.listTransactions(accountId: selectedAccount)
         if transactions.contains(where: { $0.id == selectedTransactionId }) == false {
             selectedTransactionId = transactions.first?.id
@@ -327,6 +475,7 @@ final class WorkspaceAppModel {
             linkedTransactions = []
             return
         }
+
         documents = try documentQueryService.listDocuments(query: documentSearchQuery)
         if documents.contains(where: { $0.id == selectedDocumentId }) == false {
             selectedDocumentId = documents.first?.id
@@ -338,15 +487,15 @@ final class WorkspaceAppModel {
         guard let storage, let documentService, let transactionService else { return }
 
         if let selectedTransactionId {
-            let documentIds = try transactionService.linkedDocumentIDs(for: selectedTransactionId)
-            linkedDocuments = try storage.documentRepository.fetchDocuments(ids: documentIds)
+            let documentIDs = try transactionService.linkedDocumentIDs(for: selectedTransactionId)
+            linkedDocuments = try storage.documentRepository.fetchDocuments(ids: documentIDs)
         } else {
             linkedDocuments = []
         }
 
         if let selectedDocumentId {
-            let transactionIds = try documentService.linkedTransactionIDs(for: selectedDocumentId)
-            linkedTransactions = try storage.transactionRepository.fetchTransactions(ids: transactionIds)
+            let transactionIDs = try documentService.linkedTransactionIDs(for: selectedDocumentId)
+            linkedTransactions = try storage.transactionRepository.fetchTransactions(ids: transactionIDs)
             if let document = try storage.documentRepository.fetchDocument(id: selectedDocumentId) {
                 selectedDocumentPreviewURL = try documentService.binaryRef(for: document).fileURL
             } else {
@@ -487,6 +636,301 @@ final class WorkspaceAppModel {
             try work()
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private var workspaceSummarySubtitle: String {
+        let entityLabel = "\(entities.count) \(entities.count == 1 ? "entity" : "entities")"
+        let accountLabel = "\(financialAccounts.count) \(financialAccounts.count == 1 ? "account" : "accounts")"
+        let documentLabel = "\(documents.count) \(documents.count == 1 ? "document" : "documents")"
+        return [entityLabel, accountLabel, documentLabel].joined(separator: " • ")
+    }
+
+    private var overviewHealthItems: [OverviewSnapshot.HealthItem] {
+        [
+            OverviewSnapshot.HealthItem(
+                id: "issues",
+                title: "Open Issues",
+                value: openIssueCount.formatted(),
+                subtitle: openIssueCount == 0 ? "Clear" : "Need review",
+                tone: openIssueCount == 0 ? .success : .critical,
+                systemImage: "exclamationmark.bubble"
+            ),
+            OverviewSnapshot.HealthItem(
+                id: "proposals",
+                title: "Pending Proposals",
+                value: pendingProposalCount.formatted(),
+                subtitle: pendingProposalCount == 0 ? "Clear" : "Awaiting review",
+                tone: pendingProposalCount == 0 ? .success : .warning,
+                systemImage: "wand.and.stars"
+            ),
+            OverviewSnapshot.HealthItem(
+                id: "imports",
+                title: "Import Jobs",
+                value: importJobs.count.formatted(),
+                subtitle: latestImportSummary,
+                tone: importJobs.isEmpty ? .neutral : .info,
+                systemImage: "tray.full"
+            ),
+            OverviewSnapshot.HealthItem(
+                id: "tax",
+                title: "Tax Readiness",
+                value: overviewTaxReadiness.summary,
+                subtitle: overviewTaxReadiness.detail,
+                tone: overviewTaxReadiness.tone,
+                systemImage: "checkmark.shield"
+            ),
+        ]
+    }
+
+    private var overviewNextSteps: [OverviewSnapshot.NextStep] {
+        var steps: [OverviewSnapshot.NextStep] = []
+
+        if openIssueCount > 0 {
+            steps.append(
+                OverviewSnapshot.NextStep(
+                    id: "issues",
+                    title: "Resolve open issues",
+                    subtitle: "\(openIssueCount) issue\(openIssueCount == 1 ? "" : "s") currently need attention.",
+                    systemImage: "tray.full",
+                    action: .openInbox
+                )
+            )
+        }
+
+        if pendingProposalCount > 0 {
+            steps.append(
+                OverviewSnapshot.NextStep(
+                    id: "proposals",
+                    title: "Review pending proposals",
+                    subtitle: "\(pendingProposalCount) suggestion\(pendingProposalCount == 1 ? "" : "s") still need review.",
+                    systemImage: "wand.and.stars",
+                    action: .openInbox
+                )
+            )
+        }
+
+        if taxReadinessSummary.state != .readyForReview {
+            steps.append(
+                OverviewSnapshot.NextStep(
+                    id: "tax",
+                    title: "Check tax readiness",
+                    subtitle: "\(taxReadinessSummary.pendingRequirementCount) pending requirements and \(taxReadinessSummary.missingConceptCodes.count) missing facts remain.",
+                    systemImage: "checklist.checked",
+                    action: .openTaxStudio
+                )
+            )
+        }
+
+        if documents.isEmpty == false {
+            steps.append(
+                OverviewSnapshot.NextStep(
+                    id: "documents",
+                    title: "Review imported documents",
+                    subtitle: "Inspect the latest evidence in the document vault.",
+                    systemImage: "doc.text.image",
+                    action: .openDocuments
+                )
+            )
+        } else if transactions.isEmpty == false {
+            steps.append(
+                OverviewSnapshot.NextStep(
+                    id: "ledger",
+                    title: "Review imported transactions",
+                    subtitle: "Classify and link transactions in the ledger.",
+                    systemImage: "list.bullet.rectangle.portrait",
+                    action: .openLedger
+                )
+            )
+        }
+
+        if steps.isEmpty {
+            steps.append(
+                OverviewSnapshot.NextStep(
+                    id: "ready",
+                    title: "Workspace looks healthy",
+                    subtitle: "Use the sidebar to inspect details or import more data.",
+                    systemImage: "checkmark.circle",
+                    action: .openDocuments
+                )
+            )
+        }
+
+        return Array(steps.prefix(4))
+    }
+
+    private var overviewRecentImports: [OverviewSnapshot.RecentImportItem] {
+        importJobs
+            .sorted(by: importSortOrder)
+            .prefix(4)
+            .map { job in
+                OverviewSnapshot.RecentImportItem(
+                    id: job.id.rawValue.uuidString,
+                    title: job.source,
+                    subtitle: "\(importKindLabel(job.kind)) • \(importTimestampLabel(job))",
+                    detail: importStatusLabel(job.status),
+                    tone: tone(for: job.status)
+                )
+            }
+    }
+
+    private var overviewReviewQueue: [OverviewSnapshot.ReviewQueueItem] {
+        let issueItems = issues
+            .filter { $0.status == .open }
+            .sorted { lhs, rhs in
+                issuePriority(lhs.severity) > issuePriority(rhs.severity)
+            }
+            .prefix(3)
+            .map { issue in
+                OverviewSnapshot.ReviewQueueItem(
+                    id: issue.id.rawValue.uuidString,
+                    title: issue.summary,
+                    subtitle: issue.severity == .blocking ? "Blocking issue" : "Open issue",
+                    tone: issue.severity == .blocking ? .critical : .warning
+                )
+            }
+
+        let proposalItems = agentProposals
+            .filter { $0.status == .pending }
+            .sorted { $0.createdAt > $1.createdAt }
+            .prefix(3)
+            .map { proposal in
+                OverviewSnapshot.ReviewQueueItem(
+                    id: proposal.id.rawValue.uuidString,
+                    title: proposal.summary,
+                    subtitle: "Proposal • \(Int(proposal.confidence * 100))% confidence",
+                    tone: .info
+                )
+            }
+
+        return Array((issueItems + proposalItems).prefix(5))
+    }
+
+    private var overviewTaxReadiness: OverviewSnapshot.TaxReadinessCard {
+        OverviewSnapshot.TaxReadinessCard(
+            title: readinessTitle(taxReadinessSummary.state),
+            summary: readinessTitle(taxReadinessSummary.state),
+            detail: "\(taxReadinessSummary.openIssueCount) open issues • \(taxReadinessSummary.pendingRequirementCount) pending requirements",
+            tone: readinessTone(taxReadinessSummary.state),
+            missingFacts: Array(taxReadinessSummary.missingConceptCodes.prefix(4))
+        )
+    }
+
+    private var overviewWorkspaceFacts: [OverviewSnapshot.WorkspaceFact] {
+        [
+            OverviewSnapshot.WorkspaceFact(
+                id: "entities",
+                title: "Entities",
+                value: entities.count.formatted(),
+                subtitle: entities.first?.displayName,
+                systemImage: "person.2"
+            ),
+            OverviewSnapshot.WorkspaceFact(
+                id: "accounts",
+                title: "Accounts",
+                value: financialAccounts.count.formatted(),
+                subtitle: selectedAccountName,
+                systemImage: "creditcard"
+            ),
+            OverviewSnapshot.WorkspaceFact(
+                id: "documents",
+                title: "Documents",
+                value: documents.count.formatted(),
+                subtitle: documents.first?.originalFilename,
+                systemImage: "doc.on.doc"
+            ),
+            OverviewSnapshot.WorkspaceFact(
+                id: "facts",
+                title: "Tax Facts",
+                value: taxFacts.count.formatted(),
+                subtitle: readinessTitle(taxReadinessSummary.state),
+                systemImage: "text.document"
+            ),
+        ]
+    }
+
+    private var latestImportSummary: String? {
+        guard let latest = importJobs.sorted(by: importSortOrder).first else {
+            return "No imports yet"
+        }
+
+        return importTimestampLabel(latest)
+    }
+
+    private var selectedAccountName: String? {
+        financialAccounts.first(where: { $0.id == selectedAccountId })?.displayName ?? financialAccounts.first?.displayName
+    }
+
+    private func importSortOrder(lhs: ImportJob, rhs: ImportJob) -> Bool {
+        let lhsDate = lhs.completedAt ?? lhs.startedAt
+        let rhsDate = rhs.completedAt ?? rhs.startedAt
+        return lhsDate > rhsDate
+    }
+
+    private func importKindLabel(_ kind: ImportJobKind) -> String {
+        switch kind {
+        case .bankStatementCSV:
+            return "Bank Statement"
+        case .documentIntake:
+            return "Document Intake"
+        }
+    }
+
+    private func importStatusLabel(_ status: ImportJobStatus) -> String {
+        switch status {
+        case .started:
+            return "Started"
+        case .completed:
+            return "Completed"
+        case .failed:
+            return "Failed"
+        }
+    }
+
+    private func importTimestampLabel(_ job: ImportJob) -> String {
+        let timestamp = job.completedAt ?? job.startedAt
+        return timestamp.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    private func tone(for status: ImportJobStatus) -> StatusBadge.Tone {
+        switch status {
+        case .started:
+            return .warning
+        case .completed:
+            return .success
+        case .failed:
+            return .critical
+        }
+    }
+
+    private func issuePriority(_ severity: IssueSeverity) -> Int {
+        switch severity {
+        case .blocking:
+            return 2
+        case .warning:
+            return 1
+        }
+    }
+
+    private func readinessTone(_ state: TaxReadinessState) -> StatusBadge.Tone {
+        switch state {
+        case .notStarted:
+            return .neutral
+        case .needsAttention:
+            return .warning
+        case .readyForReview:
+            return .success
+        }
+    }
+
+    private func readinessTitle(_ state: TaxReadinessState) -> String {
+        switch state {
+        case .notStarted:
+            return "Not Started"
+        case .needsAttention:
+            return "Needs Attention"
+        case .readyForReview:
+            return "Ready for Review"
         }
     }
 }

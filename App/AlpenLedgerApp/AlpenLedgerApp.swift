@@ -25,6 +25,10 @@ struct AlpenLedgerApp: App {
                 }
         }
         .defaultSize(width: 1440, height: 900)
+        .commands {
+            WorkspaceCommandMenu(model: model)
+            SidebarCommands()
+        }
     }
 
     private var errorPresentedBinding: Binding<Bool> {
@@ -36,5 +40,49 @@ struct AlpenLedgerApp: App {
                 }
             }
         )
+    }
+}
+
+private struct WorkspaceCommandMenu: Commands {
+    let model: WorkspaceAppModel
+
+    var body: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("New Workspace…", action: model.presentNewWorkspaceSheet)
+                .keyboardShortcut("n", modifiers: [.command])
+        }
+
+        CommandGroup(after: .newItem) {
+            Button("Open Workspace…", action: model.openExistingWorkspace)
+                .keyboardShortcut("o", modifiers: [.command])
+            Divider()
+
+            Button("Import Bank Statement CSV…", action: model.importCSVFromPanel)
+                .disabled(model.canImportCSV == false)
+
+            Button("Import Document…", action: model.importDocumentFromPanel)
+                .disabled(model.canImportDocument == false)
+
+            Divider()
+
+            Button("Import Sample CSV", action: model.importSampleCSV)
+                .disabled(model.canImportSampleData == false)
+
+            Button("Import Sample PDF", action: model.importSampleDocument)
+                .disabled(model.canImportSampleData == false)
+
+            Button("Import Sample Data", action: model.importSampleData)
+                .disabled(model.canImportSampleData == false)
+        }
+
+        CommandMenu("Go") {
+            ForEach(AppSection.allCases) { section in
+                Button(section.commandTitle) {
+                    model.navigate(to: section)
+                }
+                .keyboardShortcut(section.keyboardShortcut, modifiers: [.command])
+                .disabled(model.hasWorkspace == false)
+            }
+        }
     }
 }
