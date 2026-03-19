@@ -34,9 +34,11 @@ public struct WorkspaceChooserView: View {
             InspectorPane("Create Workspace") {
                 VStack(alignment: .leading, spacing: AppTheme.spacingS) {
                     TextField("Workspace name", text: $newWorkspaceName)
+                        .accessibilityIdentifier("workspace.nameField")
                     Button("Create Workspace", action: onCreateWorkspace)
                         .buttonStyle(.borderedProminent)
                         .disabled(newWorkspaceName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .accessibilityIdentifier("workspace.createButton")
                 }
             }
 
@@ -63,9 +65,11 @@ public struct WorkspaceChooserView: View {
 
             Button("Open Existing Workspace…", action: onOpenExistingWorkspace)
                 .buttonStyle(.bordered)
+                .accessibilityIdentifier("workspace.openExistingButton")
             Spacer()
         }
         .padding(32)
         .frame(minWidth: 720, minHeight: 480, alignment: .topLeading)
+        .accessibilityIdentifier("workspace.chooser")
     }
 }

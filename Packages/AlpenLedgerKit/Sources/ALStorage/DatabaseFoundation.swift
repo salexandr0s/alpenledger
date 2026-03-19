@@ -36,6 +36,10 @@ public struct WorkspaceStorage: Sendable {
     public let transactionRepository: any TransactionRepository
     public let documentRepository: any DocumentRepository
     public let evidenceLinkRepository: any EvidenceLinkRepository
+    public let requirementRepository: any RequirementRepository
+    public let issueRepository: any IssueRepository
+    public let taxFactRepository: any TaxFactRepository
+    public let agentProposalRepository: any AgentProposalRepository
     public let auditEventRepository: any AuditEventRepository
 }
 
@@ -121,6 +125,10 @@ public final class WorkspaceStorageManager: @unchecked Sendable {
         let transactionRepository = GRDBTransactionRepository(dbPool: dbPool)
         let documentRepository = GRDBDocumentRepository(dbPool: dbPool)
         let evidenceLinkRepository = GRDBEvidenceLinkRepository(dbPool: dbPool)
+        let requirementRepository = GRDBRequirementRepository(dbPool: dbPool)
+        let issueRepository = GRDBIssueRepository(dbPool: dbPool)
+        let taxFactRepository = GRDBTaxFactRepository(dbPool: dbPool)
+        let agentProposalRepository = GRDBAgentProposalRepository(dbPool: dbPool)
         let auditEventRepository = GRDBAuditEventRepository(dbPool: dbPool)
 
         return WorkspaceStorage(
@@ -139,6 +147,10 @@ public final class WorkspaceStorageManager: @unchecked Sendable {
             transactionRepository: transactionRepository,
             documentRepository: documentRepository,
             evidenceLinkRepository: evidenceLinkRepository,
+            requirementRepository: requirementRepository,
+            issueRepository: issueRepository,
+            taxFactRepository: taxFactRepository,
+            agentProposalRepository: agentProposalRepository,
             auditEventRepository: auditEventRepository
         )
     }

@@ -1,0 +1,35 @@
+[
+  {
+    "conceptCode": "personal.deduction.health_insurance_premiums",
+    "currency": "CHF",
+    "moneyMinor": 420000,
+    "valueType": "money"
+  },
+  {
+    "boolValue": true,
+    "conceptCode": "personal.readiness.has_health_insurance_certificate",
+    "valueType": "bool"
+  },
+  {
+    "boolValue": true,
+    "conceptCode": "personal.readiness.has_pillar3a_certificate",
+    "valueType": "bool"
+  },
+  {
+    "boolValue": true,
+    "conceptCode": "personal.readiness.has_salary_certificate",
+    "valueType": "bool"
+  },
+  {
+    "currency": "CHF",
+    "moneyMinor": 705600,
+    "conceptCode": "personal.deduction.pillar3a_contributions",
+    "valueType": "money"
+  },
+  {
+    "currency": "CHF",
+    "moneyMinor": 9800000,
+    "conceptCode": "personal.income.salary_gross",
+    "valueType": "money"
+  }
+]

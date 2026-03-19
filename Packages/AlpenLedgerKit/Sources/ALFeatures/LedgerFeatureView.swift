@@ -47,6 +47,7 @@ public struct LedgerFeatureView: View {
                             .foregroundStyle(.secondary)
                     }
                     .tag(account.id)
+                    .accessibilityIdentifier("ledger.account.\(accessibilitySlug(account.displayName))")
                 }
             }
             .frame(minWidth: 220)
@@ -58,6 +59,7 @@ public struct LedgerFeatureView: View {
                     Spacer()
                     Button("Import CSV", action: onImportCSV)
                         .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("ledger.importCSV")
                 }
 
                 List(selection: transactionSelection) {
@@ -74,8 +76,10 @@ public struct LedgerFeatureView: View {
                                 .monospacedDigit()
                         }
                         .tag(transaction.id)
+                        .accessibilityIdentifier("ledger.transaction.\(accessibilitySlug(transaction.counterpartyName))")
                     }
                 }
+                .accessibilityIdentifier("ledger.transactions")
             }
             .frame(minWidth: 420)
             .padding(AppTheme.spacingM)
@@ -97,6 +101,7 @@ public struct LedgerFeatureView: View {
                         }
                         Button("Link Document…", action: onLinkDocument)
                             .buttonStyle(.bordered)
+                            .accessibilityIdentifier("ledger.linkDocument")
                     }
                 }
                 Spacer()

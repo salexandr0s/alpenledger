@@ -106,6 +106,7 @@ let package = Package(
         .target(
             name: "ALTaxCH",
             dependencies: [
+                "ALDomain",
                 "ALTaxCore",
                 "ALEvidence",
                 "ALLedger",
@@ -150,11 +151,14 @@ let package = Package(
             name: "ALFeatures",
             dependencies: [
                 "ALDesignSystem",
+                "ALDomain",
                 "ALWorkspace",
                 "ALLedger",
                 "ALDocuments",
                 "ALImports",
                 "ALAudit",
+                "ALTaxCore",
+                "ALTaxCH",
             ]
         ),
         .testTarget(
@@ -167,6 +171,7 @@ let package = Package(
                 "ALStorage",
                 "ALDomain",
                 "ALWorkspace",
+                "ALTaxCore",
             ]
         ),
         .testTarget(
@@ -191,6 +196,34 @@ let package = Package(
             dependencies: [
                 "ALDocuments",
                 "ALStorage",
+            ]
+        ),
+        .testTarget(
+            name: "ALEvidenceTests",
+            dependencies: [
+                "ALEvidence",
+                "ALAudit",
+                "ALDocuments",
+                "ALImports",
+                "ALStorage",
+                "ALWorkspace",
+                "ALLedger",
+                "ALDomain",
+            ]
+        ),
+        .testTarget(
+            name: "ALTaxCoreTests",
+            dependencies: [
+                "ALTaxCore",
+                "ALTaxCH",
+                "ALDocuments",
+                "ALStorage",
+                "ALWorkspace",
+                "ALImports",
+                "ALLedger",
+                "ALAudit",
+                "ALEvidence",
+                "ALDomain",
             ]
         ),
     ]

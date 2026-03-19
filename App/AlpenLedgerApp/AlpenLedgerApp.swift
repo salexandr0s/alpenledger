@@ -2,7 +2,11 @@ import SwiftUI
 
 @main
 struct AlpenLedgerApp: App {
-    @State private var model = WorkspaceAppModel(container: DependencyContainer())
+    @State private var model: WorkspaceAppModel
+
+    init() {
+        _model = State(initialValue: WorkspaceAppModel(container: .live()))
+    }
 
     var body: some Scene {
         WindowGroup {

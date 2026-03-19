@@ -21,12 +21,16 @@ targets:
     deploymentTarget: "15.6"
     settings:
       base:
+        CODE_SIGNING_ALLOWED: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
         PRODUCT_BUNDLE_IDENTIFIER: com.alpenledger.app
     sources:
-      - App/AlpenLedgerApp
-    resources:
-      - Fixtures/Bank/sample-bank-statement.csv
-      - Fixtures/Documents/sample-receipt.pdf
+      - path: App/AlpenLedgerApp
+      - path: Fixtures/Bank/sample-bank-statement.csv
+        buildPhase: resources
+      - path: Fixtures/Documents/sample-receipt.pdf
+        buildPhase: resources
     info:
       path: App/AlpenLedgerApp/Info.plist
       properties:
@@ -61,12 +65,22 @@ targets:
         product: ALDocuments
       - package: AlpenLedgerKit
         product: ALImports
+      - package: AlpenLedgerKit
+        product: ALEvidence
+      - package: AlpenLedgerKit
+        product: ALTaxCore
+      - package: AlpenLedgerKit
+        product: ALTaxCH
   AlpenLedgerAppTests:
     type: bundle.unit-test
     platform: macOS
     deploymentTarget: "15.6"
     settings:
       base:
+        CODE_SIGNING_ALLOWED: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: com.alpenledger.appTests
     sources:
       - App/AlpenLedgerAppTests
@@ -84,12 +98,20 @@ targets:
         product: ALDocuments
       - package: AlpenLedgerKit
         product: ALImports
+      - package: AlpenLedgerKit
+        product: ALTaxCore
+      - package: AlpenLedgerKit
+        product: ALTaxCH
   AlpenLedgerAppUITests:
     type: bundle.ui-testing
     platform: macOS
     deploymentTarget: "15.6"
     settings:
       base:
+        CODE_SIGNING_ALLOWED: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: com.alpenledger.appUITests
         TEST_TARGET_NAME: AlpenLedgerApp
     sources:

@@ -39,8 +39,10 @@ public struct DocumentsFeatureView: View {
                 HStack {
                     TextField("Search documents", text: $query)
                         .textFieldStyle(.roundedBorder)
+                        .accessibilityIdentifier("documents.searchField")
                     Button("Import Document", action: onImportDocument)
                         .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("documents.importButton")
                 }
 
                 List(selection: documentSelection) {
@@ -52,8 +54,10 @@ public struct DocumentsFeatureView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .tag(document.id)
+                        .accessibilityIdentifier("documents.document.\(accessibilitySlug(document.originalFilename))")
                     }
                 }
+                .accessibilityIdentifier("documents.list")
             }
             .frame(minWidth: 320)
             .padding(AppTheme.spacingM)
@@ -87,6 +91,7 @@ public struct DocumentsFeatureView: View {
                         }
                         Button("Link Transaction…", action: onLinkTransaction)
                             .buttonStyle(.bordered)
+                            .accessibilityIdentifier("documents.linkTransaction")
                     }
                 }
                 Spacer()

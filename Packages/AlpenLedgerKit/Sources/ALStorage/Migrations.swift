@@ -160,5 +160,87 @@ func migrate(dbPool: DatabasePool) throws {
         """)
     }
 
+    migrator.registerMigration("v2_evidence_inbox") { db in
+        try db.create(table: "requirements", ifNotExists: true) { table in
+            table.column("id", .text).primaryKey()
+            table.column("fingerprint", .text).notNull()
+            table.column("entityId", .text).notNull().references("legalEntities", onDelete: .cascade)
+            table.column("taxYearId", .text).references("taxYears", onDelete: .setNull)
+            table.column("requirementCode", .text).notNull()
+            table.column("subjectRef", .text).notNull()
+            table.column("summary", .text).notNull()
+            table.column("coverageStart", .datetime)
+            table.column("coverageEnd", .datetime)
+            table.column("status", .text).notNull()
+            table.column("satisfiedByRef", .text)
+            table.column("createdAt", .datetime).notNull()
+            table.column("updatedAt", .datetime).notNull()
+        }
+        try db.create(index: "requirements_fingerprint", on: "requirements", columns: ["fingerprint"], unique: true, ifNotExists: true)
+
+        try db.create(table: "issues", ifNotExists: true) { table in
+            table.column("id", .text).primaryKey()
+            table.column("fingerprint", .text).notNull()
+            table.column("workspaceId", .text).notNull().references("workspaces", onDelete: .cascade)
+            table.column("entityId", .text).references("legalEntities", onDelete: .setNull)
+            table.column("taxYearId", .text).references("taxYears", onDelete: .setNull)
+            table.column("issueCode", .text).notNull()
+            table.column("severity", .text).notNull()
+            table.column("status", .text).notNull()
+            table.column("summary", .text).notNull()
+            table.column("objectRef", .text).notNull()
+            table.column("relatedRef", .text)
+            table.column("firstDetectedAt", .datetime).notNull()
+            table.column("lastDetectedAt", .datetime).notNull()
+        }
+        try db.create(index: "issues_fingerprint", on: "issues", columns: ["fingerprint"], unique: true, ifNotExists: true)
+        try db.create(index: "issues_workspace_status", on: "issues", columns: ["workspaceId", "status"], ifNotExists: true)
+
+        try db.create(table: "agentProposals", ifNotExists: true) { table in
+            table.column("id", .text).primaryKey()
+            table.column("fingerprint", .text).notNull()
+            table.column("workspaceId", .text).notNull().references("workspaces", onDelete: .cascade)
+            table.column("agentKind", .text).notNull()
+            table.column("proposalType", .text).notNull()
+            table.column("targetRef", .text).notNull()
+            table.column("summary", .text).notNull()
+            table.column("rationale", .text).notNull()
+            table.column("confidence", .double).notNull()
+            table.column("status", .text).notNull()
+            table.column("createdAt", .datetime).notNull()
+            table.column("decidedAt", .datetime)
+        }
+        try db.create(index: "agentProposals_fingerprint", on: "agentProposals", columns: ["fingerprint"], unique: true, ifNotExists: true)
+        try db.create(index: "agentProposals_workspace_status", on: "agentProposals", columns: ["workspaceId", "status"], ifNotExists: true)
+    }
+
+    migrator.registerMigration("v3_tax_facts") { db in
+        try db.create(table: "taxFacts", ifNotExists: true) { table in
+            table.column("id", .text).primaryKey()
+            table.column("fingerprint", .text).notNull()
+            table.column("entityId", .text).notNull().references("legalEntities", onDelete: .cascade)
+            table.column("taxYearId", .text).notNull().references("taxYears", onDelete: .cascade)
+            table.column("jurisdictionCode", .text).notNull()
+            table.column("conceptCode", .text).notNull()
+            table.column("valueType", .text).notNull()
+            table.column("moneyMinor", .integer)
+            table.column("textValue", .text)
+            table.column("boolValue", .boolean)
+            table.column("dateValue", .datetime)
+            table.column("currency", .text)
+            table.column("status", .text).notNull()
+            table.column("rulesetVersion", .text).notNull()
+            table.column("provenanceRefs", .text).notNull()
+            table.column("confidence", .double).notNull()
+            table.column("supersedesFactId", .text).references("taxFacts")
+            table.column("isCurrent", .boolean).notNull()
+            table.column("overrideReason", .text)
+            table.column("createdAt", .datetime).notNull()
+            table.column("updatedAt", .datetime).notNull()
+        }
+        try db.create(index: "taxFacts_entity_taxYear_current", on: "taxFacts", columns: ["entityId", "taxYearId", "isCurrent"], ifNotExists: true)
+        try db.create(index: "taxFacts_fingerprint_current", on: "taxFacts", columns: ["fingerprint", "isCurrent"], ifNotExists: true)
+    }
+
     try migrator.migrate(dbPool)
 }

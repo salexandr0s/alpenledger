@@ -4,6 +4,7 @@ public enum ObjectKind: String, Codable, CaseIterable, Sendable {
     case workspace
     case legalEntity
     case taxYear
+    case taxFact
     case ledgerAccount
     case financialAccount
     case importJob
@@ -14,6 +15,9 @@ public enum ObjectKind: String, Codable, CaseIterable, Sendable {
     case document
     case evidenceLink
     case auditEvent
+    case requirement
+    case issue
+    case agentProposal
 }
 
 public struct ObjectRef: Hashable, Codable, Sendable {

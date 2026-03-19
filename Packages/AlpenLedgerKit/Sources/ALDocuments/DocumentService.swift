@@ -8,6 +8,8 @@ public final class DocumentService: @unchecked Sendable {
     private let storage: WorkspaceStorage
     private let auditLogger: AuditLogger
     private let extractionPipeline: DocumentExtractionPipeline
+    private let parserKey = "document.intake"
+    private let parserVersion = "1.0.0"
 
     public init(
         storage: WorkspaceStorage,
@@ -21,28 +23,48 @@ public final class DocumentService: @unchecked Sendable {
 
     @discardableResult
     public func importDocument(from url: URL) throws -> Document {
+        let importJob = ImportJob(
+            workspaceId: storage.manifest.workspace.id,
+            kind: .documentIntake,
+            source: url.lastPathComponent,
+            parserKey: parserKey,
+            parserVersion: parserVersion
+        )
+        try storage.importJobRepository.saveImportJob(importJob)
+        try auditLogger.log(
+            eventType: .importJobCreated,
+            objectRef: ObjectRef(kind: .importJob, id: importJob.id.rawValue),
+            payload: url.lastPathComponent
+        )
+
         let mediaType = detectedMediaType(for: url)
         let blobHash = try storage.blobStore.store(contentsOf: url)
 
         if let existing = try storage.documentRepository.fetchDocument(workspaceId: storage.manifest.workspace.id, blobHash: blobHash) {
+            try completeImportJob(importJob, source: url.lastPathComponent)
             return existing
         }
 
         let materializedURL = try storage.blobStore.materialize(hash: blobHash, fileExtension: url.pathExtension.isEmpty ? nil : url.pathExtension)
         let extractedText = extractionPipeline.extractText(from: materializedURL, mediaType: mediaType)
         let documentType = extractionPipeline.detectDocumentType(filename: url.lastPathComponent, extractedText: extractedText)
+        let issueDate = extractionPipeline.inferredIssueDate(from: extractedText)
 
         let document = Document(
             workspaceId: storage.manifest.workspace.id,
+            importJobId: importJob.id,
             blobHash: blobHash,
             originalFilename: url.lastPathComponent,
             mediaType: mediaType,
             documentType: documentType,
+            issueDate: issueDate,
             extractedText: extractedText,
-            metadataStatus: .confirmed
+            metadataStatus: .confirmed,
+            parseVersion: parserVersion
         )
         try storage.documentRepository.saveDocument(document)
         try storage.searchIndex.indexDocument(document)
+        try completeImportJob(importJob, source: url.lastPathComponent)
         try auditLogger.log(
             actorType: .user,
             actorId: "user",
@@ -60,9 +82,20 @@ public final class DocumentService: @unchecked Sendable {
     }
 
     public func linkDocument(_ documentId: DocumentID, to transactionId: TransactionID) throws {
+        let documentRef = ObjectRef(kind: .document, id: documentId.rawValue)
+        let transactionRef = ObjectRef(kind: .transaction, id: transactionId.rawValue)
+        let existingLinks = try storage.evidenceLinkRepository.fetchEvidenceLinks(for: transactionRef)
+        if existingLinks.contains(where: {
+            $0.status == .confirmed &&
+                (($0.sourceRef == documentRef && $0.targetRef == transactionRef) ||
+                    ($0.sourceRef == transactionRef && $0.targetRef == documentRef))
+        }) {
+            return
+        }
+
         let link = EvidenceLink(
-            sourceRef: ObjectRef(kind: .document, id: documentId.rawValue),
-            targetRef: ObjectRef(kind: .transaction, id: transactionId.rawValue),
+            sourceRef: documentRef,
+            targetRef: transactionRef,
             linkType: .documentToTransaction,
             status: .confirmed,
             confidence: 1.0,
@@ -97,5 +130,18 @@ public final class DocumentService: @unchecked Sendable {
             return mimeType
         }
         return "application/octet-stream"
+    }
+
+    private func completeImportJob(_ importJob: ImportJob, source: String) throws {
+        var completed = importJob
+        completed.status = .completed
+        completed.completedAt = .now
+        completed.warningCount = 0
+        try storage.importJobRepository.saveImportJob(completed)
+        try auditLogger.log(
+            eventType: .importJobCompleted,
+            objectRef: ObjectRef(kind: .importJob, id: completed.id.rawValue),
+            payload: source
+        )
     }
 }

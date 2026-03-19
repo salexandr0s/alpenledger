@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Observation
+import ALEvidence
 import ALDomain
 import ALAudit
 import ALDocuments
@@ -8,6 +9,8 @@ import ALFeatures
 import ALImports
 import ALLedger
 import ALStorage
+import ALTaxCH
+import ALTaxCore
 import ALWorkspace
 
 @MainActor
@@ -23,6 +26,10 @@ final class WorkspaceAppModel {
     var selectedAccountId: FinancialAccountID?
     var selectedTransactionId: TransactionID?
     var selectedDocumentId: DocumentID?
+    var selectedInboxSelection: InboxSelection?
+    var selectedTaxEntityId: LegalEntityID?
+    var selectedTaxYearId: TaxYearID?
+    var selectedTaxFactId: TaxFactID?
     var isShowingDocumentLinkSheet = false
     var isShowingTransactionLinkSheet = false
     var errorMessage: String?
@@ -38,11 +45,29 @@ final class WorkspaceAppModel {
     private(set) var documentService: DocumentService?
     private(set) var documentQueryService: DocumentQueryService?
     private(set) var importJobService: ImportJobService?
+    private(set) var evidenceRefreshService: EvidenceRefreshService?
+    private(set) var taxFactService: TaxFactService?
+    private(set) var taxComputationService: TaxComputationService?
+    private(set) var taxValidationService: TaxValidationService?
 
     private(set) var entities: [LegalEntity] = []
+    private(set) var taxYears: [TaxYear] = []
     private(set) var financialAccounts: [FinancialAccount] = []
     private(set) var transactions: [Transaction] = []
     private(set) var documents: [Document] = []
+    private(set) var importJobs: [ImportJob] = []
+    private(set) var issues: [Issue] = []
+    private(set) var agentProposals: [AgentProposal] = []
+    private(set) var taxFacts: [TaxFact] = []
+    private(set) var taxRequirements: [Requirement] = []
+    private(set) var taxIssues: [Issue] = []
+    private(set) var taxReadinessSummary = TaxReadinessSummary(
+        state: .notStarted,
+        openIssueCount: 0,
+        pendingRequirementCount: 0,
+        currentFactCount: 0,
+        missingConceptCodes: []
+    )
     private(set) var linkedDocuments: [Document] = []
     private(set) var linkedTransactions: [Transaction] = []
     private(set) var selectedDocumentPreviewURL: URL?
@@ -58,6 +83,8 @@ final class WorkspaceAppModel {
 
     var transactionCount: Int { transactions.count }
     var documentCount: Int { documents.count }
+    var openIssueCount: Int { issues.filter { $0.status == .open }.count }
+    var pendingProposalCount: Int { agentProposals.filter { $0.status == .pending }.count }
 
     func reloadRecentWorkspaces() {
         recentWorkspaces = container.workspaceService.recentWorkspaces()
@@ -97,7 +124,28 @@ final class WorkspaceAppModel {
         perform {
             _ = try legalEntityService.createSoleProprietor(name: newSolePropName)
             newSolePropName = ""
-            try refreshData()
+            try refreshData(recomputeEvidence: true)
+        }
+    }
+
+    func openInbox() {
+        selectedSection = .inbox
+    }
+
+    func selectTaxEntity(_ entityId: LegalEntityID?) {
+        selectedTaxEntityId = entityId
+        selectedTaxYearId = nil
+        selectedTaxFactId = nil
+        perform {
+            try refreshTaxStudio(recomputeFacts: true)
+        }
+    }
+
+    func selectTaxYear(_ taxYearId: TaxYearID?) {
+        selectedTaxYearId = taxYearId
+        selectedTaxFactId = nil
+        perform {
+            try refreshTaxStudio(recomputeFacts: true)
         }
     }
 
@@ -148,7 +196,7 @@ final class WorkspaceAppModel {
         perform {
             try documentService.linkDocument(documentId, to: selectedTransactionId)
             isShowingDocumentLinkSheet = false
-            try refreshSelectionArtifacts()
+            try refreshData(recomputeEvidence: true)
         }
     }
 
@@ -157,7 +205,7 @@ final class WorkspaceAppModel {
         perform {
             try documentService.linkDocument(selectedDocumentId, to: transactionId)
             isShowingTransactionLinkSheet = false
-            try refreshSelectionArtifacts()
+            try refreshData(recomputeEvidence: true)
         }
     }
 
@@ -194,7 +242,7 @@ final class WorkspaceAppModel {
         }
         perform {
             _ = try importJobService.importStatement(from: url, accountId: selectedAccount)
-            try refreshTransactions()
+            try refreshData(recomputeEvidence: true)
         }
     }
 
@@ -202,7 +250,7 @@ final class WorkspaceAppModel {
         guard let documentService else { return }
         perform {
             _ = try documentService.importDocument(from: url)
-            try refreshDocuments()
+            try refreshData(recomputeEvidence: true)
         }
     }
 
@@ -211,7 +259,7 @@ final class WorkspaceAppModel {
         let auditLogger = AuditLogger(storage: storage)
         self.auditLogger = auditLogger
         provenanceTraceService = ProvenanceTraceService(storage: storage)
-        legalEntityService = LegalEntityService(storage: storage, auditLogger: auditLogger)
+        legalEntityService = LegalEntityService(storage: storage, auditLogger: auditLogger, nowProvider: container.nowProvider)
         taxYearService = TaxYearService(storage: storage)
         ledgerAccountService = LedgerAccountService(storage: storage)
         financialAccountService = FinancialAccountService(storage: storage)
@@ -219,14 +267,29 @@ final class WorkspaceAppModel {
         documentService = DocumentService(storage: storage, auditLogger: auditLogger)
         documentQueryService = DocumentQueryService(storage: storage)
         importJobService = ImportJobService(storage: storage, auditLogger: auditLogger)
+        evidenceRefreshService = EvidenceRefreshService(storage: storage, auditLogger: auditLogger, nowProvider: container.nowProvider)
+        let rulePackRegistry = RulePackRegistry()
+        rulePackRegistry.registerPersonalTaxRulePack(ZurichPersonalTaxAdapter2026())
+        let taxFactService = TaxFactService(storage: storage)
+        self.taxFactService = taxFactService
+        taxComputationService = TaxComputationService(
+            storage: storage,
+            rulePackRegistry: rulePackRegistry,
+            factService: taxFactService,
+            nowProvider: container.nowProvider
+        )
+        taxValidationService = TaxValidationService(storage: storage, rulePackRegistry: rulePackRegistry)
         reloadRecentWorkspaces()
         perform {
-            try refreshData()
+            try refreshData(recomputeEvidence: true)
         }
     }
 
-    private func refreshData() throws {
+    private func refreshData(recomputeEvidence: Bool = false) throws {
         guard let legalEntityService, let financialAccountService else { return }
+        if recomputeEvidence {
+            try evidenceRefreshService?.refresh()
+        }
         entities = try legalEntityService.listEntities()
         let sortedAccounts = try entities
             .flatMap { try financialAccountService.listAccounts(entityId: $0.id) }
@@ -241,6 +304,8 @@ final class WorkspaceAppModel {
 
         try refreshTransactions()
         try refreshDocuments()
+        try refreshInbox()
+        try refreshTaxStudio(recomputeFacts: recomputeEvidence)
     }
 
     private func refreshTransactions() throws {
@@ -291,6 +356,130 @@ final class WorkspaceAppModel {
             linkedTransactions = []
             selectedDocumentPreviewURL = nil
         }
+    }
+
+    private func refreshInbox() throws {
+        importJobs = try importJobService?.listImportJobs() ?? []
+        issues = try evidenceRefreshService?.listIssues() ?? []
+        agentProposals = try evidenceRefreshService?.listProposals() ?? []
+
+        if let selection = selectedInboxSelection, containsInboxSelection(selection) == false {
+            selectedInboxSelection = defaultInboxSelection()
+        } else if selectedInboxSelection == nil {
+            selectedInboxSelection = defaultInboxSelection()
+        }
+    }
+
+    private func refreshTaxStudio(recomputeFacts: Bool = false) throws {
+        guard let storage else {
+            taxYears = []
+            taxFacts = []
+            taxRequirements = []
+            taxIssues = []
+            taxReadinessSummary = TaxReadinessSummary(
+                state: .notStarted,
+                openIssueCount: 0,
+                pendingRequirementCount: 0,
+                currentFactCount: 0,
+                missingConceptCodes: []
+            )
+            return
+        }
+
+        if let selectedTaxEntityId, entities.contains(where: { $0.id == selectedTaxEntityId }) == false {
+            self.selectedTaxEntityId = nil
+        }
+        if self.selectedTaxEntityId == nil {
+            self.selectedTaxEntityId = entities.first(where: { $0.kind == .naturalPerson })?.id ?? entities.first?.id
+        }
+        guard let selectedTaxEntityId,
+              let selectedEntity = entities.first(where: { $0.id == selectedTaxEntityId })
+        else {
+            taxYears = []
+            taxFacts = []
+            taxRequirements = []
+            taxIssues = []
+            return
+        }
+
+        taxYears = try taxYearService?.listTaxYears(entityId: selectedTaxEntityId) ?? []
+        if let selectedTaxYearId, taxYears.contains(where: { $0.id == selectedTaxYearId }) == false {
+            self.selectedTaxYearId = nil
+        }
+        if self.selectedTaxYearId == nil {
+            self.selectedTaxYearId = taxYears.first?.id
+        }
+        guard let selectedTaxYearId,
+              let selectedTaxYear = taxYears.first(where: { $0.id == selectedTaxYearId })
+        else {
+            taxFacts = []
+            taxRequirements = []
+            taxIssues = []
+            taxReadinessSummary = TaxReadinessSummary(
+                state: .notStarted,
+                openIssueCount: 0,
+                pendingRequirementCount: 0,
+                currentFactCount: 0,
+                missingConceptCodes: []
+            )
+            return
+        }
+
+        if recomputeFacts {
+            _ = try taxComputationService?.refreshFacts(entityId: selectedTaxEntityId, taxYearId: selectedTaxYearId)
+        }
+
+        taxFacts = try taxFactService?.listTaxFacts(entityId: selectedTaxEntityId, taxYearId: selectedTaxYearId) ?? []
+        taxRequirements = try storage.requirementRepository
+            .fetchRequirements(entityId: selectedTaxEntityId, taxYearId: selectedTaxYearId)
+            .filter { $0.status == .pending }
+        taxIssues = try storage.issueRepository.fetchIssues(
+            workspaceId: storage.manifest.workspace.id,
+            entityId: selectedTaxEntityId,
+            taxYearId: selectedTaxYearId,
+            status: .open
+        )
+        taxReadinessSummary = try taxValidationService?.readinessSummary(
+            entity: selectedEntity,
+            taxYear: selectedTaxYear,
+            currentFacts: taxFacts
+        ) ?? TaxReadinessSummary(
+            state: .notStarted,
+            openIssueCount: 0,
+            pendingRequirementCount: 0,
+            currentFactCount: 0,
+            missingConceptCodes: []
+        )
+
+        if let selectedTaxFactId, taxFacts.contains(where: { $0.id == selectedTaxFactId }) == false {
+            self.selectedTaxFactId = taxFacts.first?.id
+        } else if self.selectedTaxFactId == nil {
+            self.selectedTaxFactId = taxFacts.first?.id
+        }
+    }
+
+    private func containsInboxSelection(_ selection: InboxSelection) -> Bool {
+        switch selection {
+        case let .importJob(importJobId):
+            return importJobs.contains { $0.id == importJobId }
+        case let .proposal(proposalId):
+            return agentProposals.contains { $0.id == proposalId }
+        case let .issue(issueId):
+            return issues.contains { $0.id == issueId }
+        }
+    }
+
+    private func defaultInboxSelection() -> InboxSelection? {
+        if let importJob = importJobs.first {
+            return .importJob(importJob.id)
+        }
+        if let proposal = agentProposals.first {
+            return .proposal(proposal.id)
+        }
+        if let issue = issues.first {
+            return .issue(issue.id)
+        }
+        return nil
     }
 
     private func perform(_ work: () throws -> Void) {

@@ -10,14 +10,20 @@
 		090C597F30A8C4ED1462AA69 /* WorkspaceAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13EFD619D7FC73C2382A6F5C /* WorkspaceAppModel.swift */; };
 		1B0F0CDAE5158505C3B1AC08 /* ALDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 9E79E901E9F70435F5B1624B /* ALDesignSystem */; };
 		2C893B1E88FF097296C64696 /* ALDocuments in Frameworks */ = {isa = PBXBuildFile; productRef = 8C65E55F14F7283505E8D5EF /* ALDocuments */; };
+		2E2444C8A5A587F7CB116046 /* ALTaxCH in Frameworks */ = {isa = PBXBuildFile; productRef = 2D469EE7377120D9D839805C /* ALTaxCH */; };
 		30CB8D3691FC35758E096D8A /* ALImports in Frameworks */ = {isa = PBXBuildFile; productRef = 2724495F31748F8FF0AF40A9 /* ALImports */; };
+		40B90FF7A140D0116D1CF1DE /* sample-bank-statement.csv in Resources */ = {isa = PBXBuildFile; fileRef = 1ADC1A058888B94E71C36818 /* sample-bank-statement.csv */; };
+		40DE312964A110A79CEB0BDC /* ALTaxCH in Frameworks */ = {isa = PBXBuildFile; productRef = C4A8D04C886B260B7C1B3472 /* ALTaxCH */; };
 		416C635A2BA46C8000D2E596 /* ALWorkspace in Frameworks */ = {isa = PBXBuildFile; productRef = ABB8FEB0B88693533BC2411D /* ALWorkspace */; };
 		42BB245BC6CDC442D6AD856F /* ALStorage in Frameworks */ = {isa = PBXBuildFile; productRef = BDEB7DE87401360153D11BCD /* ALStorage */; };
 		50D28A5351B0D87369B7E430 /* AlpenLedgerAppUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CD9D8C51E570950EAF2312F /* AlpenLedgerAppUITests.swift */; };
 		5A4B05C4E5DBE5B597F9F5B7 /* ALDocuments in Frameworks */ = {isa = PBXBuildFile; productRef = 22EB452C02681E728B7F64B2 /* ALDocuments */; };
+		5D772021C4C17D1DB2C3D443 /* AppRuntimeConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = F919D5DCAB173C30B54E18A5 /* AppRuntimeConfiguration.swift */; };
+		60786F4E915C8C2429A0F2F7 /* ALEvidence in Frameworks */ = {isa = PBXBuildFile; productRef = 64AEFBD470DC15921FFA718F /* ALEvidence */; };
 		74530272624D6E493602CB43 /* ALLedger in Frameworks */ = {isa = PBXBuildFile; productRef = 206991AA60C82400EF91E1C1 /* ALLedger */; };
 		749DACBA56E2004A8A1DA7A7 /* ALFeatures in Frameworks */ = {isa = PBXBuildFile; productRef = DF0C90E226DEEF5FC5F96964 /* ALFeatures */; };
 		77EB47F89434B72C5191B25B /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCAD84BC3F7A3A98C9FC03A /* DependencyContainer.swift */; };
+		78E6BFFF8D656CE789A0EB8B /* sample-receipt.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 959B2437D86F5C90CA1970A6 /* sample-receipt.pdf */; };
 		88C4E0A236EAE558264950F9 /* ALLedger in Frameworks */ = {isa = PBXBuildFile; productRef = 7C8EFB9F61F66B5F8BCB72FA /* ALLedger */; };
 		999E7C4DE8D3B52927B25301 /* ALAudit in Frameworks */ = {isa = PBXBuildFile; productRef = 1E3D79555CE7209B52CDE988 /* ALAudit */; };
 		A45333832DFE2CE7C2142F7E /* ALFeatures in Frameworks */ = {isa = PBXBuildFile; productRef = A81AAB4890010D7244718A07 /* ALFeatures */; };
@@ -25,8 +31,10 @@
 		B77D210B25D1FFED5F298BF9 /* AppSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84F9BD3CC4DD1B16350FBA0B /* AppSection.swift */; };
 		BC59D98AAAD7A2FF6A5BDE12 /* RootSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CCE14D7FC301A491301012 /* RootSplitView.swift */; };
 		C262F2B98D8F6994F055774C /* ALWorkspace in Frameworks */ = {isa = PBXBuildFile; productRef = A81C6F10C00F071C1CD1001D /* ALWorkspace */; };
+		C83DB19D7173935AB4E9FF2B /* ALTaxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1C0F9F6787FBA3625A7B1AC3 /* ALTaxCore */; };
 		C9A6FC57AE1B22E624E0B19C /* ALStorage in Frameworks */ = {isa = PBXBuildFile; productRef = D09244979C7D215FF6FDA644 /* ALStorage */; };
 		CC36C68B2D08AB14A6FAFD51 /* AlpenLedgerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D83B6474B6C7E6FC36E7806 /* AlpenLedgerApp.swift */; };
+		D3C00BCE2BAE6A9AE4959427 /* ALTaxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DAB2A8E5631D392688FAD63 /* ALTaxCore */; };
 		FD12BFB5CD3D9094EAF5E376 /* AlpenLedgerAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3097DFB9BC6B9C41C7B87C1 /* AlpenLedgerAppTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -50,16 +58,19 @@
 /* Begin PBXFileReference section */
 		0CCAD84BC3F7A3A98C9FC03A /* DependencyContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DependencyContainer.swift; sourceTree = "<group>"; };
 		13EFD619D7FC73C2382A6F5C /* WorkspaceAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceAppModel.swift; sourceTree = "<group>"; };
+		1ADC1A058888B94E71C36818 /* sample-bank-statement.csv */ = {isa = PBXFileReference; path = "sample-bank-statement.csv"; sourceTree = "<group>"; };
 		3CD9D8C51E570950EAF2312F /* AlpenLedgerAppUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlpenLedgerAppUITests.swift; sourceTree = "<group>"; };
 		4D83B6474B6C7E6FC36E7806 /* AlpenLedgerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlpenLedgerApp.swift; sourceTree = "<group>"; };
 		52CCE14D7FC301A491301012 /* RootSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootSplitView.swift; sourceTree = "<group>"; };
 		6840ECE291C4E2BBFD9CB004 /* AlpenLedgerAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AlpenLedgerAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8035903DE2C3B1A45595B82C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		84F9BD3CC4DD1B16350FBA0B /* AppSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSection.swift; sourceTree = "<group>"; };
+		959B2437D86F5C90CA1970A6 /* sample-receipt.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "sample-receipt.pdf"; sourceTree = "<group>"; };
 		C3097DFB9BC6B9C41C7B87C1 /* AlpenLedgerAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlpenLedgerAppTests.swift; sourceTree = "<group>"; };
 		D6FCD6E58B289D0CF0A667CB /* AlpenLedgerAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AlpenLedgerAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3B78CFCC4EFB751A575111C /* AlpenLedgerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlpenLedgerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5C43549E18CA9FA6235E85F /* AlpenLedgerKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AlpenLedgerKit; path = Packages/AlpenLedgerKit; sourceTree = SOURCE_ROOT; };
+		F919D5DCAB173C30B54E18A5 /* AppRuntimeConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRuntimeConfiguration.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +84,8 @@
 				88C4E0A236EAE558264950F9 /* ALLedger in Frameworks */,
 				5A4B05C4E5DBE5B597F9F5B7 /* ALDocuments in Frameworks */,
 				B499428678E311BCEDAFB72C /* ALImports in Frameworks */,
+				C83DB19D7173935AB4E9FF2B /* ALTaxCore in Frameworks */,
+				40DE312964A110A79CEB0BDC /* ALTaxCH in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,6 +101,9 @@
 				74530272624D6E493602CB43 /* ALLedger in Frameworks */,
 				2C893B1E88FF097296C64696 /* ALDocuments in Frameworks */,
 				30CB8D3691FC35758E096D8A /* ALImports in Frameworks */,
+				60786F4E915C8C2429A0F2F7 /* ALEvidence in Frameworks */,
+				D3C00BCE2BAE6A9AE4959427 /* ALTaxCore in Frameworks */,
+				2E2444C8A5A587F7CB116046 /* ALTaxCH in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,10 +153,20 @@
 			path = Root;
 			sourceTree = "<group>";
 		};
+		6A34E59FF45285F9FDA1207A /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				F9D783C430A4A9E384E9FA39 /* Bank */,
+				D3B6095498236F1CEEBB8E22 /* Documents */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
 		7F31491B70590947F61100CE = {
 			isa = PBXGroup;
 			children = (
 				A7CEF1EC31EACEA600C0AF05 /* App */,
+				6A34E59FF45285F9FDA1207A /* Fixtures */,
 				15961A6B00A550F59DD6E95F /* Packages */,
 				5621EC0205B202B256A76577 /* Products */,
 			);
@@ -160,6 +186,7 @@
 			isa = PBXGroup;
 			children = (
 				4D83B6474B6C7E6FC36E7806 /* AlpenLedgerApp.swift */,
+				F919D5DCAB173C30B54E18A5 /* AppRuntimeConfiguration.swift */,
 				0CCAD84BC3F7A3A98C9FC03A /* DependencyContainer.swift */,
 				8035903DE2C3B1A45595B82C /* Info.plist */,
 				12CA9B5F541E6D5356D3DCCF /* Navigation */,
@@ -168,12 +195,28 @@
 			path = AlpenLedgerApp;
 			sourceTree = "<group>";
 		};
+		D3B6095498236F1CEEBB8E22 /* Documents */ = {
+			isa = PBXGroup;
+			children = (
+				959B2437D86F5C90CA1970A6 /* sample-receipt.pdf */,
+			);
+			path = Documents;
+			sourceTree = "<group>";
+		};
 		F77F2E5156BFA64D245A2E49 /* AlpenLedgerAppUITests */ = {
 			isa = PBXGroup;
 			children = (
 				3CD9D8C51E570950EAF2312F /* AlpenLedgerAppUITests.swift */,
 			);
 			path = AlpenLedgerAppUITests;
+			sourceTree = "<group>";
+		};
+		F9D783C430A4A9E384E9FA39 /* Bank */ = {
+			isa = PBXGroup;
+			children = (
+				1ADC1A058888B94E71C36818 /* sample-bank-statement.csv */,
+			);
+			path = Bank;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -217,6 +260,8 @@
 				7C8EFB9F61F66B5F8BCB72FA /* ALLedger */,
 				22EB452C02681E728B7F64B2 /* ALDocuments */,
 				E3BA55CA59DBBB0EF63CD371 /* ALImports */,
+				1C0F9F6787FBA3625A7B1AC3 /* ALTaxCore */,
+				C4A8D04C886B260B7C1B3472 /* ALTaxCH */,
 			);
 			productName = AlpenLedgerAppTests;
 			productReference = 6840ECE291C4E2BBFD9CB004 /* AlpenLedgerAppTests.xctest */;
@@ -227,6 +272,7 @@
 			buildConfigurationList = E1D706791E8E3EBA50300A08 /* Build configuration list for PBXNativeTarget "AlpenLedgerApp" */;
 			buildPhases = (
 				0FB9ACDD330C79A8C6563BCA /* Sources */,
+				1C338AB8A4AAE69B89AF22FA /* Resources */,
 				3D51CA0F63DA7B24AE297318 /* Frameworks */,
 			);
 			buildRules = (
@@ -243,6 +289,9 @@
 				206991AA60C82400EF91E1C1 /* ALLedger */,
 				8C65E55F14F7283505E8D5EF /* ALDocuments */,
 				2724495F31748F8FF0AF40A9 /* ALImports */,
+				64AEFBD470DC15921FFA718F /* ALEvidence */,
+				4DAB2A8E5631D392688FAD63 /* ALTaxCore */,
+				2D469EE7377120D9D839805C /* ALTaxCH */,
 			);
 			productName = AlpenLedgerApp;
 			productReference = F3B78CFCC4EFB751A575111C /* AlpenLedgerApp.app */;
@@ -258,7 +307,14 @@
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					6802F60D284D992C0B3B4D3E = {
+						ProvisioningStyle = Manual;
 						TestTargetID = CF933ABC1B390FE47D96E62D;
+					};
+					B1C9906640D784341B09CC00 = {
+						ProvisioningStyle = Manual;
+					};
+					CF933ABC1B390FE47D96E62D = {
+						ProvisioningStyle = Manual;
 					};
 				};
 			};
@@ -286,12 +342,25 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		1C338AB8A4AAE69B89AF22FA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				40B90FF7A140D0116D1CF1DE /* sample-bank-statement.csv in Resources */,
+				78E6BFFF8D656CE789A0EB8B /* sample-receipt.pdf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		0FB9ACDD330C79A8C6563BCA /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				CC36C68B2D08AB14A6FAFD51 /* AlpenLedgerApp.swift in Sources */,
+				5D772021C4C17D1DB2C3D443 /* AppRuntimeConfiguration.swift in Sources */,
 				B77D210B25D1FFED5F298BF9 /* AppSection.swift in Sources */,
 				77EB47F89434B72C5191B25B /* DependencyContainer.swift in Sources */,
 				BC59D98AAAD7A2FF6A5BDE12 /* RootSplitView.swift in Sources */,
@@ -335,7 +404,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -352,7 +425,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -369,7 +446,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -513,6 +594,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = App/AlpenLedgerApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -529,6 +613,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = App/AlpenLedgerApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -545,7 +632,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -607,6 +698,10 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		1C0F9F6787FBA3625A7B1AC3 /* ALTaxCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ALTaxCore;
+		};
 		1E3D79555CE7209B52CDE988 /* ALAudit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ALAudit;
@@ -622,6 +717,18 @@
 		2724495F31748F8FF0AF40A9 /* ALImports */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ALImports;
+		};
+		2D469EE7377120D9D839805C /* ALTaxCH */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ALTaxCH;
+		};
+		4DAB2A8E5631D392688FAD63 /* ALTaxCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ALTaxCore;
+		};
+		64AEFBD470DC15921FFA718F /* ALEvidence */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ALEvidence;
 		};
 		7C8EFB9F61F66B5F8BCB72FA /* ALLedger */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -650,6 +757,10 @@
 		BDEB7DE87401360153D11BCD /* ALStorage */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ALStorage;
+		};
+		C4A8D04C886B260B7C1B3472 /* ALTaxCH */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ALTaxCH;
 		};
 		D09244979C7D215FF6FDA644 /* ALStorage */ = {
 			isa = XCSwiftPackageProductDependency;

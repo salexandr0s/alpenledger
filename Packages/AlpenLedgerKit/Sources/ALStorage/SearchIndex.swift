@@ -17,12 +17,13 @@ public final class SQLiteSearchIndex: SearchIndex, @unchecked Sendable {
     public func indexDocument(_ document: Document) throws {
         try dbPool.write { db in
             try db.execute(
+                sql: "DELETE FROM document_search WHERE documentId = ?",
+                arguments: [document.id]
+            )
+            try db.execute(
                 sql: """
                 INSERT INTO document_search(documentId, workspaceId, content)
                 VALUES (?, ?, ?)
-                ON CONFLICT(documentId) DO UPDATE SET
-                    workspaceId = excluded.workspaceId,
-                    content = excluded.content
                 """,
                 arguments: [document.id, document.workspaceId, document.extractedText ?? document.originalFilename]
             )

@@ -94,3 +94,38 @@ public final class InMemorySecretStore: SecretStore, @unchecked Sendable {
         keys.removeValue(forKey: workspaceId.description)
     }
 }
+
+public final class FileSecretStore: SecretStore, @unchecked Sendable {
+    private let directoryURL: URL
+    private let fileManager: FileManager
+
+    public init(directoryURL: URL, fileManager: FileManager = .default) {
+        self.directoryURL = directoryURL
+        self.fileManager = fileManager
+    }
+
+    public func storeWorkspaceMasterKey(_ data: Data, workspaceId: WorkspaceID) throws {
+        try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+        try data.write(to: keyURL(for: workspaceId), options: .atomic)
+    }
+
+    public func loadWorkspaceMasterKey(workspaceId: WorkspaceID) throws -> Data {
+        let url = keyURL(for: workspaceId)
+        guard fileManager.fileExists(atPath: url.path) else {
+            throw DomainError.missingWorkspaceKey
+        }
+        return try Data(contentsOf: url)
+    }
+
+    public func deleteWorkspaceMasterKey(workspaceId: WorkspaceID) throws {
+        let url = keyURL(for: workspaceId)
+        guard fileManager.fileExists(atPath: url.path) else {
+            return
+        }
+        try fileManager.removeItem(at: url)
+    }
+
+    private func keyURL(for workspaceId: WorkspaceID) -> URL {
+        directoryURL.appendingPathComponent("\(workspaceId.description).key")
+    }
+}

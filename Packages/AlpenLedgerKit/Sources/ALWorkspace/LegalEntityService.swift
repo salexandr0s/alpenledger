@@ -6,11 +6,17 @@ import ALAudit
 public final class LegalEntityService: @unchecked Sendable {
     private let storage: WorkspaceStorage
     private let auditLogger: AuditLogger
+    private let nowProvider: @Sendable () -> Date
     private let calendar = Calendar(identifier: .gregorian)
 
-    public init(storage: WorkspaceStorage, auditLogger: AuditLogger) {
+    public init(
+        storage: WorkspaceStorage,
+        auditLogger: AuditLogger,
+        nowProvider: @escaping @Sendable () -> Date = { .now }
+    ) {
         self.storage = storage
         self.auditLogger = auditLogger
+        self.nowProvider = nowProvider
     }
 
     public func listEntities() throws -> [LegalEntity] {
@@ -80,12 +86,18 @@ public final class LegalEntityService: @unchecked Sendable {
             return
         }
 
+        let currentDate = nowProvider()
+        let currentYear = calendar.component(.year, from: currentDate)
+        let periodStart = calendar.date(from: DateComponents(year: currentYear, month: entity.fiscalYearStartMonth, day: entity.fiscalYearStartDay)) ?? currentDate
+        let periodEnd = calendar.date(byAdding: DateComponents(year: 1, day: -1), to: periodStart) ?? currentDate
+
         let financialAccount = FinancialAccount(
             entityId: entity.id,
             accountType: .bank,
             institutionName: defaultInstitutionName,
             displayName: controlAccount.name,
-            ledgerControlAccountId: controlAccount.id
+            ledgerControlAccountId: controlAccount.id,
+            openedAt: periodStart
         )
         try storage.financialAccountRepository.saveFinancialAccount(financialAccount)
         try auditLogger.log(
@@ -93,15 +105,13 @@ public final class LegalEntityService: @unchecked Sendable {
             objectRef: ObjectRef(kind: .financialAccount, id: financialAccount.id.rawValue)
         )
 
-        let currentYear = calendar.component(.year, from: .now)
-        let periodStart = calendar.date(from: DateComponents(year: currentYear, month: entity.fiscalYearStartMonth, day: entity.fiscalYearStartDay)) ?? .now
-        let periodEnd = calendar.date(byAdding: DateComponents(year: 1, day: -1), to: periodStart) ?? .now
         let taxYear = TaxYear(
             entityId: entity.id,
             year: currentYear,
             periodStart: periodStart,
             periodEnd: periodEnd,
-            canton: entity.canton
+            canton: entity.canton,
+            rulesetVersion: entity.canton?.uppercased() == "ZH" ? "zh-personal-2026-v1" : "ch.v1"
         )
         try storage.taxYearRepository.saveTaxYear(taxYear)
     }

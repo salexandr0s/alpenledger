@@ -1,0 +1,4 @@
+document_type: pillar 3a certificate
+tax_year: 2026
+pillar3a_contributions_minor: 705600
+currency: CHF

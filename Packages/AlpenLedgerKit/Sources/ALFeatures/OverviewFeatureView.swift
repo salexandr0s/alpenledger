@@ -7,8 +7,12 @@ public struct OverviewFeatureView: View {
     private let accountCount: Int
     private let transactionCount: Int
     private let documentCount: Int
+    private let importJobCount: Int
+    private let proposalCount: Int
+    private let issueCount: Int
     private let onImportSampleCSV: () -> Void
     private let onImportSampleDocument: () -> Void
+    private let onOpenInbox: () -> Void
 
     public init(
         workspaceName: String,
@@ -16,16 +20,24 @@ public struct OverviewFeatureView: View {
         accountCount: Int,
         transactionCount: Int,
         documentCount: Int,
+        importJobCount: Int,
+        proposalCount: Int,
+        issueCount: Int,
         onImportSampleCSV: @escaping () -> Void,
-        onImportSampleDocument: @escaping () -> Void
+        onImportSampleDocument: @escaping () -> Void,
+        onOpenInbox: @escaping () -> Void
     ) {
         self.workspaceName = workspaceName
         self.entityCount = entityCount
         self.accountCount = accountCount
         self.transactionCount = transactionCount
         self.documentCount = documentCount
+        self.importJobCount = importJobCount
+        self.proposalCount = proposalCount
+        self.issueCount = issueCount
         self.onImportSampleCSV = onImportSampleCSV
         self.onImportSampleDocument = onImportSampleDocument
+        self.onOpenInbox = onOpenInbox
     }
 
     public var body: some View {
@@ -43,12 +55,23 @@ public struct OverviewFeatureView: View {
                     metricCard("Documents", value: documentCount, tint: .orange)
                 }
 
+                HStack(spacing: AppTheme.spacingM) {
+                    metricCard("Imports", value: importJobCount, tint: .indigo)
+                    metricCard("Proposals", value: proposalCount, tint: .yellow)
+                    metricCard("Issues", value: issueCount, tint: .red)
+                }
+
                 InspectorPane("Quick Actions") {
                     HStack {
                         Button("Import Sample CSV", action: onImportSampleCSV)
                             .buttonStyle(.borderedProminent)
+                            .accessibilityIdentifier("overview.importSampleCSV")
                         Button("Import Sample PDF", action: onImportSampleDocument)
                             .buttonStyle(.bordered)
+                            .accessibilityIdentifier("overview.importSamplePDF")
+                        Button("Open Inbox", action: onOpenInbox)
+                            .buttonStyle(.bordered)
+                            .accessibilityIdentifier("overview.openInbox")
                     }
                 }
             }

@@ -1,0 +1,4 @@
+document_type: salary certificate
+tax_year: 2026
+salary_gross_minor: 9800000
+currency: CHF

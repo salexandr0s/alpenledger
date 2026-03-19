@@ -40,9 +40,11 @@ public struct SettingsFeatureView: View {
                 InspectorPane("Add Sole Proprietor") {
                     HStack {
                         TextField("Business name", text: $newSolePropName)
+                            .accessibilityIdentifier("settings.solePropNameField")
                         Button("Add", action: onCreateSoleProp)
                             .buttonStyle(.borderedProminent)
                             .disabled(newSolePropName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .accessibilityIdentifier("settings.addSolePropButton")
                     }
                 }
             }

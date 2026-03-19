@@ -10,6 +10,9 @@ public enum DocumentType: String, Codable, CaseIterable, Sendable {
     case receipt
     case invoice
     case bankStatement
+    case salaryCertificate
+    case healthInsuranceCertificate
+    case pillar3aCertificate
 }
 
 public enum MetadataStatus: String, Codable, CaseIterable, Sendable {

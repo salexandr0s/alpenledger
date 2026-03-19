@@ -57,6 +57,42 @@ public protocol EvidenceLinkRepository: Sendable {
     func saveEvidenceLink(_ evidenceLink: EvidenceLink) throws
 }
 
+public protocol RequirementRepository: Sendable {
+    func fetchRequirements(entityId: LegalEntityID, taxYearId: TaxYearID?) throws -> [Requirement]
+    func fetchRequirement(fingerprint: String) throws -> Requirement?
+    func saveRequirement(_ requirement: Requirement) throws
+}
+
+public extension RequirementRepository {
+    func fetchRequirements(entityId: LegalEntityID) throws -> [Requirement] {
+        try fetchRequirements(entityId: entityId, taxYearId: nil)
+    }
+}
+
+public protocol IssueRepository: Sendable {
+    func fetchIssues(workspaceId: WorkspaceID, entityId: LegalEntityID?, taxYearId: TaxYearID?, status: IssueStatus?) throws -> [Issue]
+    func fetchIssue(fingerprint: String) throws -> Issue?
+    func saveIssue(_ issue: Issue) throws
+}
+
+public extension IssueRepository {
+    func fetchIssues(workspaceId: WorkspaceID, status: IssueStatus?) throws -> [Issue] {
+        try fetchIssues(workspaceId: workspaceId, entityId: nil, taxYearId: nil, status: status)
+    }
+}
+
+public protocol TaxFactRepository: Sendable {
+    func fetchTaxFacts(entityId: LegalEntityID, taxYearId: TaxYearID, currentOnly: Bool) throws -> [TaxFact]
+    func fetchTaxFact(fingerprint: String, isCurrent: Bool?) throws -> TaxFact?
+    func saveTaxFact(_ fact: TaxFact) throws
+}
+
+public protocol AgentProposalRepository: Sendable {
+    func fetchAgentProposals(workspaceId: WorkspaceID, status: ProposalStatus?) throws -> [AgentProposal]
+    func fetchAgentProposal(fingerprint: String) throws -> AgentProposal?
+    func saveAgentProposal(_ proposal: AgentProposal) throws
+}
+
 public protocol AuditEventRepository: Sendable {
     func fetchAuditEvents(workspaceId: WorkspaceID, objectRef: ObjectRef?) throws -> [AuditEvent]
     func saveAuditEvent(_ event: AuditEvent) throws
@@ -118,8 +154,90 @@ extension Document: FetchableRecord, PersistableRecord {
 extension EvidenceLink: FetchableRecord, PersistableRecord {
     public static let databaseTableName = "evidenceLinks"
 }
+extension Requirement: FetchableRecord, PersistableRecord {
+    public static let databaseTableName = "requirements"
+}
+extension Issue: FetchableRecord, PersistableRecord {
+    public static let databaseTableName = "issues"
+}
+extension AgentProposal: FetchableRecord, PersistableRecord {
+    public static let databaseTableName = "agentProposals"
+}
 extension AuditEvent: FetchableRecord, PersistableRecord {
     public static let databaseTableName = "auditEvents"
+}
+
+extension TaxFact: FetchableRecord, PersistableRecord {
+    public static let databaseTableName = "taxFacts"
+
+    public init(row: Row) {
+        self.init(
+            id: row["id"],
+            fingerprint: row["fingerprint"],
+            entityId: row["entityId"],
+            taxYearId: row["taxYearId"],
+            jurisdictionCode: row["jurisdictionCode"],
+            conceptCode: row["conceptCode"],
+            valueType: TaxFactValueType(rawValue: row["valueType"]) ?? .text,
+            moneyMinor: row["moneyMinor"],
+            textValue: row["textValue"],
+            boolValue: row["boolValue"],
+            dateValue: row["dateValue"],
+            currency: row["currency"],
+            status: TaxFactStatus(rawValue: row["status"]) ?? .derived,
+            rulesetVersion: row["rulesetVersion"],
+            provenanceRefs: TaxFact.decodeProvenanceRefs(from: row["provenanceRefs"]),
+            confidence: row["confidence"],
+            supersedesFactId: row["supersedesFactId"],
+            isCurrent: row["isCurrent"],
+            overrideReason: row["overrideReason"],
+            createdAt: row["createdAt"],
+            updatedAt: row["updatedAt"]
+        )
+    }
+
+    public func encode(to container: inout PersistenceContainer) {
+        container["id"] = id
+        container["fingerprint"] = fingerprint
+        container["entityId"] = entityId
+        container["taxYearId"] = taxYearId
+        container["jurisdictionCode"] = jurisdictionCode
+        container["conceptCode"] = conceptCode
+        container["valueType"] = valueType.rawValue
+        container["moneyMinor"] = moneyMinor
+        container["textValue"] = textValue
+        container["boolValue"] = boolValue
+        container["dateValue"] = dateValue
+        container["currency"] = currency
+        container["status"] = status.rawValue
+        container["rulesetVersion"] = rulesetVersion
+        container["provenanceRefs"] = TaxFact.encodeProvenanceRefs(provenanceRefs)
+        container["confidence"] = confidence
+        container["supersedesFactId"] = supersedesFactId
+        container["isCurrent"] = isCurrent
+        container["overrideReason"] = overrideReason
+        container["createdAt"] = createdAt
+        container["updatedAt"] = updatedAt
+    }
+
+    private static func encodeProvenanceRefs(_ refs: [ObjectRef]) -> String {
+        guard let data = try? JSONEncoder.alpenLedger.encode(refs),
+              let string = String(data: data, encoding: .utf8)
+        else {
+            return "[]"
+        }
+        return string
+    }
+
+    private static func decodeProvenanceRefs(from rawValue: String?) -> [ObjectRef] {
+        guard let rawValue,
+              let data = rawValue.data(using: .utf8),
+              let refs = try? JSONDecoder.alpenLedger.decode([ObjectRef].self, from: data)
+        else {
+            return []
+        }
+        return refs
+    }
 }
 
 public final class GRDBWorkspaceRepository: WorkspaceRepository, @unchecked Sendable {
@@ -386,6 +504,163 @@ public final class GRDBEvidenceLinkRepository: EvidenceLinkRepository, @unchecke
     public func saveEvidenceLink(_ evidenceLink: EvidenceLink) throws {
         try dbPool.write { db in
             try evidenceLink.save(db)
+        }
+    }
+}
+
+public final class GRDBRequirementRepository: RequirementRepository, @unchecked Sendable {
+    private let dbPool: DatabasePool
+
+    public init(dbPool: DatabasePool) {
+        self.dbPool = dbPool
+    }
+
+    public func fetchRequirements(entityId: LegalEntityID, taxYearId: TaxYearID? = nil) throws -> [Requirement] {
+        try dbPool.read { db in
+            var request = Requirement
+                .filter(Column("entityId") == entityId)
+                .order(Column("updatedAt").desc)
+
+            if let taxYearId {
+                request = request.filter(Column("taxYearId") == taxYearId)
+            }
+
+            return try request.fetchAll(db)
+        }
+    }
+
+    public func fetchRequirement(fingerprint: String) throws -> Requirement? {
+        try dbPool.read { db in
+            try Requirement
+                .filter(Column("fingerprint") == fingerprint)
+                .fetchOne(db)
+        }
+    }
+
+    public func saveRequirement(_ requirement: Requirement) throws {
+        try dbPool.write { db in
+            try requirement.save(db)
+        }
+    }
+}
+
+public final class GRDBIssueRepository: IssueRepository, @unchecked Sendable {
+    private let dbPool: DatabasePool
+
+    public init(dbPool: DatabasePool) {
+        self.dbPool = dbPool
+    }
+
+    public func fetchIssues(
+        workspaceId: WorkspaceID,
+        entityId: LegalEntityID? = nil,
+        taxYearId: TaxYearID? = nil,
+        status: IssueStatus? = nil
+    ) throws -> [Issue] {
+        try dbPool.read { db in
+            var request = Issue
+                .filter(Column("workspaceId") == workspaceId)
+                .order(Column("lastDetectedAt").desc)
+
+            if let entityId {
+                request = request.filter(Column("entityId") == entityId)
+            }
+            if let taxYearId {
+                request = request.filter(Column("taxYearId") == taxYearId)
+            }
+            if let status {
+                request = request.filter(Column("status") == status.rawValue)
+            }
+            return try request.fetchAll(db)
+        }
+    }
+
+    public func fetchIssue(fingerprint: String) throws -> Issue? {
+        try dbPool.read { db in
+            try Issue
+                .filter(Column("fingerprint") == fingerprint)
+                .fetchOne(db)
+        }
+    }
+
+    public func saveIssue(_ issue: Issue) throws {
+        try dbPool.write { db in
+            try issue.save(db)
+        }
+    }
+}
+
+public final class GRDBTaxFactRepository: TaxFactRepository, @unchecked Sendable {
+    private let dbPool: DatabasePool
+
+    public init(dbPool: DatabasePool) {
+        self.dbPool = dbPool
+    }
+
+    public func fetchTaxFacts(entityId: LegalEntityID, taxYearId: TaxYearID, currentOnly: Bool = true) throws -> [TaxFact] {
+        try dbPool.read { db in
+            var request = TaxFact
+                .filter(Column("entityId") == entityId && Column("taxYearId") == taxYearId)
+                .order(Column("conceptCode"), Column("createdAt").desc)
+
+            if currentOnly {
+                request = request.filter(Column("isCurrent") == true)
+            }
+            return try request.fetchAll(db)
+        }
+    }
+
+    public func fetchTaxFact(fingerprint: String, isCurrent: Bool? = nil) throws -> TaxFact? {
+        try dbPool.read { db in
+            var request = TaxFact
+                .filter(Column("fingerprint") == fingerprint)
+                .order(Column("createdAt").desc)
+
+            if let isCurrent {
+                request = request.filter(Column("isCurrent") == isCurrent)
+            }
+            return try request.fetchOne(db)
+        }
+    }
+
+    public func saveTaxFact(_ fact: TaxFact) throws {
+        try dbPool.write { db in
+            try fact.save(db)
+        }
+    }
+}
+
+public final class GRDBAgentProposalRepository: AgentProposalRepository, @unchecked Sendable {
+    private let dbPool: DatabasePool
+
+    public init(dbPool: DatabasePool) {
+        self.dbPool = dbPool
+    }
+
+    public func fetchAgentProposals(workspaceId: WorkspaceID, status: ProposalStatus? = nil) throws -> [AgentProposal] {
+        try dbPool.read { db in
+            var request = AgentProposal
+                .filter(Column("workspaceId") == workspaceId)
+                .order(Column("createdAt").desc)
+
+            if let status {
+                request = request.filter(Column("status") == status.rawValue)
+            }
+            return try request.fetchAll(db)
+        }
+    }
+
+    public func fetchAgentProposal(fingerprint: String) throws -> AgentProposal? {
+        try dbPool.read { db in
+            try AgentProposal
+                .filter(Column("fingerprint") == fingerprint)
+                .fetchOne(db)
+        }
+    }
+
+    public func saveAgentProposal(_ proposal: AgentProposal) throws {
+        try dbPool.write { db in
+            try proposal.save(db)
         }
     }
 }

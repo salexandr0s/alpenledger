@@ -1,0 +1,4 @@
+document_type: health insurance certificate
+tax_year: 2026
+health_insurance_premiums_minor: 420000
+currency: CHF

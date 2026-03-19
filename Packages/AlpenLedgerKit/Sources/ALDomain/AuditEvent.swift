@@ -12,9 +12,15 @@ public enum AuditEventType: String, Codable, CaseIterable, Sendable {
     case legalEntityUpdated
     case ledgerSeeded
     case financialAccountCreated
+    case importJobCreated
+    case importJobCompleted
     case documentImported
     case statementImported
     case evidenceLinked
+    case proposalCreated
+    case proposalResolved
+    case issueOpened
+    case issueResolved
 }
 
 public struct AuditEvent: Hashable, Codable, Sendable {

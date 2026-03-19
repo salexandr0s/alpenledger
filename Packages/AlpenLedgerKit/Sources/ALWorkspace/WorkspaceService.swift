@@ -6,13 +6,16 @@ import ALAudit
 public final class WorkspaceService: @unchecked Sendable {
     private let storageManager: WorkspaceStorageManager
     private let recentStore: RecentWorkspacesStore
+    private let nowProvider: @Sendable () -> Date
 
     public init(
         storageManager: WorkspaceStorageManager = WorkspaceStorageManager(),
-        recentStore: RecentWorkspacesStore = RecentWorkspacesStore()
+        recentStore: RecentWorkspacesStore = RecentWorkspacesStore(),
+        nowProvider: @escaping @Sendable () -> Date = { .now }
     ) {
         self.storageManager = storageManager
         self.recentStore = recentStore
+        self.nowProvider = nowProvider
     }
 
     public func createWorkspace(named name: String) throws -> WorkspaceStorage {
@@ -25,7 +28,7 @@ public final class WorkspaceService: @unchecked Sendable {
             objectRef: ObjectRef(kind: .workspace, id: storage.manifest.workspace.id.rawValue)
         )
 
-        let entityService = LegalEntityService(storage: storage, auditLogger: logger)
+        let entityService = LegalEntityService(storage: storage, auditLogger: logger, nowProvider: nowProvider)
         _ = try entityService.createDefaultNaturalPerson()
 
         recentStore.add(
