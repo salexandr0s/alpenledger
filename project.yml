@@ -50,7 +50,27 @@ targets:
         NSPrincipalClass: NSApplication
     dependencies:
       - package: AlpenLedgerKit
-        product: ALAppSupport
+        product: ALAudit
+      - package: AlpenLedgerKit
+        product: ALDocuments
+      - package: AlpenLedgerKit
+        product: ALDomain
+      - package: AlpenLedgerKit
+        product: ALEvidence
+      - package: AlpenLedgerKit
+        product: ALFeatures
+      - package: AlpenLedgerKit
+        product: ALImports
+      - package: AlpenLedgerKit
+        product: ALLedger
+      - package: AlpenLedgerKit
+        product: ALStorage
+      - package: AlpenLedgerKit
+        product: ALTaxCH
+      - package: AlpenLedgerKit
+        product: ALTaxCore
+      - package: AlpenLedgerKit
+        product: ALWorkspace
   AlpenLedgerAppTests:
     type: bundle.unit-test
     platform: macOS

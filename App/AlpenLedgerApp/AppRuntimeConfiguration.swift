@@ -1,5 +1,6 @@
 import Foundation
-import ALAppSupport
+import ALStorage
+import ALWorkspace
 
 struct AppRuntimeConfiguration {
     let workspacesRootURL: URL?

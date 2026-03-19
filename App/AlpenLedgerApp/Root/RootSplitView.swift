@@ -1,5 +1,5 @@
 import SwiftUI
-import ALAppSupport
+import ALFeatures
 
 struct RootSplitView: View {
     @Bindable var model: WorkspaceAppModel

@@ -1,5 +1,5 @@
 import Foundation
-import ALAppSupport
+import ALWorkspace
 
 @MainActor
 final class DependencyContainer {
