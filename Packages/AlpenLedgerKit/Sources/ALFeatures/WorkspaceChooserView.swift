@@ -1,139 +1,160 @@
-import Foundation
 import SwiftUI
-import ALDomain
-import ALWorkspace
 import ALDesignSystem
 
 public struct WorkspaceChooserView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Binding private var newWorkspaceName: String
-    private let recentWorkspaces: [RecentWorkspaceReference]
+
+    private let snapshot: WorkspaceChooserSnapshot
     private let onCreateWorkspace: () -> Void
-    private let onOpenWorkspace: (RecentWorkspaceReference) -> Void
+    private let onOpenWorkspace: (WorkspaceChooserSnapshot.RecentWorkspace) -> Void
     private let onOpenExistingWorkspace: () -> Void
 
     public init(
-        newWorkspaceName: Binding<String>,
-        recentWorkspaces: [RecentWorkspaceReference],
+        snapshot: WorkspaceChooserSnapshot,
         onCreateWorkspace: @escaping () -> Void,
-        onOpenWorkspace: @escaping (RecentWorkspaceReference) -> Void,
+        onOpenWorkspace: @escaping (WorkspaceChooserSnapshot.RecentWorkspace) -> Void,
         onOpenExistingWorkspace: @escaping () -> Void
     ) {
-        _newWorkspaceName = newWorkspaceName
-        self.recentWorkspaces = recentWorkspaces
+        self.snapshot = snapshot
         self.onCreateWorkspace = onCreateWorkspace
         self.onOpenWorkspace = onOpenWorkspace
         self.onOpenExistingWorkspace = onOpenExistingWorkspace
     }
 
     public var body: some View {
-        ScrollView {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: AppTheme.spacingXL) {
-                    reassuranceColumn
-                        .frame(maxWidth: 420, alignment: .leading)
+        ZStack {
+            LinearGradient(
+                colors: [
+                    AppTheme.windowChromeColor,
+                    AppTheme.secondarySurfaceColor.opacity(0.75),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
-                    workspaceColumn
-                        .frame(maxWidth: 460, alignment: .leading)
-                }
-                .frame(maxWidth: AppTheme.chooserMaxWidth, alignment: .leading)
+            VStack(spacing: AppTheme.spacingXL) {
+                Spacer(minLength: AppTheme.spacingXL)
 
-                VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-                    reassuranceColumn
-                    workspaceColumn
-                }
-                .frame(maxWidth: AppTheme.chooserMaxWidth, alignment: .leading)
+                header
+
+                recentWorkspacesCard
+
+                actionRow
+
+                Spacer(minLength: AppTheme.spacingXL)
             }
-            .padding(AppTheme.spacingXL)
-            .frame(maxWidth: .infinity, alignment: .top)
+            .padding(AppTheme.contentPadding)
+            .frame(maxWidth: 640)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .transition(AppTheme.chromeTransition(reduceMotion: reduceMotion))
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("workspace.chooser")
     }
 
-    private var reassuranceColumn: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-            VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                Image(systemName: "lock.shield")
+    private var header: some View {
+        VStack(spacing: AppTheme.spacingM) {
+            ZStack {
+                Circle()
+                    .fill(AppTheme.accentSurfaceColor)
+                    .frame(width: 72, height: 72)
+
+                Image(systemName: "checkmark.shield")
                     .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
                     .symbolRenderingMode(AppTheme.symbolRenderingMode)
-                    .foregroundStyle(.blue)
+            }
 
-                Text("AlpenLedger")
-                    .font(.largeTitle.weight(.bold))
+            VStack(spacing: AppTheme.spacingXS) {
+                Text(snapshot.title)
+                    .font(.system(size: 30, weight: .semibold))
 
-                Text("A calm, local-first Swiss finance workspace for records, evidence, and filing readiness.")
-                    .font(.title3)
+                Text(snapshot.tagline)
+                    .font(AppTheme.pageSubtitleFont)
                     .foregroundStyle(AppTheme.subduedForegroundColor)
-            }
+                    .multilineTextAlignment(.center)
 
-            InspectorPane("Why Start Here", subtitle: "The app behaves like a native document workspace rather than a cloud dashboard.") {
-                VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                    StatusBadge("Local-first", tone: .info)
-                    reassuranceRow("Everything stays on this Mac by default.", systemImage: "internaldrive")
-                    reassuranceRow("Workspace data is encrypted and opened intentionally.", systemImage: "key.horizontal")
-                    reassuranceRow("Ledger, documents, and tax readiness stay grounded in the same local workspace.", systemImage: "checklist")
-                }
+                Text(snapshot.trustLine)
+                    .font(AppTheme.metaFont)
+                    .foregroundStyle(.secondary)
             }
+        }
+    }
 
-            InspectorPane("Recent Workspaces", subtitle: "Open a workspace you used recently.") {
-                if recentWorkspaces.isEmpty {
-                    ContentUnavailableView("No Recent Workspaces", systemImage: "folder")
-                } else {
-                    VStack(alignment: .leading, spacing: AppTheme.spacingXS) {
-                        ForEach(recentWorkspaces, id: \.workspaceId) { recent in
-                            Button {
-                                onOpenWorkspace(recent)
-                            } label: {
-                                SourceListRow(
-                                    title: recent.name,
-                                    subtitle: recent.path,
-                                    systemImage: "folder",
-                                    badgeText: relativeDateString(for: recent.lastOpenedAt)
-                                )
+    private var recentWorkspacesCard: some View {
+        InspectorPane(
+            "Recent Workspaces",
+            subtitle: snapshot.recentWorkspaces.isEmpty ? "Create your first workspace to get started." : "Pick up where you left off.",
+            style: .card,
+            showsDivider: snapshot.recentWorkspaces.isEmpty == false
+        ) {
+            if snapshot.recentWorkspaces.isEmpty {
+                PaneEmptyState(
+                    "No recent workspaces",
+                    subtitle: "Create a workspace or open one from disk.",
+                    systemImage: "folder"
+                )
+            } else {
+                VStack(spacing: AppTheme.spacingXS) {
+                    ForEach(snapshot.recentWorkspaces) { workspace in
+                        Button {
+                            onOpenWorkspace(workspace)
+                        } label: {
+                            HStack(spacing: AppTheme.spacingM) {
+                                VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                                    Text(workspace.title)
+                                        .font(.body.weight(.medium))
+                                        .foregroundStyle(.primary)
+
+                                    Text(workspace.lastOpenedText)
+                                        .font(AppTheme.metaFont)
+                                        .foregroundStyle(AppTheme.subduedForegroundColor)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("workspace.recent.\(accessibilitySlug(recent.name))")
+                            .padding(.horizontal, AppTheme.spacingM)
+                            .padding(.vertical, AppTheme.spacingS)
+                            .background(
+                                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                                    .fill(AppTheme.subtleSurfaceColor)
+                            )
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(workspace.title)
+                        .accessibilityValue(workspace.lastOpenedText)
+                        .accessibilityIdentifier("workspace.recent.\(accessibilitySlug(workspace.title))")
                     }
                 }
             }
         }
     }
 
-    private var workspaceColumn: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-            WorkspaceCreationFormView(
-                workspaceName: $newWorkspaceName,
-                title: "Create Workspace",
-                detail: "Start with a fresh encrypted workspace bundle for this Mac.",
-                onCreateWorkspace: onCreateWorkspace
-            )
-
-            InspectorPane("Open Existing Workspace", subtitle: "Choose a workspace folder that already exists on disk.") {
-                VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                    Text("Open an existing workspace when you want to continue working with a previously created bundle.")
-                        .font(.subheadline)
-                        .foregroundStyle(AppTheme.subduedForegroundColor)
-
-                    Button("Open Existing Workspace…", action: onOpenExistingWorkspace)
-                        .buttonStyle(.bordered)
-                        .accessibilityIdentifier("workspace.openExistingButton")
-                }
+    private var actionRow: some View {
+        HStack(spacing: AppTheme.spacingM) {
+            Button(action: onCreateWorkspace) {
+                Text("Create New Workspace")
             }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Create New Workspace")
+                .accessibilityIdentifier("workspace.createNewButton")
+
+            Button(action: onOpenExistingWorkspace) {
+                Text("Open Existing…")
+            }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Open Existing")
+                .accessibilityIdentifier("workspace.openExistingButton")
         }
-    }
-
-    @ViewBuilder
-    private func reassuranceRow(_ title: String, systemImage: String) -> some View {
-        Label(title, systemImage: systemImage)
-            .font(.body)
-            .foregroundStyle(.primary)
-    }
-
-    private func relativeDateString(for date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        return formatter.localizedString(for: date, relativeTo: .now)
     }
 }

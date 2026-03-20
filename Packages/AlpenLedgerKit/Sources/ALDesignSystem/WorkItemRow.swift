@@ -1,51 +1,52 @@
 import SwiftUI
 
-public struct SourceListRow: View {
+public struct WorkItemRow: View {
     private let title: String
     private let subtitle: String?
     private let systemImage: String
-    private let badgeText: String?
+    private let statusTitle: String?
+    private let tone: StatusBadge.Tone
 
     public init(
         title: String,
         subtitle: String? = nil,
         systemImage: String,
-        badgeText: String? = nil
+        statusTitle: String? = nil,
+        tone: StatusBadge.Tone = .neutral
     ) {
         self.title = title
         self.subtitle = subtitle
         self.systemImage = systemImage
-        self.badgeText = badgeText
+        self.statusTitle = statusTitle
+        self.tone = tone
     }
 
     public var body: some View {
-        HStack(alignment: .center, spacing: AppTheme.spacingS) {
+        HStack(alignment: .top, spacing: AppTheme.spacingS) {
             Image(systemName: systemImage)
                 .symbolRenderingMode(AppTheme.symbolRenderingMode)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(tone == .critical ? Color.red : Color.secondary)
                 .frame(width: AppTheme.sidebarRowIconWidth)
 
             VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
                 Text(title)
-                    .font(AppTheme.sidebarTitleFont)
-                    .lineLimit(1)
+                    .font(.body)
+                    .lineLimit(2)
 
                 if let subtitle, subtitle.isEmpty == false {
                     Text(subtitle)
-                        .font(AppTheme.sidebarSubtitleFont)
+                        .font(AppTheme.metaFont)
                         .foregroundStyle(AppTheme.subduedForegroundColor)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
             }
 
             Spacer(minLength: AppTheme.spacingS)
 
-            if let badgeText, badgeText.isEmpty == false {
-                SourceListBadge(badgeText)
+            if let statusTitle, statusTitle.isEmpty == false {
+                StatusBadge(statusTitle, tone: tone)
             }
         }
-        .padding(.vertical, AppTheme.sidebarRowVerticalPadding)
         .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
     }
 }

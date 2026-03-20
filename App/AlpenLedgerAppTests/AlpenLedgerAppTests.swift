@@ -1,5 +1,7 @@
 import XCTest
 import ALDomain
+import ALFeatures
+import ALTaxCore
 @testable import AlpenLedgerApp
 
 final class AlpenLedgerAppTests: XCTestCase {
@@ -76,5 +78,177 @@ final class AlpenLedgerAppTests: XCTestCase {
         model.toggleInspectorForActiveSection()
         XCTAssertFalse(model.isLedgerInspectorVisible)
         XCTAssertFalse(model.isDocumentsInspectorVisible)
+    }
+
+    @MainActor
+    func testOverviewPrimaryActionPrioritizesOpenIssues() {
+        let model = WorkspaceAppModel(container: DependencyContainer())
+        let workspaceId = WorkspaceID()
+        let issue = Issue(
+            fingerprint: "issue-1",
+            workspaceId: workspaceId,
+            issueCode: .missingExpenseEvidence,
+            severity: .blocking,
+            status: .open,
+            summary: "Receipt missing for office supplies",
+            objectRef: ObjectRef(kind: .transaction, id: UUID())
+        )
+        let proposal = AgentProposal(
+            fingerprint: "proposal-1",
+            workspaceId: workspaceId,
+            agentKind: .systemHeuristics,
+            proposalType: .documentLinkReview,
+            targetRef: ObjectRef(kind: .document, id: UUID()),
+            summary: "Link receipt to coffee transaction",
+            rationale: "Amounts and dates line up",
+            confidence: 0.86
+        )
+        let requirement = Requirement(
+            fingerprint: "requirement-1",
+            entityId: LegalEntityID(),
+            taxYearId: TaxYearID(),
+            requirementCode: .expenseEvidence,
+            subjectRef: ObjectRef(kind: .document, id: UUID()),
+            summary: "Upload health insurance certificate",
+            status: .pending
+        )
+
+        model.seedUIStateForTesting(
+            issues: [issue],
+            agentProposals: [proposal],
+            taxRequirements: [requirement],
+            taxReadinessSummary: TaxReadinessSummary(
+                state: .needsAttention,
+                openIssueCount: 1,
+                pendingRequirementCount: 1,
+                currentFactCount: 0,
+                missingConceptCodes: []
+            )
+        )
+
+        XCTAssertEqual(
+            model.overviewSnapshot.priorityAction?.action,
+            .openInbox(selection: InboxSelection.issue(issue.id))
+        )
+    }
+
+    @MainActor
+    func testPerformOverviewActionDeepLinksToTargetSelection() {
+        let model = WorkspaceAppModel(container: DependencyContainer())
+        let entityId = LegalEntityID()
+        let taxYearId = TaxYearID()
+        let account = FinancialAccount(
+            entityId: entityId,
+            accountType: .bank,
+            institutionName: "Personal Bank",
+            displayName: "Personal Bank",
+            ledgerControlAccountId: LedgerAccountID()
+        )
+        let transaction = Transaction(
+            accountId: account.id,
+            sourceLineRef: "row-1",
+            bookingDate: .now,
+            amountMinor: -4250,
+            currency: "CHF",
+            counterpartyName: "Coffee Bar Zurich",
+            memo: "Team coffee"
+        )
+        let document = Document(
+            workspaceId: WorkspaceID(),
+            blobHash: "hash",
+            originalFilename: "sample-receipt.pdf",
+            mediaType: "application/pdf"
+        )
+        let taxFact = TaxFact(
+            fingerprint: "fact-1",
+            entityId: entityId,
+            taxYearId: taxYearId,
+            jurisdictionCode: "ch-zh",
+            conceptCode: "personal.income.salary_gross",
+            valueType: .money,
+            moneyMinor: 9800000,
+            status: .observed,
+            rulesetVersion: "zh-personal-2026-v1"
+        )
+
+        model.seedUIStateForTesting(
+            financialAccounts: [account],
+            transactions: [transaction],
+            documents: [document],
+            taxFacts: [taxFact],
+            selectedTaxEntityId: entityId,
+            selectedTaxYearId: taxYearId,
+            taxReadinessSummary: TaxReadinessSummary(
+                state: .needsAttention,
+                openIssueCount: 0,
+                pendingRequirementCount: 0,
+                currentFactCount: 1,
+                missingConceptCodes: []
+            )
+        )
+
+        model.performOverviewAction(.openLedger(accountId: account.id, transactionId: transaction.id))
+        XCTAssertEqual(model.selectedSection, .ledger)
+        XCTAssertEqual(model.selectedAccountId, account.id)
+        XCTAssertEqual(model.selectedTransactionId, transaction.id)
+
+        model.performOverviewAction(.openDocuments(documentId: document.id))
+        XCTAssertEqual(model.selectedSection, .documents)
+        XCTAssertEqual(model.selectedDocumentId, document.id)
+
+        model.performOverviewAction(
+            .openTaxStudio(entityId: entityId, taxYearId: taxYearId, factId: taxFact.id)
+        )
+        XCTAssertEqual(model.selectedSection, .taxStudio)
+        XCTAssertEqual(model.selectedTaxEntityId, entityId)
+        XCTAssertEqual(model.selectedTaxYearId, taxYearId)
+        XCTAssertEqual(model.selectedTaxFactId, taxFact.id)
+        XCTAssertEqual(model.selectedTaxStudioSelection, .fact(taxFact.id))
+    }
+
+    @MainActor
+    func testLedgerAccountSummaryShowsUnavailableWithoutRunningBalance() {
+        let model = WorkspaceAppModel(container: DependencyContainer())
+        let account = FinancialAccount(
+            entityId: LegalEntityID(),
+            accountType: .bank,
+            institutionName: "Personal Bank",
+            displayName: "Personal Bank",
+            ledgerControlAccountId: LedgerAccountID()
+        )
+
+        model.seedUIStateForTesting(financialAccounts: [account])
+        XCTAssertEqual(model.ledgerAccountSummaries.first?.balanceText, "Balance unavailable")
+
+        let transaction = Transaction(
+            accountId: account.id,
+            sourceLineRef: "row-1",
+            bookingDate: .now,
+            amountMinor: 1250,
+            currency: "CHF",
+            counterpartyName: "Client",
+            memo: "Transfer",
+            balanceAfterMinor: 9250
+        )
+        model.seedUIStateForTesting(financialAccounts: [account], transactions: [transaction])
+        XCTAssertEqual(model.ledgerAccountSummaries.first?.balanceText, "92.5 CHF")
+    }
+
+    @MainActor
+    func testInboxSnapshotUsesShortIssueTitles() {
+        let model = WorkspaceAppModel(container: DependencyContainer())
+        let issue = Issue(
+            fingerprint: "issue-short-title",
+            workspaceId: WorkspaceID(),
+            issueCode: .missingStatementCoverage,
+            severity: .blocking,
+            status: .open,
+            summary: "Missing monthly statement for January 2026",
+            objectRef: ObjectRef(kind: .financialAccount, id: UUID())
+        )
+
+        model.seedUIStateForTesting(issues: [issue])
+
+        XCTAssertEqual(model.inboxSnapshot.rows.first?.title, "Statement missing")
     }
 }

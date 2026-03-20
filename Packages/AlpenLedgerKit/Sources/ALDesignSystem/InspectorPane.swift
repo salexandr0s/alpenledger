@@ -1,13 +1,28 @@
 import SwiftUI
 
 public struct InspectorPane<Content: View>: View {
+    public enum Style: Sendable {
+        case grouped
+        case card
+    }
+
     private let title: String
     private let subtitle: String?
+    private let style: Style
+    private let showsDivider: Bool
     private let content: Content
 
-    public init(_ title: String, subtitle: String? = nil, @ViewBuilder content: () -> Content) {
+    public init(
+        _ title: String,
+        subtitle: String? = nil,
+        style: Style = .grouped,
+        showsDivider: Bool = true,
+        @ViewBuilder content: () -> Content
+    ) {
         self.title = title
         self.subtitle = subtitle
+        self.style = style
+        self.showsDivider = showsDivider
         self.content = content()
     }
 
@@ -25,7 +40,9 @@ public struct InspectorPane<Content: View>: View {
                 }
             }
 
-            Divider()
+            if showsDivider {
+                Divider()
+            }
 
             VStack(alignment: .leading, spacing: AppTheme.inspectorRowSpacing) {
                 content
@@ -33,15 +50,33 @@ public struct InspectorPane<Content: View>: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(AppTheme.panelPadding)
+        .padding(style == .card ? AppTheme.panelPadding : AppTheme.groupedPanelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .fill(AppTheme.elevatedSurfaceColor)
+                .fill(backgroundColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .stroke(AppTheme.strokeColor, lineWidth: 1)
+                .stroke(borderColor, lineWidth: 1)
         )
+    }
+
+    private var backgroundColor: Color {
+        switch style {
+        case .grouped:
+            return AppTheme.subtleSurfaceColor
+        case .card:
+            return AppTheme.emphasizedSurfaceColor
+        }
+    }
+
+    private var borderColor: Color {
+        switch style {
+        case .grouped:
+            return AppTheme.strokeColor.opacity(0.6)
+        case .card:
+            return AppTheme.strongStrokeColor
+        }
     }
 }

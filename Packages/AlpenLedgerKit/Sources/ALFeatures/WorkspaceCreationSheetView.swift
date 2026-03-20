@@ -18,7 +18,11 @@ public struct WorkspaceCreationSheetView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-            PaneHeader("New Workspace", subtitle: "Create a new encrypted local workspace without leaving the current one.")
+            PaneHeader(
+                "New Workspace",
+                subtitle: "Create a new encrypted local workspace without leaving the current one.",
+                style: .page
+            )
 
             WorkspaceCreationFormView(
                 workspaceName: $workspaceName,
@@ -30,7 +34,11 @@ public struct WorkspaceCreationSheetView: View {
             HStack {
                 Spacer()
 
-                Button("Cancel", role: .cancel, action: onCancel)
+                Button(role: .cancel, action: onCancel) {
+                    Text("Cancel")
+                }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Cancel")
                     .accessibilityIdentifier("workspace.sheet.cancelButton")
             }
         }

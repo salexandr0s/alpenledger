@@ -1,10 +1,22 @@
 import SwiftUI
 
 public struct SummaryTile: View {
+    public enum Style: Sendable {
+        case prominent
+        case compact
+    }
+
+    public enum SubtitlePresentation: Sendable {
+        case secondary
+        case badge
+    }
+
     private let title: String
     private let value: String
     private let subtitle: String?
     private let tone: StatusBadge.Tone
+    private let style: Style
+    private let subtitlePresentation: SubtitlePresentation
     private let systemImage: String
     private let accessibilityIdentifier: String?
     private let accessibilityLabel: String?
@@ -14,6 +26,8 @@ public struct SummaryTile: View {
         value: String,
         subtitle: String? = nil,
         tone: StatusBadge.Tone = .neutral,
+        style: Style = .prominent,
+        subtitlePresentation: SubtitlePresentation = .secondary,
         systemImage: String,
         accessibilityIdentifier: String? = nil,
         accessibilityLabel: String? = nil
@@ -22,6 +36,8 @@ public struct SummaryTile: View {
         self.value = value
         self.subtitle = subtitle
         self.tone = tone
+        self.style = style
+        self.subtitlePresentation = subtitlePresentation
         self.systemImage = systemImage
         self.accessibilityIdentifier = accessibilityIdentifier
         self.accessibilityLabel = accessibilityLabel
@@ -30,29 +46,36 @@ public struct SummaryTile: View {
     public var body: some View {
         let content = VStack(alignment: .leading, spacing: AppTheme.spacingS) {
             Label(title, systemImage: systemImage)
-                .font(AppTheme.summaryTitleFont)
+                .font(style == .prominent ? AppTheme.summaryTitleFont : AppTheme.metaFont)
                 .foregroundStyle(AppTheme.subduedForegroundColor)
                 .symbolRenderingMode(AppTheme.symbolRenderingMode)
 
             Text(value)
-                .font(AppTheme.summaryValueFont)
+                .font(style == .prominent ? AppTheme.summaryValueFont : AppTheme.compactMetricValueFont)
                 .bold()
                 .monospacedDigit()
                 .contentTransition(.numericText())
 
             if let subtitle, subtitle.isEmpty == false {
-                StatusBadge(subtitle, tone: tone)
+                switch subtitlePresentation {
+                case .secondary:
+                    Text(subtitle)
+                        .font(AppTheme.metaFont)
+                        .foregroundStyle(AppTheme.subduedForegroundColor)
+                case .badge:
+                    StatusBadge(subtitle, tone: tone)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(AppTheme.panelPadding)
+        .padding(style == .prominent ? AppTheme.panelPadding : AppTheme.compactPanelPadding)
         .background(
             RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .fill(AppTheme.elevatedSurfaceColor)
+                .fill(style == .prominent ? AppTheme.emphasizedSurfaceColor : AppTheme.subtleSurfaceColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .stroke(AppTheme.strokeColor, lineWidth: 1)
+                .stroke(style == .prominent ? AppTheme.strokeColor : AppTheme.strokeColor.opacity(0.65), lineWidth: 1)
         )
         .animation(AppTheme.countAnimation, value: value)
 
@@ -61,6 +84,7 @@ public struct SummaryTile: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityIdentifier(accessibilityIdentifier)
                 .accessibilityLabel(accessibilityLabel ?? "\(value) \(title)")
+                .accessibilityValue(accessibilityLabel ?? "\(value) \(title)")
         } else {
             content
         }

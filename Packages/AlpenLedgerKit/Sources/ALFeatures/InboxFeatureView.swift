@@ -1,6 +1,6 @@
 import SwiftUI
-import ALDomain
 import ALDesignSystem
+import ALDomain
 
 public enum InboxSelection: Hashable, Sendable {
     case importJob(ImportJobID)
@@ -11,174 +11,196 @@ public enum InboxSelection: Hashable, Sendable {
 @MainActor
 public struct InboxFeatureView: View {
     @Binding private var selection: InboxSelection?
-    private let importJobs: [ImportJob]
-    private let proposals: [AgentProposal]
-    private let issues: [Issue]
+    @State private var selectedTab: InboxTab = .issues
+    @State private var searchQuery = ""
+
+    private let snapshot: InboxSnapshot
+    private let performAction: (InboxAction) -> Void
 
     public init(
+        snapshot: InboxSnapshot,
         selection: Binding<InboxSelection?>,
-        importJobs: [ImportJob],
-        proposals: [AgentProposal],
-        issues: [Issue]
+        performAction: @escaping (InboxAction) -> Void
     ) {
+        self.snapshot = snapshot
         _selection = selection
-        self.importJobs = importJobs
-        self.proposals = proposals
-        self.issues = issues
+        self.performAction = performAction
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-            PaneHeader("Inbox", subtitle: "Review imports, proposals, and issues before they become filing surprises.")
+            PaneHeader(
+                "Inbox",
+                subtitle: "Resolve issues, proposals, and imports before they become filing surprises.",
+                style: .page
+            )
+            .padding(.horizontal, AppTheme.contentPadding)
+            .padding(.top, AppTheme.spacingM)
+
+            controls
+                .padding(.horizontal, AppTheme.contentPadding)
+
+            HSplitView {
+                listPane
+                    .frame(minWidth: 420)
+
+                inspectorPane
+                    .frame(minWidth: AppTheme.inspectorIdealWidth)
+            }
+        }
+        .onChange(of: selection) { _, newValue in
+            if let newValue {
+                selectedTab = tab(for: newValue)
+            }
+        }
+    }
+
+    private var controls: some View {
+        HStack(spacing: AppTheme.spacingM) {
+            Picker("Inbox Tab", selection: $selectedTab) {
+                ForEach(snapshot.tabs) { tab in
+                    Text("\(tab.tab.title) \(tab.count)")
+                        .tag(tab.tab)
+                        .accessibilityIdentifier("inbox.tab.\(tab.tab.rawValue)")
+                }
+            }
+            .pickerStyle(.segmented)
+
+            TextField("Search inbox", text: $searchQuery)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 240)
+        }
+    }
+
+    private var listPane: some View {
+        let rows = filteredRows
+        return List(selection: $selection) {
+            if rows.isEmpty {
+                Text("No \(selectedTab.title.lowercased()) match the current filter.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(groupedRows, id: \.key) { groupTitle, groupRows in
+                    Section(groupTitle) {
+                        ForEach(groupRows) { row in
+                            HStack(alignment: .top, spacing: AppTheme.spacingS) {
+                                WorkItemRow(
+                                    title: row.title,
+                                    subtitle: row.subtitle,
+                                    systemImage: row.systemImage,
+                                    statusTitle: row.statusText,
+                                    tone: row.tone
+                                )
+
+                                Text(row.meta)
+                                    .font(AppTheme.metaFont)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .tag(row.selection)
+                            .accessibilityIdentifier("inbox.\(row.tab.rawValue.dropLast()).\(accessibilitySlug(row.title))")
+                        }
+                    }
+                }
+            }
+        }
+        .accessibilityIdentifier("inbox.list")
+    }
+
+    private var inspectorPane: some View {
+        VStack(alignment: .leading, spacing: AppTheme.spacingM) {
+            PaneHeader("Inspector", subtitle: "Details for the selected inbox item.")
                 .padding(.horizontal, AppTheme.contentPadding)
                 .padding(.top, AppTheme.spacingM)
 
-            HStack(spacing: AppTheme.spacingM) {
-                SummaryTile(
-                    "Import Jobs",
-                    value: importJobs.count.formatted(),
-                    subtitle: "Active",
-                    tone: .info,
-                    systemImage: "tray.full",
-                    accessibilityIdentifier: "inbox.count.importJobs",
-                    accessibilityLabel: "\(importJobs.count) import jobs"
-                )
-                SummaryTile(
-                    "Pending Proposals",
-                    value: proposals.filter { $0.status == .pending }.count.formatted(),
-                    subtitle: "Awaiting review",
-                    tone: .warning,
-                    systemImage: "wand.and.stars",
-                    accessibilityIdentifier: "inbox.count.proposals",
-                    accessibilityLabel: "\(proposals.filter { $0.status == .pending }.count) pending proposals"
-                )
-                SummaryTile(
-                    "Open Issues",
-                    value: issues.filter { $0.status == .open }.count.formatted(),
-                    subtitle: "Need attention",
-                    tone: .critical,
-                    systemImage: "exclamationmark.bubble",
-                    accessibilityIdentifier: "inbox.count.issues",
-                    accessibilityLabel: "\(issues.filter { $0.status == .open }.count) open issues"
-                )
-            }
-            .padding(.horizontal, AppTheme.contentPadding)
+            if let inspector = snapshot.inspector {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppTheme.spacingM) {
+                        InspectorPane(inspector.title, subtitle: inspector.subtitle, style: .card) {
+                            StatusBadge(inspector.statusText, tone: inspector.tone)
 
-            HSplitView {
-                List(selection: $selection) {
-                    Section("Import Jobs") {
-                        ForEach(importJobs, id: \.id) { job in
-                            SourceListRow(
-                                title: job.source,
-                                subtitle: "\(job.kind.rawValue) • \(job.status.rawValue)",
-                                systemImage: "tray.full"
-                            )
-                            .tag(InboxSelection.importJob(job.id))
-                            .accessibilityIdentifier("inbox.importJob.\(accessibilitySlug("\(job.kind.rawValue)-\(job.source)"))")
+                            Text(inspector.description)
+                                .font(AppTheme.pageSubtitleFont)
+                                .foregroundStyle(AppTheme.subduedForegroundColor)
+
+                            ForEach(inspector.details) { detail in
+                                InspectorSectionRow(detail.label, value: detail.value)
+                            }
+                        }
+
+                        if inspector.actions.isEmpty == false {
+                            InspectorPane("Actions", style: .grouped) {
+                                HStack(spacing: AppTheme.spacingS) {
+                                    ForEach(inspector.actions) { action in
+                                        switch action.role {
+                                        case .primary:
+                                            Button(action.title) {
+                                                performAction(action.action)
+                                            }
+                                            .buttonStyle(.borderedProminent)
+                                        case .secondary:
+                                            Button(action.title) {
+                                                performAction(action.action)
+                                            }
+                                            .buttonStyle(.bordered)
+                                        case .destructive:
+                                            Button(action.title, role: .destructive) {
+                                                performAction(action.action)
+                                            }
+                                            .buttonStyle(.bordered)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-
-                    Section("Proposals") {
-                        ForEach(proposals, id: \.id) { proposal in
-                            SourceListRow(
-                                title: proposal.summary,
-                                subtitle: "\(proposal.status.rawValue) • \(Int(proposal.confidence * 100))%",
-                                systemImage: "wand.and.stars"
-                            )
-                            .tag(InboxSelection.proposal(proposal.id))
-                            .accessibilityIdentifier("inbox.proposal.\(accessibilitySlug(proposal.summary))")
-                        }
-                    }
-
-                    Section("Issues") {
-                        ForEach(issues, id: \.id) { issue in
-                            SourceListRow(
-                                title: issue.summary,
-                                subtitle: "\(issue.severity.rawValue) • \(issue.status.rawValue)",
-                                systemImage: issue.severity == .blocking ? "exclamationmark.octagon" : "exclamationmark.triangle"
-                            )
-                            .tag(InboxSelection.issue(issue.id))
-                            .accessibilityIdentifier("inbox.issue.\(accessibilitySlug(issue.summary))")
-                        }
-                    }
+                    .padding(AppTheme.contentPadding)
                 }
-                .accessibilityIdentifier("inbox.list")
-                .frame(minWidth: 360, idealWidth: AppTheme.sidebarIdealWidth + 140)
-
-                VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                    PaneHeader("Inspector", subtitle: "Details for the currently selected inbox item.")
-
-                    switch selection {
-                    case let .importJob(importJobId):
-                        importJobInspector(importJobId)
-                    case let .proposal(proposalId):
-                        proposalInspector(proposalId)
-                    case let .issue(issueId):
-                        issueInspector(issueId)
-                    case nil:
-                        ContentUnavailableView("No Inbox Item Selected", systemImage: "tray")
-                    }
-
-                    Spacer()
-                }
-                .padding(AppTheme.contentPadding)
-                .frame(minWidth: AppTheme.inspectorIdealWidth)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func importJobInspector(_ importJobId: ImportJobID) -> some View {
-        if let importJob = importJobs.first(where: { $0.id == importJobId }) {
-            InspectorPane("Import Job") {
-                StatusBadge(importJob.status.rawValue.capitalized, tone: importJob.status == .completed ? .success : .warning)
-                InspectorSectionRow("Source", value: importJob.source)
-                InspectorSectionRow("Kind", value: importJob.kind.rawValue)
-                InspectorSectionRow("Parser", value: "\(importJob.parserKey) \(importJob.parserVersion)")
-                InspectorSectionRow("Warnings", value: importJob.warningCount.formatted())
-            }
-            .accessibilityIdentifier("inbox.inspector.importJob")
-        } else {
-            ContentUnavailableView("Import Job Not Found", systemImage: "exclamationmark.triangle")
-        }
-    }
-
-    @ViewBuilder
-    private func proposalInspector(_ proposalId: AgentProposalID) -> some View {
-        if let proposal = proposals.first(where: { $0.id == proposalId }) {
-            InspectorPane("Proposal") {
-                StatusBadge(proposal.status.rawValue.capitalized, tone: .warning)
-                InspectorSectionRow("Summary", value: proposal.summary)
-                InspectorSectionRow("Confidence", value: "\(Int(proposal.confidence * 100))%")
-                InspectorSectionRow("Target", value: proposal.targetRef.stringValue)
-                Text(proposal.rationale)
+                .accessibilityIdentifier(inspectorAccessibilityIdentifier)
+            } else {
+                Text("Select an issue, proposal, or import to inspect it.")
+                    .font(AppTheme.metaFont)
                     .foregroundStyle(.secondary)
+                    .padding(.horizontal, AppTheme.contentPadding)
+                    .padding(.top, AppTheme.spacingS)
             }
-            .accessibilityIdentifier("inbox.inspector.proposal")
-        } else {
-            ContentUnavailableView("Proposal Not Found", systemImage: "exclamationmark.triangle")
+
+            Spacer()
         }
     }
 
-    @ViewBuilder
-    private func issueInspector(_ issueId: IssueID) -> some View {
-        if let issue = issues.first(where: { $0.id == issueId }) {
-            InspectorPane("Issue") {
-                StatusBadge(
-                    issue.severity.rawValue.capitalized,
-                    tone: issue.severity == .blocking ? .critical : .warning
-                )
-                InspectorSectionRow("Summary", value: issue.summary)
-                InspectorSectionRow("Status", value: issue.status.rawValue.capitalized)
-                InspectorSectionRow("Object", value: issue.objectRef.stringValue)
-                if let relatedRef = issue.relatedRef {
-                    InspectorSectionRow("Related", value: relatedRef.stringValue)
-                }
-            }
-            .accessibilityIdentifier("inbox.inspector.issue")
-        } else {
-            ContentUnavailableView("Issue Not Found", systemImage: "exclamationmark.triangle")
+    private var filteredRows: [InboxRowModel] {
+        snapshot.rows.filter { row in
+            row.tab == selectedTab &&
+            (searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+             row.searchText.localizedCaseInsensitiveContains(searchQuery))
         }
     }
 
+    private var groupedRows: [(key: String, value: [InboxRowModel])] {
+        Dictionary(grouping: filteredRows, by: \.groupTitle)
+            .sorted { $0.key < $1.key }
+    }
+
+    private func tab(for selection: InboxSelection) -> InboxTab {
+        switch selection {
+        case .issue:
+            return .issues
+        case .proposal:
+            return .proposals
+        case .importJob:
+            return .imports
+        }
+    }
+
+    private var inspectorAccessibilityIdentifier: String {
+        switch selection {
+        case .issue:
+            return "inbox.inspector.issue"
+        case .proposal:
+            return "inbox.inspector.proposal"
+        case .importJob:
+            return "inbox.inspector.importJob"
+        case nil:
+            return "inbox.inspector.empty"
+        }
+    }
 }

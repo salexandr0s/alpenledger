@@ -4,6 +4,40 @@ import ALStorage
 import ALAudit
 
 public final class LegalEntityService: @unchecked Sendable {
+    public struct DeletionCheck: Sendable, Equatable {
+        public let statementImportCount: Int
+        public let transactionCount: Int
+        public let documentCount: Int
+        public let taxFactCount: Int
+        public let issueCount: Int
+        public let requirementCount: Int
+
+        public init(
+            statementImportCount: Int,
+            transactionCount: Int,
+            documentCount: Int,
+            taxFactCount: Int,
+            issueCount: Int,
+            requirementCount: Int
+        ) {
+            self.statementImportCount = statementImportCount
+            self.transactionCount = transactionCount
+            self.documentCount = documentCount
+            self.taxFactCount = taxFactCount
+            self.issueCount = issueCount
+            self.requirementCount = requirementCount
+        }
+
+        public var canDelete: Bool {
+            statementImportCount == 0 &&
+            transactionCount == 0 &&
+            documentCount == 0 &&
+            taxFactCount == 0 &&
+            issueCount == 0 &&
+            requirementCount == 0
+        }
+    }
+
     private let storage: WorkspaceStorage
     private let auditLogger: AuditLogger
     private let nowProvider: @Sendable () -> Date
@@ -62,6 +96,61 @@ public final class LegalEntityService: @unchecked Sendable {
             eventType: .legalEntityUpdated,
             objectRef: ObjectRef(kind: .legalEntity, id: entity.id.rawValue)
         )
+    }
+
+    public func deletionCheck(for entityId: LegalEntityID) throws -> DeletionCheck {
+        let accounts = try storage.financialAccountRepository.fetchFinancialAccounts(entityId: entityId)
+
+        var statementImportCount = 0
+        var transactionCount = 0
+        for account in accounts {
+            statementImportCount += try storage.statementImportRepository.fetchStatementImports(accountId: account.id).count
+            transactionCount += try storage.transactionRepository.fetchTransactions(accountId: account.id).count
+        }
+
+        let documents = try storage.documentRepository.fetchDocuments(workspaceId: storage.manifest.workspace.id)
+        let documentCount = documents.filter { $0.detectedEntityId == entityId }.count
+        let taxYears = try storage.taxYearRepository.fetchTaxYears(entityId: entityId)
+        let taxFactCount = try taxYears.reduce(into: 0) { count, taxYear in
+            count += try storage.taxFactRepository.fetchTaxFacts(entityId: entityId, taxYearId: taxYear.id, currentOnly: false).count
+        }
+        let issueCount = try storage.issueRepository.fetchIssues(
+            workspaceId: storage.manifest.workspace.id,
+            entityId: entityId,
+            taxYearId: nil,
+            status: nil
+        ).count
+        let requirementCount = try storage.requirementRepository.fetchRequirements(entityId: entityId).count
+
+        return DeletionCheck(
+            statementImportCount: statementImportCount,
+            transactionCount: transactionCount,
+            documentCount: documentCount,
+            taxFactCount: taxFactCount,
+            issueCount: issueCount,
+            requirementCount: requirementCount
+        )
+    }
+
+    public func deleteEntity(_ entityId: LegalEntityID) throws -> DeletionCheck {
+        let check = try deletionCheck(for: entityId)
+        guard check.canDelete else {
+            return check
+        }
+
+        try storage.taxYearRepository.deleteTaxYears(entityId: entityId)
+        try storage.financialAccountRepository.deleteFinancialAccounts(entityId: entityId)
+        try storage.ledgerAccountRepository.deleteLedgerAccounts(entityId: entityId)
+        try storage.legalEntityRepository.deleteLegalEntity(entityId)
+
+        try auditLogger.log(
+            actorType: .user,
+            actorId: "user",
+            eventType: .legalEntityRemoved,
+            objectRef: ObjectRef(kind: .legalEntity, id: entityId.rawValue)
+        )
+
+        return check
     }
 
     private func saveNewEntity(_ entity: LegalEntity, defaultInstitutionName: String) throws {

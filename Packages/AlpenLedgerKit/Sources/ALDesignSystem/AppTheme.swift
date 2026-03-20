@@ -8,10 +8,13 @@ public enum AppTheme {
     public static let spacingM: CGFloat = 16
     public static let spacingL: CGFloat = 24
     public static let spacingXL: CGFloat = 32
+    public static let spacingXXL: CGFloat = 40
 
     public static let cornerRadius: CGFloat = 12
     public static let largeCornerRadius: CGFloat = 16
     public static let panelPadding: CGFloat = 18
+    public static let groupedPanelPadding: CGFloat = 16
+    public static let compactPanelPadding: CGFloat = 14
     public static let contentPadding: CGFloat = 24
     public static let narrowContentPadding: CGFloat = 18
     public static let sidebarSectionSpacing: CGFloat = 8
@@ -46,6 +49,9 @@ public enum AppTheme {
     public static let elevatedSurfaceColor = Color(nsColor: .textBackgroundColor)
     public static let secondarySurfaceColor = Color(nsColor: .underPageBackgroundColor)
     public static let tertiarySurfaceColor = Color(nsColor: .quaternaryLabelColor).opacity(0.08)
+    public static let subtleSurfaceColor = Color(nsColor: .controlBackgroundColor).opacity(0.55)
+    public static let emphasizedSurfaceColor = Color(nsColor: .textBackgroundColor)
+    public static let accentSurfaceColor = Color.accentColor.opacity(0.08)
     public static let strokeColor = Color(nsColor: .separatorColor).opacity(0.45)
     public static let strongStrokeColor = Color(nsColor: .separatorColor).opacity(0.65)
     public static let sidebarBadgeFill = Color(nsColor: .selectedContentBackgroundColor).opacity(0.12)
@@ -53,17 +59,24 @@ public enum AppTheme {
     public static let subduedForegroundColor = Color.secondary
     public static let symbolRenderingMode: SymbolRenderingMode = .hierarchical
 
+    public static let pageTitleFont: Font = .title2
+    public static let pageSubtitleFont: Font = .body
+    public static let sectionTitleFont: Font = .headline
+    public static let sectionSubtitleFont: Font = .subheadline
+    public static let metaFont: Font = .subheadline
+    public static let prominentMetricValueFont: Font = .title2
+    public static let compactMetricValueFont: Font = .headline
     public static let windowTitleFont: Font = .headline
     public static let windowSubtitleFont: Font = .subheadline
-    public static let paneTitleFont: Font = .headline
-    public static let paneSubtitleFont: Font = .subheadline
+    public static let paneTitleFont: Font = sectionTitleFont
+    public static let paneSubtitleFont: Font = sectionSubtitleFont
     public static let sidebarTitleFont: Font = .body
     public static let sidebarSubtitleFont: Font = .subheadline
     public static let sidebarSectionHeaderFont: Font = .caption
     public static let inspectorLabelFont: Font = .subheadline
     public static let inspectorValueFont: Font = .body
-    public static let summaryTitleFont: Font = .subheadline
-    public static let summaryValueFont: Font = .title3
+    public static let summaryTitleFont: Font = metaFont
+    public static let summaryValueFont: Font = prominentMetricValueFont
     public static let toolbarChipFont: Font = .caption
     public static let emptyStateTitleFont: Font = .headline
     public static let emptyStateSubtitleFont: Font = .subheadline

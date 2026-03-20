@@ -31,13 +31,7 @@ public final class WorkspaceService: @unchecked Sendable {
         let entityService = LegalEntityService(storage: storage, auditLogger: logger, nowProvider: nowProvider)
         _ = try entityService.createDefaultNaturalPerson()
 
-        recentStore.add(
-            RecentWorkspaceReference(
-                workspaceId: storage.manifest.workspace.id,
-                name: storage.manifest.workspace.name,
-                path: storage.paths.rootURL.path
-            )
-        )
+        recentStore.upsert(recentReference(for: storage))
         return storage
     }
 
@@ -48,17 +42,51 @@ public final class WorkspaceService: @unchecked Sendable {
             eventType: .workspaceOpened,
             objectRef: ObjectRef(kind: .workspace, id: storage.manifest.workspace.id.rawValue)
         )
-        recentStore.add(
-            RecentWorkspaceReference(
-                workspaceId: storage.manifest.workspace.id,
-                name: storage.manifest.workspace.name,
-                path: storage.paths.rootURL.path
-            )
-        )
+        recentStore.upsert(recentReference(for: storage))
         return storage
     }
 
     public func recentWorkspaces() -> [RecentWorkspaceReference] {
         recentStore.load()
+    }
+
+    public func renameWorkspace(_ storage: WorkspaceStorage, name: String) throws -> WorkspaceStorage {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedName.isEmpty == false else {
+            throw DomainError.invalidWorkspaceName
+        }
+
+        var workspace = storage.manifest.workspace
+        workspace.name = trimmedName
+        try storage.workspaceRepository.saveWorkspace(workspace)
+
+        let updatedManifest = WorkspaceManifest(
+            workspace: workspace,
+            rootPath: storage.manifest.rootPath,
+            encryptionSalt: storage.manifest.encryptionSalt
+        )
+        try JSONEncoder.alpenLedger.encode(updatedManifest).write(to: storage.paths.manifestURL, options: .atomic)
+
+        let logger = AuditLogger(storage: storage)
+        try logger.log(
+            actorType: .user,
+            actorId: "user",
+            eventType: .workspaceRenamed,
+            objectRef: ObjectRef(kind: .workspace, id: workspace.id.rawValue),
+            payload: trimmedName
+        )
+
+        let reopenedStorage = try storageManager.openWorkspace(at: storage.paths.rootURL)
+        recentStore.upsert(recentReference(for: reopenedStorage))
+        return reopenedStorage
+    }
+
+    private func recentReference(for storage: WorkspaceStorage) -> RecentWorkspaceReference {
+        RecentWorkspaceReference(
+            workspaceId: storage.manifest.workspace.id,
+            name: storage.manifest.workspace.name,
+            path: storage.paths.rootURL.path,
+            lastOpenedAt: nowProvider()
+        )
     }
 }

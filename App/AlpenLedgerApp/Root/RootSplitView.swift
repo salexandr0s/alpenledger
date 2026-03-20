@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 import ALDesignSystem
 import ALDomain
@@ -14,10 +13,11 @@ struct RootSplitView: View {
                 workspaceShell
             } else {
                 WorkspaceChooserView(
-                    newWorkspaceName: $model.newWorkspaceName,
-                    recentWorkspaces: model.recentWorkspaces,
-                    onCreateWorkspace: model.createWorkspace,
-                    onOpenWorkspace: model.openWorkspace,
+                    snapshot: model.workspaceChooserSnapshot,
+                    onCreateWorkspace: model.presentNewWorkspaceSheet,
+                    onOpenWorkspace: { workspace in
+                        model.openWorkspace(workspace.reference)
+                    },
                     onOpenExistingWorkspace: model.openExistingWorkspace
                 )
             }
@@ -47,10 +47,10 @@ struct RootSplitView: View {
                 Section {
                     ForEach(group.sections) { section in
                         NavigationLink(value: section) {
-                            SourceListRow(
+                            NavigationListRow(
                                 title: section.title,
                                 systemImage: section.systemImage,
-                                badgeText: model.sidebarBadgeText(for: section)
+                                detailText: model.sidebarBadgeText(for: section)
                             )
                         }
                         .accessibilityIdentifier("nav.\(section.rawValue)")
@@ -70,34 +70,20 @@ struct RootSplitView: View {
 
     @ToolbarContentBuilder
     private func shellToolbar() -> some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
-            Button("Toggle Sidebar", systemImage: "sidebar.leading", action: toggleSidebar)
-                .accessibilityIdentifier("toolbar.toggleSidebar")
-        }
-
         ToolbarItem(placement: .principal) {
+            let configuration = model.shellToolbarConfiguration
             VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
-                Text(model.workspaceName)
+                Text(configuration.title)
                     .font(AppTheme.windowTitleFont)
                     .bold()
                     .contentTransition(.opacity)
 
-                Text(model.currentSectionSubtitle)
+                Text(configuration.subtitle)
                     .font(AppTheme.windowSubtitleFont)
                     .foregroundStyle(.secondary)
                     .contentTransition(.opacity)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-        }
-
-        ToolbarItem {
-            if model.selectedSection == .overview, let action = model.contextualToolbarAction {
-                Button(action.title, systemImage: action.systemImage) {
-                    model.performToolbarAction(action)
-                }
-                .disabled(model.canPerform(action) == false)
-                .accessibilityIdentifier("toolbar.contextAction")
-            }
         }
 
         ToolbarItem {
@@ -110,71 +96,28 @@ struct RootSplitView: View {
 
                 Divider()
 
-                Button("Import Sample CSV", action: model.importSampleCSV)
-                    .disabled(model.canImportSampleData == false)
+                Menu("Samples", systemImage: "sparkles.rectangle.stack") {
+                    Button("Import Sample CSV", action: model.importSampleCSV)
+                        .disabled(model.canImportSampleData == false)
 
-                Button("Import Sample PDF", action: model.importSampleDocument)
-                    .disabled(model.canImportSampleData == false)
+                    Button("Import Sample PDF", action: model.importSampleDocument)
+                        .disabled(model.canImportSampleData == false)
 
-                Button("Import Sample Data", action: model.importSampleData)
-                    .disabled(model.canImportSampleData == false)
+                    Button("Import Sample Data", action: model.importSampleData)
+                        .disabled(model.canImportSampleData == false)
+                }
             }
             .accessibilityIdentifier("toolbar.importMenu")
         }
 
-        if model.selectedSection == .ledger {
-            ToolbarItemGroup {
-                ToolbarAccessoryChip(
-                    "Shown",
-                    value: model.ledgerToolbarCountValue,
-                    systemImage: "list.number",
-                    accessibilityIdentifier: "toolbar.ledger.visibleCount"
-                )
-
-                Menu {
-                    ForEach(LedgerTransactionScope.allCases) { scope in
-                        Button(scope.title) {
-                            model.setLedgerTransactionScope(scope)
-                        }
-                    }
-                } label: {
-                    Label(model.ledgerTransactionScope.title, systemImage: "line.3.horizontal.decrease.circle")
-                }
-                .accessibilityLabel(model.ledgerTransactionScope.title)
-                .accessibilityIdentifier("toolbar.ledger.scope")
-
-                Button("Import CSV", systemImage: "tablecells", action: model.importCSVFromPanel)
-                    .disabled(model.canImportCSV == false)
-                    .accessibilityIdentifier("toolbar.ledger.importCSV")
-
-                Button(model.ledgerInspectorButtonTitle, systemImage: "sidebar.right") {
-                    model.toggleLedgerInspector()
+        if let inspectorControl = model.shellToolbarConfiguration.inspectorControl {
+            ToolbarItem {
+                Button(inspectorControl.title, systemImage: "sidebar.right") {
+                    model.performShellToolbarInspectorAction()
                 }
                 .labelStyle(.iconOnly)
-                .accessibilityLabel(model.ledgerInspectorButtonTitle)
-                .accessibilityIdentifier("toolbar.ledger.toggleInspector")
-            }
-        }
-
-        if model.selectedSection == .documents {
-            ToolbarItemGroup {
-                ToolbarAccessoryChip(
-                    "Shown",
-                    value: model.documentsToolbarCountValue,
-                    systemImage: "doc.on.doc",
-                    accessibilityIdentifier: "toolbar.documents.visibleCount"
-                )
-
-                Button("Import Document", systemImage: "plus", action: model.importDocumentFromPanel)
-                    .disabled(model.canImportDocument == false)
-                    .accessibilityIdentifier("toolbar.documents.import")
-
-                Button(model.documentsInspectorButtonTitle, systemImage: "sidebar.right") {
-                    model.toggleDocumentsInspector()
-                }
-                .labelStyle(.iconOnly)
-                .accessibilityLabel(model.documentsInspectorButtonTitle)
-                .accessibilityIdentifier("toolbar.documents.toggleInspector")
+                .accessibilityLabel(inspectorControl.title)
+                .accessibilityIdentifier(inspectorControl.accessibilityIdentifier)
             }
         }
     }
@@ -189,14 +132,13 @@ struct RootSplitView: View {
             )
         case .inbox:
             InboxFeatureView(
+                snapshot: model.inboxSnapshot,
                 selection: $model.selectedInboxSelection,
-                importJobs: model.importJobs,
-                proposals: model.agentProposals,
-                issues: model.issues
+                performAction: model.performInboxAction
             )
         case .ledger:
             LedgerFeatureView(
-                accounts: model.financialAccounts,
+                accounts: model.ledgerAccountSummaries,
                 selectedAccountId: model.selectedAccountId,
                 transactions: model.visibleTransactions,
                 allTransactionsCount: model.transactionCount,
@@ -209,6 +151,7 @@ struct RootSplitView: View {
                 onSelectTransaction: model.selectTransaction,
                 onImportCSV: model.importCSVFromPanel,
                 onResetScope: model.resetLedgerScope,
+                onSetScope: model.setLedgerTransactionScope,
                 onLinkDocument: model.presentDocumentLinkSheet
             )
         case .documents:
@@ -218,7 +161,7 @@ struct RootSplitView: View {
                     get: { model.documentFilterScope },
                     set: { model.setDocumentFilterScope($0) }
                 ),
-                documents: model.visibleDocuments,
+                items: model.documentBrowserItems,
                 allDocumentsCount: model.documentCount,
                 selectedDocumentId: model.selectedDocumentId,
                 previewURL: model.selectedDocumentPreviewURL,
@@ -227,22 +170,21 @@ struct RootSplitView: View {
                 isActive: model.selectedSection == .documents,
                 onSelectDocument: model.selectDocument,
                 onImportDocument: model.importDocumentFromPanel,
+                onImportDocuments: model.importDocumentURLs,
                 onRefreshSearchResults: model.filterDocuments,
                 onClearSearch: model.clearDocumentSearch,
                 onResetScope: model.resetDocumentScope,
+                onSetScope: model.setDocumentFilterScope,
                 onLinkTransaction: model.presentTransactionLinkSheet
             )
         case .taxStudio:
             TaxStudioFeatureView(
                 selectedEntityId: $model.selectedTaxEntityId,
                 selectedTaxYearId: $model.selectedTaxYearId,
-                selectedTaxFactId: $model.selectedTaxFactId,
+                selection: $model.selectedTaxStudioSelection,
                 entities: model.entities,
                 taxYears: model.taxYears,
-                taxFacts: model.taxFacts,
-                issues: model.taxIssues,
-                requirements: model.taxRequirements,
-                readinessSummary: model.taxReadinessSummary
+                snapshot: model.taxStudioSnapshot
             )
             .onChange(of: model.selectedTaxEntityId) { _, _ in
                 model.selectTaxEntity(model.selectedTaxEntityId)
@@ -250,19 +192,21 @@ struct RootSplitView: View {
             .onChange(of: model.selectedTaxYearId) { _, _ in
                 model.selectTaxYear(model.selectedTaxYearId)
             }
+            .onChange(of: model.selectedTaxStudioSelection) { _, selection in
+                model.selectTaxStudioSelection(selection)
+            }
         case .settings:
             SettingsFeatureView(
+                snapshot: model.settingsSnapshot,
                 newSolePropName: $model.newSolePropName,
-                workspaceName: model.workspaceName,
-                entities: model.entities,
+                onRenameWorkspace: model.renameWorkspace,
+                onRenameEntity: model.updateEntityName,
+                onRemoveEntity: model.removeEntity,
                 onCreateSoleProp: model.createSoleProp
             )
         }
     }
 
-    private func toggleSidebar() {
-        NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil)
-    }
 }
 
 struct DocumentLinkSheet: View {
@@ -270,18 +214,32 @@ struct DocumentLinkSheet: View {
 
     var body: some View {
         NavigationStack {
-            List(model.documents, id: \.id) { document in
-                Button {
-                    model.linkSelectedDocumentToCurrentTransaction(documentId: document.id)
-                } label: {
-                    SourceListRow(
-                        title: document.originalFilename,
-                        subtitle: document.documentType.rawValue.capitalized,
-                        systemImage: "doc.text"
-                    )
+            ScrollView {
+                LazyVStack(spacing: AppTheme.spacingXS) {
+                    ForEach(model.documents, id: \.id) { document in
+                        Button {
+                            model.linkSelectedDocumentToCurrentTransaction(documentId: document.id)
+                        } label: {
+                            SourceListRow(
+                                title: document.originalFilename,
+                                subtitle: document.documentType.rawValue.capitalized,
+                                systemImage: "doc.text"
+                            )
+                            .padding(.horizontal, AppTheme.spacingS)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background {
+                                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                                    .fill(AppTheme.secondarySurfaceColor.opacity(0.35))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
+                        .accessibilityLabel(document.originalFilename)
+                        .accessibilityValue(document.documentType.rawValue.capitalized)
+                        .accessibilityIdentifier("sheet.document.\(accessibilitySlug(document.originalFilename))")
+                    }
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("sheet.document.\(accessibilitySlug(document.originalFilename))")
+                .padding(AppTheme.contentPadding)
             }
             .navigationTitle("Link Document")
             .accessibilityIdentifier("sheet.documentList")
@@ -303,18 +261,32 @@ struct TransactionLinkSheet: View {
 
     var body: some View {
         NavigationStack {
-            List(model.transactions, id: \.id) { transaction in
-                Button {
-                    model.linkCurrentDocumentToTransaction(transactionId: transaction.id)
-                } label: {
-                    SourceListRow(
-                        title: transaction.counterpartyName,
-                        subtitle: transaction.memo,
-                        systemImage: "list.bullet.rectangle"
-                    )
+            ScrollView {
+                LazyVStack(spacing: AppTheme.spacingXS) {
+                    ForEach(model.transactions, id: \.id) { transaction in
+                        Button {
+                            model.linkCurrentDocumentToTransaction(transactionId: transaction.id)
+                        } label: {
+                            SourceListRow(
+                                title: transaction.counterpartyName,
+                                subtitle: transaction.memo,
+                                systemImage: "list.bullet.rectangle"
+                            )
+                            .padding(.horizontal, AppTheme.spacingS)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background {
+                                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                                    .fill(AppTheme.secondarySurfaceColor.opacity(0.35))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
+                        .accessibilityLabel(transaction.counterpartyName)
+                        .accessibilityValue(transaction.memo)
+                        .accessibilityIdentifier("sheet.transaction.\(accessibilitySlug(transaction.counterpartyName))")
+                    }
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("sheet.transaction.\(accessibilitySlug(transaction.counterpartyName))")
+                .padding(AppTheme.contentPadding)
             }
             .navigationTitle("Link Transaction")
             .accessibilityIdentifier("sheet.transactionList")

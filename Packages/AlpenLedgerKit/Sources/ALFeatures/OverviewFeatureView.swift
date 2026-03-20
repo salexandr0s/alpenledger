@@ -3,6 +3,7 @@ import ALDesignSystem
 
 public struct OverviewFeatureView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private let snapshot: OverviewSnapshot
     private let performAction: (OverviewAction) -> Void
 
@@ -16,222 +17,200 @@ public struct OverviewFeatureView: View {
 
     public var body: some View {
         ScrollView {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: AppTheme.spacingXL) {
-                    primaryColumn
-                        .frame(maxWidth: 680, alignment: .leading)
+            VStack(alignment: .leading, spacing: AppTheme.spacingL) {
+                PaneHeader(
+                    snapshot.workspaceName,
+                    subtitle: snapshot.workspaceSubtitle,
+                    style: .page
+                )
 
-                    secondaryColumn
-                        .frame(maxWidth: 420, alignment: .leading)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                metricsRow
 
-                VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-                    primaryColumn
-                    secondaryColumn
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: AppTheme.spacingL) {
+                        priorityActionCard
+                            .frame(maxWidth: 760, alignment: .leading)
+
+                        attentionCard
+                            .frame(maxWidth: 420, alignment: .leading)
+                    }
+
+                    VStack(alignment: .leading, spacing: AppTheme.spacingL) {
+                        priorityActionCard
+                        attentionCard
+                    }
                 }
+
+                recentActivityCard
             }
             .padding(AppTheme.contentPadding)
             .transition(AppTheme.chromeTransition(reduceMotion: reduceMotion))
         }
     }
 
-    private var primaryColumn: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-            PaneHeader(snapshot.workspaceName, subtitle: snapshot.workspaceSubtitle)
-
-            InspectorPane("Workspace Health", subtitle: "A compact view of the current workspace state.") {
-                LazyVGrid(
-                    columns: [
-                        GridItem(.flexible(minimum: 180), spacing: AppTheme.spacingM),
-                        GridItem(.flexible(minimum: 180), spacing: AppTheme.spacingM),
-                    ],
-                    spacing: AppTheme.spacingM
-                ) {
-                    ForEach(snapshot.healthItems) { item in
-                        SummaryTile(
-                            item.title,
-                            value: item.value,
-                            subtitle: item.subtitle,
-                            tone: item.tone,
-                            systemImage: item.systemImage
-                        )
-                    }
-                }
-            }
-
-            InspectorPane("Next Actions", subtitle: "Follow the highest-signal tasks before diving into detail.") {
-                if snapshot.nextSteps.isEmpty {
-                    ContentUnavailableView("No Immediate Actions", systemImage: "checkmark.circle")
-                } else {
-                    VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                        ForEach(snapshot.nextSteps) { step in
-                            Button(action: {
-                                performAction(step.action)
-                            }) {
-                                HStack(alignment: .top, spacing: AppTheme.spacingS) {
-                                    Image(systemName: step.systemImage)
-                                        .foregroundStyle(.secondary)
-                                        .frame(width: 18)
-
-                                    VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
-                                        Text(step.title)
-                                            .foregroundStyle(.primary)
-
-                                        Text(step.subtitle)
-                                            .font(.subheadline)
-                                            .foregroundStyle(AppTheme.subduedForegroundColor)
-                                    }
-
-                                    Spacer()
-
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.tertiary)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-            }
-
-            InspectorPane("Recent Imports", subtitle: "The newest statement and document intake work.") {
-                if snapshot.recentImports.isEmpty {
-                    ContentUnavailableView("No Imports Yet", systemImage: "tray")
-                } else {
-                    VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                        ForEach(snapshot.recentImports) { item in
-                            HStack(alignment: .top, spacing: AppTheme.spacingM) {
-                                SourceListRow(
-                                    title: item.title,
-                                    subtitle: item.subtitle,
-                                    systemImage: "tray.and.arrow.down"
-                                )
-
-                                Spacer()
-
-                                StatusBadge(item.detail, tone: item.tone)
-                            }
-                        }
-                    }
-                }
+    private var metricsRow: some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 160), spacing: AppTheme.spacingM)],
+            spacing: AppTheme.spacingM
+        ) {
+            ForEach(snapshot.metrics) { metric in
+                SummaryTile(
+                    metric.title,
+                    value: metric.value,
+                    subtitle: metric.subtitle,
+                    tone: metric.tone,
+                    style: .compact,
+                    subtitlePresentation: .secondary,
+                    systemImage: metric.systemImage
+                )
             }
         }
     }
 
-    private var secondaryColumn: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-            InspectorPane("Review Queue", subtitle: "Open proposals and issues that still need attention.") {
-                if snapshot.reviewQueue.isEmpty {
-                    ContentUnavailableView("Review Queue Clear", systemImage: "checkmark.seal")
-                } else {
-                    VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                        ForEach(snapshot.reviewQueue) { item in
-                            HStack(alignment: .top, spacing: AppTheme.spacingS) {
-                                SourceListRow(
-                                    title: item.title,
-                                    subtitle: item.subtitle,
-                                    systemImage: item.tone == .critical ? "exclamationmark.octagon" : "list.bullet.rectangle"
-                                )
-
-                                Spacer()
-
-                                StatusBadge(item.toneLabel, tone: item.tone)
-                            }
-                        }
-                    }
-                }
-            }
-
-            InspectorPane("Tax Readiness", subtitle: snapshot.taxReadiness.detail) {
+    private var priorityActionCard: some View {
+        InspectorPane(
+            "Next Action",
+            subtitle: "The highest-value move for this workspace right now.",
+            style: .card
+        ) {
+            if let action = snapshot.priorityAction {
                 VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-                    HStack {
-                        StatusBadge(snapshot.taxReadiness.summary, tone: snapshot.taxReadiness.tone)
-                        Spacer()
-                        Button("Open Tax Studio", action: {
-                            performAction(.openTaxStudio)
-                        })
-                        .buttonStyle(.bordered)
+                    Label(action.title, systemImage: action.systemImage)
+                        .font(.title3.weight(.semibold))
+                        .symbolRenderingMode(AppTheme.symbolRenderingMode)
+
+                    Text(action.subtitle)
+                        .font(AppTheme.pageSubtitleFont)
+                        .foregroundStyle(AppTheme.subduedForegroundColor)
+
+                    Button(action.buttonTitle) {
+                        performAction(action.action)
                     }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .accessibilityIdentifier("overview.primaryAction")
 
-                    Text(snapshot.taxReadiness.title)
-                        .font(.body.weight(.medium))
+                    if snapshot.secondaryActions.isEmpty == false {
+                        Divider()
 
-                    if snapshot.taxReadiness.missingFacts.isEmpty == false {
-                        VStack(alignment: .leading, spacing: AppTheme.spacingXS) {
-                            Text("Missing Facts")
-                                .font(.headline)
+                        VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                            Text("Other Useful Next Steps")
+                                .font(AppTheme.metaFont)
+                                .foregroundStyle(.secondary)
 
-                            ForEach(snapshot.taxReadiness.missingFacts, id: \.self) { fact in
-                                Label(fact, systemImage: "circle.fill")
-                                    .font(.subheadline)
-                                    .foregroundStyle(AppTheme.subduedForegroundColor)
+                            ForEach(snapshot.secondaryActions) { secondary in
+                                Button {
+                                    performAction(secondary.action)
+                                } label: {
+                                    HStack(alignment: .top, spacing: AppTheme.spacingS) {
+                                        NavigationListRow(
+                                            title: secondary.title,
+                                            subtitle: secondary.subtitle,
+                                            systemImage: secondary.systemImage
+                                        )
+
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(.tertiary)
+                                            .padding(.top, AppTheme.spacingXXS)
+                                    }
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("overview.secondaryAction.\(accessibilitySlug(secondary.id))")
                             }
                         }
                     }
                 }
+            } else {
+                PaneEmptyState(
+                    "No immediate action",
+                    subtitle: "This workspace is ready for the next import or review pass.",
+                    systemImage: "checkmark.circle"
+                )
             }
+        }
+    }
 
-            InspectorPane("Workspace Snapshot", subtitle: "A concise inventory of entities, accounts, documents, and facts.") {
-                LazyVGrid(
-                    columns: [
-                        GridItem(.flexible(minimum: 150), spacing: AppTheme.spacingM),
-                        GridItem(.flexible(minimum: 150), spacing: AppTheme.spacingM),
-                    ],
-                    spacing: AppTheme.spacingM
-                ) {
-                    ForEach(snapshot.workspaceFacts) { fact in
-                        SummaryTile(
-                            fact.title,
-                            value: fact.value,
-                            subtitle: fact.subtitle,
-                            systemImage: fact.systemImage
-                        )
-                    }
-                }
-            }
-
-            InspectorPane("Sample Data", subtitle: "Keep the accepted sample import path available without making it the focus of the dashboard.") {
+    private var attentionCard: some View {
+        InspectorPane(
+            "Needs Attention",
+            subtitle: "The most important open items across inbox and tax readiness."
+        ) {
+            if snapshot.attentionItems.isEmpty {
+                Text("Nothing needs attention.")
+                    .font(AppTheme.metaFont)
+                    .foregroundStyle(.secondary)
+            } else {
                 VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                    Button("Import Sample CSV", systemImage: "tablecells", action: {
-                        performAction(.importSampleCSV)
-                    })
-                    .buttonStyle(.borderedProminent)
-                    .accessibilityIdentifier("overview.importSampleCSV")
+                    ForEach(snapshot.attentionItems) { item in
+                        Button {
+                            performAction(item.action)
+                        } label: {
+                            HStack(alignment: .top, spacing: AppTheme.spacingS) {
+                                WorkItemRow(
+                                    title: item.title,
+                                    subtitle: item.subtitle,
+                                    systemImage: item.systemImage,
+                                    statusTitle: item.statusText,
+                                    tone: item.tone
+                                )
 
-                    Button("Import Sample PDF", systemImage: "doc.richtext", action: {
-                        performAction(.importSampleDocument)
-                    })
-                    .buttonStyle(.bordered)
-                    .accessibilityIdentifier("overview.importSamplePDF")
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.top, AppTheme.spacingXXS)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("overview.review.\(accessibilitySlug(item.id))")
+                    }
 
-                    Button("Open Inbox", systemImage: "tray.full", action: {
-                        performAction(.openInbox)
-                    })
-                    .buttonStyle(.bordered)
-                    .accessibilityIdentifier("overview.openInbox")
+                    Button("View all →") {
+                        performAction(.openInbox(selection: nil))
+                    }
+                    .buttonStyle(.plain)
+                    .font(AppTheme.metaFont)
+                    .foregroundStyle(Color.accentColor)
                 }
             }
         }
     }
-}
 
-private extension OverviewSnapshot.ReviewQueueItem {
-    var toneLabel: String {
-        switch tone {
-        case .critical:
-            return "Blocking"
-        case .warning:
-            return "Open"
-        case .info:
-            return "Pending"
-        case .success:
-            return "Ready"
-        default:
-            return "Review"
+    private var recentActivityCard: some View {
+        InspectorPane(
+            "Recent Activity",
+            subtitle: "Imports and intake work from this workspace."
+        ) {
+            if snapshot.recentActivityItems.isEmpty {
+                HStack(spacing: AppTheme.spacingS) {
+                    Text(snapshot.recentActivityEmptyTitle)
+                        .font(AppTheme.metaFont)
+                        .foregroundStyle(.secondary)
+
+                    if let action = snapshot.recentActivityAction {
+                        Button(snapshot.recentActivityActionTitle) {
+                            performAction(action)
+                        }
+                        .buttonStyle(.plain)
+                        .font(AppTheme.metaFont)
+                        .foregroundStyle(Color.accentColor)
+                    }
+                }
+            } else {
+                VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                    ForEach(snapshot.recentActivityItems) { item in
+                        WorkItemRow(
+                            title: item.title,
+                            subtitle: item.subtitle,
+                            systemImage: "tray.and.arrow.down",
+                            statusTitle: item.statusText,
+                            tone: item.tone
+                        )
+                    }
+                }
+            }
         }
     }
 }

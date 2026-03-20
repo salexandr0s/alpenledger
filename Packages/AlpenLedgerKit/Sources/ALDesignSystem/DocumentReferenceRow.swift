@@ -1,25 +1,25 @@
 import SwiftUI
 
-public struct SourceListRow: View {
+public struct DocumentReferenceRow: View {
     private let title: String
     private let subtitle: String?
     private let systemImage: String
-    private let badgeText: String?
+    private let detailText: String?
 
     public init(
         title: String,
         subtitle: String? = nil,
         systemImage: String,
-        badgeText: String? = nil
+        detailText: String? = nil
     ) {
         self.title = title
         self.subtitle = subtitle
         self.systemImage = systemImage
-        self.badgeText = badgeText
+        self.detailText = detailText
     }
 
     public var body: some View {
-        HStack(alignment: .center, spacing: AppTheme.spacingS) {
+        HStack(alignment: .top, spacing: AppTheme.spacingS) {
             Image(systemName: systemImage)
                 .symbolRenderingMode(AppTheme.symbolRenderingMode)
                 .foregroundStyle(.secondary)
@@ -27,25 +27,27 @@ public struct SourceListRow: View {
 
             VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
                 Text(title)
-                    .font(AppTheme.sidebarTitleFont)
+                    .font(.body)
                     .lineLimit(1)
+                    .truncationMode(.tail)
 
                 if let subtitle, subtitle.isEmpty == false {
                     Text(subtitle)
-                        .font(AppTheme.sidebarSubtitleFont)
+                        .font(AppTheme.metaFont)
                         .foregroundStyle(AppTheme.subduedForegroundColor)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
             }
 
             Spacer(minLength: AppTheme.spacingS)
 
-            if let badgeText, badgeText.isEmpty == false {
-                SourceListBadge(badgeText)
+            if let detailText, detailText.isEmpty == false {
+                Text(detailText)
+                    .font(AppTheme.metaFont)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
-        .padding(.vertical, AppTheme.sidebarRowVerticalPadding)
         .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
     }
 }

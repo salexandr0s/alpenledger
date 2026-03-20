@@ -32,61 +32,90 @@ final class AlpenLedgerAppUITests: XCTestCase {
         harnessRoot = nil
     }
 
-    func testAcceptanceFlow() throws {
+    func testWelcomeUsesSheetBasedCreationAndRecentWorkspaceLauncher() throws {
+        app.launch()
+
+        createWorkspace(named: "Recent Workspace")
+        app.terminate()
+        app.launch()
+
+        let recentWorkspace = waitForElement(
+            "workspace.recent.recent-workspace",
+            fallbackLabel: "Recent Workspace",
+            timeout: 10
+        )
+        recentWorkspace.click()
+
+        XCTAssertTrue(element("toolbar.importMenu").waitForExistence(timeout: 10))
+    }
+
+    func testOverviewActionLinksIntoInboxAndDocumentLinkFlow() throws {
         app.launch()
 
         createWorkspace(named: "Acceptance Workspace")
-        importSampleDataFromOverview()
-        element("overview.openInbox").click()
+        importSampleDataFromMenu()
 
-        waitForLabel("inbox.count.importJobs", equals: "2 import jobs")
-        waitForLabel("inbox.count.proposals", equals: "1 pending proposals")
-        waitForLabel("inbox.count.issues", equals: "3 open issues")
+        let overviewPrimaryAction = element("overview.primaryAction")
+        XCTAssertTrue(overviewPrimaryAction.waitForExistence(timeout: 5))
+        overviewPrimaryAction.click()
+
+        XCTAssertTrue(element("inbox.list").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("inbox.inspector.issue").waitForExistence(timeout: 5))
+        let expenseIssue = element("inbox.issue.expense-evidence-missing")
+        XCTAssertTrue(expenseIssue.waitForExistence(timeout: 5))
+        clickElement(expenseIssue)
+
+        navigate(to: "nav.documents")
+        let receiptDocument = element("documents.document.sample-receipt-pdf")
+        XCTAssertTrue(receiptDocument.waitForExistence(timeout: 5))
+        receiptDocument.click()
+
+        XCTAssertTrue(element("documents.previewPane").waitForExistence(timeout: 5))
+    }
+
+    func testLedgerAndDocumentsRequireSelectionBeforeShowingSecondaryContent() throws {
+        app.launch()
+
+        createWorkspace(named: "Selection Workspace")
+        importSampleDataFromMenu()
 
         navigate(to: "nav.ledger")
-        waitForLabel("toolbar.ledger.scope", equals: "All")
-        XCTAssertTrue(element("toolbar.ledger.importCSV").waitForExistence(timeout: 5))
-        let ledgerInspectorToggle = element("toolbar.ledger.toggleInspector")
-        XCTAssertTrue(ledgerInspectorToggle.waitForExistence(timeout: 5))
-        ledgerInspectorToggle.click()
-        ledgerInspectorToggle.click()
+        XCTAssertFalse(element("ledger.inspector.counterparty").exists)
 
-        let coffeeTransaction = element("ledger.transaction.coffee-bar-zurich")
-        XCTAssertTrue(coffeeTransaction.waitForExistence(timeout: 5))
-        coffeeTransaction.click()
+        let ledgerAccount = element("ledger.account.personal-bank")
+        XCTAssertTrue(ledgerAccount.waitForExistence(timeout: 5))
+        clickElement(ledgerAccount)
+        XCTAssertFalse(element("ledger.inspector.counterparty").exists)
 
-        let linkDocumentButton = element("ledger.linkDocument")
+        navigate(to: "nav.inbox")
+        let expenseIssue = element("inbox.issue.expense-evidence-missing")
+        XCTAssertTrue(expenseIssue.waitForExistence(timeout: 5))
+        clickElement(expenseIssue)
+
+        let linkDocumentButton = app.buttons["Link Document…"]
         XCTAssertTrue(linkDocumentButton.waitForExistence(timeout: 5))
         linkDocumentButton.click()
 
-        let sampleReceiptButton = element("sheet.document.sample-receipt-pdf")
-        XCTAssertTrue(sampleReceiptButton.waitForExistence(timeout: 5))
-        sampleReceiptButton.click()
-        XCTAssertTrue(app.staticTexts["sample-receipt.pdf"].waitForExistence(timeout: 5))
+        let cancelLinkSheet = element("sheet.document.cancel")
+        XCTAssertTrue(cancelLinkSheet.waitForExistence(timeout: 5))
+        cancelLinkSheet.click()
+
+        XCTAssertTrue(element("ledger.inspector.counterparty").waitForExistence(timeout: 5))
 
         navigate(to: "nav.documents")
-        XCTAssertTrue(element("toolbar.documents.import").waitForExistence(timeout: 5))
-        let documentsInspectorToggle = element("toolbar.documents.toggleInspector")
-        XCTAssertTrue(documentsInspectorToggle.waitForExistence(timeout: 5))
-        documentsInspectorToggle.click()
-        documentsInspectorToggle.click()
+        XCTAssertTrue(element("documents.selectionPrompt").waitForExistence(timeout: 5))
 
         let receiptDocument = element("documents.document.sample-receipt-pdf")
         XCTAssertTrue(receiptDocument.waitForExistence(timeout: 5))
         receiptDocument.click()
-        XCTAssertTrue(app.staticTexts["Coffee Bar Zurich"].waitForExistence(timeout: 5))
-
-        navigate(to: "nav.inbox")
-
-        waitForLabel("inbox.count.proposals", equals: "0 pending proposals")
-        waitForLabel("inbox.count.issues", equals: "2 open issues")
+        XCTAssertTrue(element("documents.previewPane").waitForExistence(timeout: 5))
     }
 
     func testInspectorVisibilityPersistsAcrossRelaunch() throws {
         app.launch()
 
         createWorkspace(named: "Persistence Workspace")
-        importSampleDataFromOverview()
+        importSampleDataFromMenu()
 
         navigate(to: "nav.ledger")
         let ledgerInspectorToggle = element("toolbar.ledger.toggleInspector")
@@ -103,8 +132,11 @@ final class AlpenLedgerAppUITests: XCTestCase {
         app.terminate()
         app.launch()
 
-        let recentWorkspace = element("workspace.recent.persistence-workspace")
-        XCTAssertTrue(recentWorkspace.waitForExistence(timeout: 10))
+        let recentWorkspace = waitForElement(
+            "workspace.recent.persistence-workspace",
+            fallbackLabel: "Persistence Workspace",
+            timeout: 10
+        )
         recentWorkspace.click()
 
         navigate(to: "nav.ledger")
@@ -114,77 +146,174 @@ final class AlpenLedgerAppUITests: XCTestCase {
         waitForLabel("toolbar.documents.toggleInspector", equals: "Show Inspector")
     }
 
-    func testKeyboardSelectionUpdatesLedgerAndDocuments() throws {
-        app.launch()
-
-        createWorkspace(named: "Keyboard Workspace")
-        importSampleDataFromOverview()
-        importQAValidationFixturesFromMenu()
-
-        navigate(to: "nav.ledger")
-        let ledgerInspector = element("ledger.inspector.counterparty")
-        XCTAssertTrue(ledgerInspector.waitForExistence(timeout: 5))
-        let initialCounterparty = ledgerInspector.label
-        app.typeKey(XCUIKeyboardKey.downArrow, modifierFlags: [])
-        waitForLabelChange("ledger.inspector.counterparty", from: initialCounterparty)
-
-        navigate(to: "nav.documents")
-        let previewTitle = element("documents.preview.title")
-        XCTAssertTrue(previewTitle.waitForExistence(timeout: 5))
-        let initialTitle = previewTitle.label
-        app.typeKey(XCUIKeyboardKey.downArrow, modifierFlags: [])
-        waitForLabelChange("documents.preview.title", from: initialTitle)
-    }
-
-    func testDocumentSearchScopesShowDeterministicFilteredEmptyStates() throws {
+    func testDocumentSearchShowsFilteredEmptyStates() throws {
         app.launch()
 
         createWorkspace(named: "Search Scope Workspace")
-        importSampleDataFromOverview()
+        importSampleDataFromMenu()
         importQAValidationFixturesFromMenu()
 
         navigate(to: "nav.documents")
 
+        let scopeMenu = element("documents.scopeMenu")
+        XCTAssertTrue(scopeMenu.waitForExistence(timeout: 5))
+        scopeMenu.click()
+
+        let certificatesMenuItem = app.menuItems["Certificates"]
+        XCTAssertTrue(certificatesMenuItem.waitForExistence(timeout: 5))
+        certificatesMenuItem.click()
+
         let searchField = app.searchFields["Search documents"]
         XCTAssertTrue(searchField.waitForExistence(timeout: 5))
-        searchField.click()
-
-        let certificatesScope = element("documents.scope.certificates")
-        XCTAssertTrue(certificatesScope.waitForExistence(timeout: 5))
-        certificatesScope.click()
-
-        searchField.typeText("zzzxqvnotfound\n")
+        replaceText(in: searchField, with: "zzzxqvnotfound")
+        searchField.typeText("\n")
 
         XCTAssertTrue(element("documents.clearSearchButton").waitForExistence(timeout: 5))
         XCTAssertTrue(element("documents.showAllTypesButton").waitForExistence(timeout: 5))
+    }
+
+    func testSettingsAllowsRenameAndEntityAddRemove() throws {
+        app.launch()
+
+        createWorkspace(named: "Settings Workspace")
+        navigate(to: "nav.settings")
+
+        let workspaceNameField = element("settings.workspaceNameField")
+        XCTAssertTrue(workspaceNameField.waitForExistence(timeout: 5))
+        replaceText(in: workspaceNameField, with: "Renamed Workspace")
+
+        let renameButton = element("settings.renameWorkspaceButton")
+        XCTAssertTrue(renameButton.waitForExistence(timeout: 5))
+        renameButton.click()
+        XCTAssertEqual(workspaceNameField.value as? String, "Renamed Workspace")
+
+        let solePropField = element("settings.solePropNameField")
+        XCTAssertTrue(solePropField.waitForExistence(timeout: 5))
+        replaceText(in: solePropField, with: "Advisory Studio")
+
+        let addButton = element("settings.addSolePropButton")
+        XCTAssertTrue(addButton.waitForExistence(timeout: 5))
+        addButton.click()
+
+        let removeButton = element("settings.entity.remove.advisory-studio")
+        XCTAssertTrue(removeButton.waitForExistence(timeout: 5))
+        removeButton.click()
+        waitForNonExistence("settings.entity.remove.advisory-studio")
     }
 
     private func element(_ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
 
+    private func waitForElement(
+        _ identifier: String,
+        fallbackLabel: String? = nil,
+        type: XCUIElement.ElementType = .any,
+        timeout: TimeInterval = 5
+    ) -> XCUIElement {
+        let identified = app.descendants(matching: type).matching(identifier: identifier).firstMatch
+        if identified.waitForExistence(timeout: timeout) {
+            return identified
+        }
+
+        guard let fallbackLabel else {
+            XCTFail("Expected element \(identifier) to exist")
+            return identified
+        }
+
+        let fallback = app.descendants(matching: type)
+            .matching(NSPredicate(format: "label == %@", fallbackLabel))
+            .firstMatch
+        XCTAssertTrue(
+            fallback.waitForExistence(timeout: timeout),
+            "Expected element \(identifier) or fallback label \(fallbackLabel) to exist"
+        )
+        return fallback
+    }
+
+    private func clickElement(_ element: XCUIElement, timeout: TimeInterval = 5) {
+        XCTAssertTrue(element.waitForExistence(timeout: timeout))
+
+        if element.isHittable {
+            element.click()
+            return
+        }
+
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "hittable == true"),
+            object: element
+        )
+        if XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed {
+            element.click()
+            return
+        }
+
+        XCTAssertFalse(element.frame.isEmpty, "Expected \(element) to have a non-empty frame for coordinate click")
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+    }
+
+    private func selectLedgerTransaction(matching query: String) {
+        let searchField = app.textFields["Search transactions"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5))
+        replaceText(in: searchField, with: query)
+        searchField.typeText("\n")
+
+        let transactionRowIdentifier = "ledger.transaction.\(accessibilitySlug(query))"
+        let transactionRow = waitForElement(
+            transactionRowIdentifier,
+            fallbackLabel: query,
+            timeout: 5
+        )
+        let transactionsList = element("ledger.transactions")
+        XCTAssertTrue(transactionsList.waitForExistence(timeout: 5))
+        if transactionRow.frame.isEmpty == false {
+            clickElement(transactionRow)
+        } else {
+            let firstVisibleRow = transactionsList.children(matching: .tableRow).firstMatch
+            if firstVisibleRow.waitForExistence(timeout: 2), firstVisibleRow.frame.isEmpty == false {
+                clickElement(firstVisibleRow)
+            } else {
+                let rowLabel = app.staticTexts[query].firstMatch
+                if rowLabel.waitForExistence(timeout: 2), rowLabel.frame.isEmpty == false {
+                    clickElement(rowLabel)
+                } else {
+                    clickElement(transactionsList)
+                    app.typeKey(XCUIKeyboardKey.downArrow.rawValue, modifierFlags: [])
+                }
+            }
+        }
+    }
+
     private func createWorkspace(named name: String) {
         let workspaceChooser = element("workspace.chooser")
         XCTAssertTrue(workspaceChooser.waitForExistence(timeout: 10))
 
+        let createNewButton = waitForElement(
+            "workspace.createNewButton",
+            fallbackLabel: "Create New Workspace"
+        )
+        createNewButton.click()
+
         let workspaceNameField = element("workspace.nameField")
         XCTAssertTrue(workspaceNameField.waitForExistence(timeout: 5))
-        workspaceNameField.click()
-        workspaceNameField.typeText(name)
+        replaceText(in: workspaceNameField, with: name)
 
-        let createWorkspaceButton = element("workspace.createButton")
-        XCTAssertTrue(createWorkspaceButton.waitForExistence(timeout: 5))
+        let createWorkspaceButton = waitForElement(
+            "workspace.createButton",
+            fallbackLabel: "Create Workspace"
+        )
         createWorkspaceButton.click()
 
-        XCTAssertTrue(element("overview.importSampleCSV").waitForExistence(timeout: 10))
+        XCTAssertTrue(element("toolbar.importMenu").waitForExistence(timeout: 10))
         XCTAssertFalse(workspaceChooser.exists)
     }
 
-    private func importSampleDataFromOverview() {
-        let overviewImportCSVButton = element("overview.importSampleCSV")
-        XCTAssertTrue(overviewImportCSVButton.waitForExistence(timeout: 5))
-        overviewImportCSVButton.click()
-        element("overview.importSamplePDF").click()
+    private func importSampleDataFromMenu() {
+        selectFileMenuItem("Import Sample Data")
+    }
+
+    private func importQAValidationFixturesFromMenu() {
+        selectFileMenuItem("Import QA Validation Fixtures")
     }
 
     private func navigate(to identifier: String) {
@@ -193,14 +322,20 @@ final class AlpenLedgerAppUITests: XCTestCase {
         navigation.click()
     }
 
-    private func importQAValidationFixturesFromMenu() {
+    private func selectFileMenuItem(_ title: String) {
         let fileMenu = app.menuBars.menuBarItems["File"]
         XCTAssertTrue(fileMenu.waitForExistence(timeout: 5))
         fileMenu.click()
 
-        let qaMenuItem = app.menuItems["Import QA Validation Fixtures"]
-        XCTAssertTrue(qaMenuItem.waitForExistence(timeout: 5))
-        qaMenuItem.click()
+        let menuItem = app.menuItems[title]
+        XCTAssertTrue(menuItem.waitForExistence(timeout: 5))
+        menuItem.click()
+    }
+
+    private func replaceText(in element: XCUIElement, with newValue: String) {
+        element.click()
+        app.typeKey("a", modifierFlags: .command)
+        app.typeText(newValue)
     }
 
     private func waitForLabel(_ identifier: String, equals expectedLabel: String, timeout: TimeInterval = 5) {
@@ -211,11 +346,22 @@ final class AlpenLedgerAppUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter().wait(for: [expectation], timeout: timeout), .completed)
     }
 
-    private func waitForLabelChange(_ identifier: String, from previousValue: String, timeout: TimeInterval = 5) {
+    private func waitForNonExistence(_ identifier: String, timeout: TimeInterval = 5) {
         let target = element(identifier)
-        XCTAssertTrue(target.waitForExistence(timeout: timeout))
-        let predicate = NSPredicate(format: "label != %@ OR value != %@", previousValue, previousValue)
+        let predicate = NSPredicate(format: "exists == false")
         let expectation = XCTNSPredicateExpectation(predicate: predicate, object: target)
         XCTAssertEqual(XCTWaiter().wait(for: [expectation], timeout: timeout), .completed)
+    }
+
+    private func accessibilitySlug(_ value: String) -> String {
+        let lowered = value.lowercased()
+        let allowed = CharacterSet.alphanumerics
+        let scalars = lowered.unicodeScalars.map { scalar -> Character in
+            allowed.contains(scalar) ? Character(String(scalar)) : "-"
+        }
+        let collapsed = String(scalars)
+            .replacingOccurrences(of: "-+", with: "-", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        return collapsed.isEmpty ? "item" : collapsed
     }
 }

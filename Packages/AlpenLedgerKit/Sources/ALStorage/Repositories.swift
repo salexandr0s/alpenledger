@@ -10,21 +10,25 @@ public protocol WorkspaceRepository: Sendable {
 public protocol LegalEntityRepository: Sendable {
     func fetchLegalEntities(workspaceId: WorkspaceID) throws -> [LegalEntity]
     func saveLegalEntity(_ entity: LegalEntity) throws
+    func deleteLegalEntity(_ entityId: LegalEntityID) throws
 }
 
 public protocol TaxYearRepository: Sendable {
     func fetchTaxYears(entityId: LegalEntityID) throws -> [TaxYear]
     func saveTaxYear(_ taxYear: TaxYear) throws
+    func deleteTaxYears(entityId: LegalEntityID) throws
 }
 
 public protocol LedgerAccountRepository: Sendable {
     func fetchLedgerAccounts(entityId: LegalEntityID) throws -> [LedgerAccount]
     func saveLedgerAccount(_ account: LedgerAccount) throws
+    func deleteLedgerAccounts(entityId: LegalEntityID) throws
 }
 
 public protocol FinancialAccountRepository: Sendable {
     func fetchFinancialAccounts(entityId: LegalEntityID) throws -> [FinancialAccount]
     func saveFinancialAccount(_ account: FinancialAccount) throws
+    func deleteFinancialAccounts(entityId: LegalEntityID) throws
 }
 
 public protocol ImportJobRepository: Sendable {
@@ -71,6 +75,7 @@ public extension RequirementRepository {
 
 public protocol IssueRepository: Sendable {
     func fetchIssues(workspaceId: WorkspaceID, entityId: LegalEntityID?, taxYearId: TaxYearID?, status: IssueStatus?) throws -> [Issue]
+    func fetchIssue(id: IssueID) throws -> Issue?
     func fetchIssue(fingerprint: String) throws -> Issue?
     func saveIssue(_ issue: Issue) throws
 }
@@ -89,6 +94,7 @@ public protocol TaxFactRepository: Sendable {
 
 public protocol AgentProposalRepository: Sendable {
     func fetchAgentProposals(workspaceId: WorkspaceID, status: ProposalStatus?) throws -> [AgentProposal]
+    func fetchAgentProposal(id: AgentProposalID) throws -> AgentProposal?
     func fetchAgentProposal(fingerprint: String) throws -> AgentProposal?
     func saveAgentProposal(_ proposal: AgentProposal) throws
 }
@@ -281,6 +287,12 @@ public final class GRDBLegalEntityRepository: LegalEntityRepository, @unchecked 
             try entity.save(db)
         }
     }
+
+    public func deleteLegalEntity(_ entityId: LegalEntityID) throws {
+        try dbPool.write { db in
+            _ = try LegalEntity.deleteOne(db, key: entityId)
+        }
+    }
 }
 
 public final class GRDBTaxYearRepository: TaxYearRepository, @unchecked Sendable {
@@ -302,6 +314,12 @@ public final class GRDBTaxYearRepository: TaxYearRepository, @unchecked Sendable
     public func saveTaxYear(_ taxYear: TaxYear) throws {
         try dbPool.write { db in
             try taxYear.save(db)
+        }
+    }
+
+    public func deleteTaxYears(entityId: LegalEntityID) throws {
+        try dbPool.write { db in
+            _ = try TaxYear.filter(Column("entityId") == entityId).deleteAll(db)
         }
     }
 }
@@ -327,6 +345,12 @@ public final class GRDBLedgerAccountRepository: LedgerAccountRepository, @unchec
             try account.save(db)
         }
     }
+
+    public func deleteLedgerAccounts(entityId: LegalEntityID) throws {
+        try dbPool.write { db in
+            _ = try LedgerAccount.filter(Column("entityId") == entityId).deleteAll(db)
+        }
+    }
 }
 
 public final class GRDBFinancialAccountRepository: FinancialAccountRepository, @unchecked Sendable {
@@ -348,6 +372,12 @@ public final class GRDBFinancialAccountRepository: FinancialAccountRepository, @
     public func saveFinancialAccount(_ account: FinancialAccount) throws {
         try dbPool.write { db in
             try account.save(db)
+        }
+    }
+
+    public func deleteFinancialAccounts(entityId: LegalEntityID) throws {
+        try dbPool.write { db in
+            _ = try FinancialAccount.filter(Column("entityId") == entityId).deleteAll(db)
         }
     }
 }
@@ -583,6 +613,12 @@ public final class GRDBIssueRepository: IssueRepository, @unchecked Sendable {
         }
     }
 
+    public func fetchIssue(id: IssueID) throws -> Issue? {
+        try dbPool.read { db in
+            try Issue.fetchOne(db, key: id)
+        }
+    }
+
     public func saveIssue(_ issue: Issue) throws {
         try dbPool.write { db in
             try issue.save(db)
@@ -655,6 +691,12 @@ public final class GRDBAgentProposalRepository: AgentProposalRepository, @unchec
             try AgentProposal
                 .filter(Column("fingerprint") == fingerprint)
                 .fetchOne(db)
+        }
+    }
+
+    public func fetchAgentProposal(id: AgentProposalID) throws -> AgentProposal? {
+        try dbPool.read { db in
+            try AgentProposal.fetchOne(db, key: id)
         }
     }
 

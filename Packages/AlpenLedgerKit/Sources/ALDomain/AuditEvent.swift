@@ -8,8 +8,10 @@ public enum AuditActorType: String, Codable, CaseIterable, Sendable {
 public enum AuditEventType: String, Codable, CaseIterable, Sendable {
     case workspaceCreated
     case workspaceOpened
+    case workspaceRenamed
     case legalEntityCreated
     case legalEntityUpdated
+    case legalEntityRemoved
     case ledgerSeeded
     case financialAccountCreated
     case importJobCreated
@@ -19,8 +21,10 @@ public enum AuditEventType: String, Codable, CaseIterable, Sendable {
     case evidenceLinked
     case proposalCreated
     case proposalResolved
+    case proposalRejected
     case issueOpened
     case issueResolved
+    case issueDismissed
 }
 
 public struct AuditEvent: Hashable, Codable, Sendable {

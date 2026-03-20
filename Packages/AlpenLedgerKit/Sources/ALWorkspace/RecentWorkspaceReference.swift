@@ -32,6 +32,10 @@ public final class RecentWorkspacesStore: @unchecked Sendable {
     }
 
     public func add(_ reference: RecentWorkspaceReference) {
+        upsert(reference)
+    }
+
+    public func upsert(_ reference: RecentWorkspaceReference) {
         var items = load().filter { $0.workspaceId != reference.workspaceId }
         items.insert(reference, at: 0)
         items = Array(items.prefix(10))

@@ -7,18 +7,32 @@ extension ALDomain.Document: Identifiable {}
 
 @MainActor
 public struct DocumentsFeatureView: View {
-    private enum FocusTarget: Hashable {
-        case browser
-        case preview
-        case inspectorAction
+    private enum SortOption: String, CaseIterable, Identifiable {
+        case newest
+        case oldest
+        case name
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .newest:
+                return "Newest first"
+            case .oldest:
+                return "Oldest first"
+            case .name:
+                return "Name"
+            }
+        }
     }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding private var query: String
     @Binding private var scope: DocumentFilterScope
-    @FocusState private var focusedPane: FocusTarget?
+    @State private var sortOption: SortOption = .newest
+    @State private var isDropTargeted = false
 
-    private let documents: [Document]
+    private let items: [DocumentBrowserItem]
     private let allDocumentsCount: Int
     private let selectedDocumentId: DocumentID?
     private let previewURL: URL?
@@ -27,15 +41,17 @@ public struct DocumentsFeatureView: View {
     private let isActive: Bool
     private let onSelectDocument: (DocumentID?) -> Void
     private let onImportDocument: () -> Void
+    private let onImportDocuments: ([URL]) -> Void
     private let onRefreshSearchResults: () -> Void
     private let onClearSearch: () -> Void
     private let onResetScope: () -> Void
+    private let onSetScope: (DocumentFilterScope) -> Void
     private let onLinkTransaction: () -> Void
 
     public init(
         query: Binding<String>,
         scope: Binding<DocumentFilterScope>,
-        documents: [Document],
+        items: [DocumentBrowserItem],
         allDocumentsCount: Int,
         selectedDocumentId: DocumentID?,
         previewURL: URL?,
@@ -44,14 +60,16 @@ public struct DocumentsFeatureView: View {
         isActive: Bool,
         onSelectDocument: @escaping (DocumentID?) -> Void,
         onImportDocument: @escaping () -> Void,
+        onImportDocuments: @escaping ([URL]) -> Void,
         onRefreshSearchResults: @escaping () -> Void,
         onClearSearch: @escaping () -> Void,
         onResetScope: @escaping () -> Void,
+        onSetScope: @escaping (DocumentFilterScope) -> Void,
         onLinkTransaction: @escaping () -> Void
     ) {
         _query = query
         _scope = scope
-        self.documents = documents
+        self.items = items
         self.allDocumentsCount = allDocumentsCount
         self.selectedDocumentId = selectedDocumentId
         self.previewURL = previewURL
@@ -60,267 +78,284 @@ public struct DocumentsFeatureView: View {
         self.isActive = isActive
         self.onSelectDocument = onSelectDocument
         self.onImportDocument = onImportDocument
+        self.onImportDocuments = onImportDocuments
         self.onRefreshSearchResults = onRefreshSearchResults
         self.onClearSearch = onClearSearch
         self.onResetScope = onResetScope
+        self.onSetScope = onSetScope
         self.onLinkTransaction = onLinkTransaction
     }
 
     public var body: some View {
-        HSplitView {
-            browserPane
-                .frame(minWidth: 360)
+        Group {
+            if allDocumentsCount == 0 {
+                emptyDropZone
+            } else if selectedItem == nil {
+                HSplitView {
+                    browserPane
+                        .frame(minWidth: 380)
 
-            previewPane
-                .frame(minWidth: 460)
+                    selectionPromptPane
+                        .frame(minWidth: 520)
+                }
+            } else {
+                HSplitView {
+                    browserPane
+                        .frame(minWidth: 380)
 
-            if isInspectorVisible {
-                inspectorPane
-                    .frame(minWidth: AppTheme.inspectorIdealWidth)
-                    .transition(AppTheme.inspectorTransition(reduceMotion: reduceMotion))
+                    previewPane
+                        .frame(minWidth: 520)
+
+                    if isInspectorVisible {
+                        inspectorPane
+                            .frame(minWidth: AppTheme.inspectorIdealWidth)
+                            .transition(AppTheme.inspectorTransition(reduceMotion: reduceMotion))
+                    }
+                }
             }
         }
         .animation(AppTheme.panelAnimation(reduceMotion: reduceMotion), value: isInspectorVisible)
         .searchable(text: $query, placement: .toolbar, prompt: "Search documents")
-        .searchScopes($scope) {
-            ForEach(DocumentFilterScope.allCases) { option in
-                Text(option.title)
-                    .accessibilityIdentifier("documents.scope.\(option.rawValue)")
-                    .tag(option)
-            }
-        }
         .onChange(of: query) { _, _ in
             onRefreshSearchResults()
         }
         .onSubmit(of: .search, onRefreshSearchResults)
-        .onAppear(perform: focusPrimaryPane)
-        .onChange(of: isActive) { _, active in
-            if active {
-                focusPrimaryPane()
-            }
+        .dropDestination(for: URL.self) { urls, _ in
+            guard urls.isEmpty == false else { return false }
+            onImportDocuments(urls)
+            return true
+        } isTargeted: { isTargeted in
+            isDropTargeted = isTargeted
         }
+    }
+
+    private var emptyDropZone: some View {
+        VStack(spacing: AppTheme.spacingL) {
+            VStack(spacing: AppTheme.spacingS) {
+                Image(systemName: "square.and.arrow.down.on.square")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+
+                Text("Import your first document")
+                    .font(.title3.weight(.semibold))
+
+                Text("Drag and drop receipts, statements, and tax forms here, or click to browse.")
+                    .font(AppTheme.pageSubtitleFont)
+                    .foregroundStyle(AppTheme.subduedForegroundColor)
+                    .multilineTextAlignment(.center)
+            }
+
+            Button("Import Document", action: onImportDocument)
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("documents.importButton")
+        }
+        .padding(AppTheme.spacingXXL)
+        .frame(maxWidth: 520)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.largeCornerRadius)
+                .fill(AppTheme.emphasizedSurfaceColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.largeCornerRadius)
+                .strokeBorder(
+                    style: StrokeStyle(lineWidth: 1, dash: [8, 8])
+                )
+                .foregroundStyle(isDropTargeted ? Color.accentColor : AppTheme.strokeColor)
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var browserPane: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-            PaneHeader("Documents", subtitle: "Browse receipts, statements, and filing evidence.")
-                .padding(.horizontal, AppTheme.contentPadding)
-                .padding(.top, AppTheme.spacingM)
+            PaneHeader("Documents", subtitle: "\(sortedItems.count) shown of \(allDocumentsCount)") {
+                HStack(spacing: AppTheme.spacingS) {
+                    Menu(scope.title) {
+                        ForEach(DocumentFilterScope.allCases) { option in
+                            Button(option.title) {
+                                onSetScope(option)
+                            }
+                        }
+                    }
+                    .accessibilityIdentifier("documents.scopeMenu")
 
-            if allDocumentsCount == 0 {
+                    Menu(sortOption.title) {
+                        ForEach(SortOption.allCases) { option in
+                            Button(option.title) {
+                                sortOption = option
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, AppTheme.contentPadding)
+            .padding(.top, AppTheme.spacingM)
+
+            if sortedItems.isEmpty {
                 centeredEmptyState(
                     PaneEmptyState(
-                        "No Documents Yet",
-                        subtitle: "Import receipts, statements, and tax documents to build a reviewable local archive.",
-                        systemImage: "doc"
+                        "No matching documents",
+                        subtitle: filteredEmptySubtitle,
+                        systemImage: "magnifyingglass"
                     ) {
-                        Button("Import Document", systemImage: "plus", action: onImportDocument)
-                            .buttonStyle(.borderedProminent)
-                            .accessibilityIdentifier("documents.importButton")
+                        if query.isEmpty == false {
+                            Button("Clear Search", action: onClearSearch)
+                                .buttonStyle(.bordered)
+                                .accessibilityIdentifier("documents.clearSearchButton")
+                        }
+
+                        if scope != .all {
+                            Button("Show All Types", action: onResetScope)
+                                .buttonStyle(.bordered)
+                                .accessibilityIdentifier("documents.showAllTypesButton")
+                        }
                     }
                 )
-            } else if documents.isEmpty {
-                centeredEmptyState(filteredEmptyState)
             } else {
-                Table(documents, selection: documentSelection) {
-                    TableColumn("Filename") { document in
-                        Text(document.originalFilename)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .padding(.vertical, AppTheme.tableRowVerticalPadding)
-                            .accessibilityIdentifier("documents.document.\(accessibilitySlug(document.originalFilename))")
+                ScrollView {
+                    LazyVStack(spacing: AppTheme.spacingXS) {
+                        ForEach(sortedItems) { item in
+                            Button {
+                                onSelectDocument(item.id)
+                            } label: {
+                                documentRow(item)
+                                    .padding(.horizontal, AppTheme.spacingS)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background {
+                                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                                            .fill(
+                                                selectedDocumentId == item.id
+                                                    ? AppTheme.accentSurfaceColor
+                                                    : AppTheme.secondarySurfaceColor.opacity(0.35)
+                                            )
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                            .contentShape(Rectangle())
+                            .accessibilityLabel(item.title)
+                            .accessibilityValue("\(item.typeLabel), \(item.dateLabel), \(item.statusText)")
+                            .accessibilityIdentifier("documents.document.\(accessibilitySlug(item.title))")
+                        }
                     }
-                    .width(min: AppTheme.documentsFilenameMinWidth, ideal: AppTheme.documentsFilenameIdealWidth)
-
-                    TableColumn("Type") { document in
-                        Text(documentTypeLabel(document.documentType))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    }
-                    .width(AppTheme.documentsTypeColumnWidth)
-
-                    TableColumn("Issue Date") { document in
-                        Text(formattedDate(document.issueDate))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    .width(AppTheme.documentsIssueDateColumnWidth)
-
-                    TableColumn("Status") { document in
-                        StatusBadge(
-                            metadataLabel(document.metadataStatus),
-                            tone: metadataTone(document.metadataStatus)
-                        )
-                    }
-                    .width(AppTheme.documentsStatusColumnWidth)
+                    .padding(.vertical, AppTheme.spacingXXS)
                 }
-                .accessibilityIdentifier("documents.list")
-                .focusable()
-                .focused($focusedPane, equals: .browser)
                 .padding(.horizontal, AppTheme.contentPadding)
                 .padding(.bottom, AppTheme.contentPadding)
+                .accessibilityIdentifier("documents.list")
             }
         }
+    }
+
+    private var selectionPromptPane: some View {
+        PaneEmptyState(
+            "Select a document",
+            subtitle: "Choose a receipt, statement, or tax form to preview and inspect it.",
+            systemImage: "doc.text"
+        )
+        .accessibilityIdentifier("documents.selectionPrompt")
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var previewPane: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-            if let selectedDocument {
-                PaneHeader(
-                    selectedDocument.originalFilename,
-                    subtitle: previewSubtitle(selectedDocument),
-                    titleAccessibilityIdentifier: "documents.preview.title"
-                ) {
-                    StatusBadge(
-                        metadataLabel(selectedDocument.metadataStatus),
-                        tone: metadataTone(selectedDocument.metadataStatus)
-                    )
-                }
-            } else {
-                PaneHeader("Preview", subtitle: "Inspect the selected document without leaving the workspace.")
-            }
-            previewSurface
-                .focusable()
-                .focused($focusedPane, equals: .preview)
-        }
-        .padding(.horizontal, AppTheme.contentPadding)
-        .padding(.top, AppTheme.spacingM)
-        .padding(.bottom, AppTheme.contentPadding)
-    }
+            PaneHeader(selectedItem?.title ?? "Preview", subtitle: selectedItem?.typeLabel ?? "Selected document preview.")
+                .padding(.horizontal, AppTheme.contentPadding)
+                .padding(.top, AppTheme.spacingM)
+                .accessibilityIdentifier("documents.preview.title")
 
-    private var previewSurface: some View {
-        Group {
-            if let selectedDocument {
-                if supportsPreview(for: selectedDocument), let previewURL {
-                    DocumentPreviewHost(fileURL: previewURL, mediaType: selectedDocument.mediaType)
+            Group {
+                if let previewURL {
+                    DocumentPreviewHost(fileURL: previewURL, mediaType: selectedItem?.mediaType ?? "application/pdf")
                 } else {
                     PaneEmptyState(
-                        "Preview Unavailable",
-                        subtitle: "This file imported correctly, but the preview pane currently supports PDFs and image formats.",
+                        "Preview unavailable",
+                        subtitle: "This file imported correctly, but preview is not available for this format.",
                         systemImage: "doc.text.magnifyingglass"
                     )
                 }
-            } else {
-                PaneEmptyState(
-                    "No Document Selected",
-                    subtitle: "Choose a document from the browser to inspect it here.",
-                    systemImage: "doc.text"
-                )
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                    .fill(AppTheme.emphasizedSurfaceColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                    .stroke(AppTheme.strokeColor, lineWidth: 1)
+            )
+            .padding(.horizontal, AppTheme.contentPadding)
+            .padding(.bottom, AppTheme.contentPadding)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .fill(AppTheme.elevatedSurfaceColor)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .stroke(AppTheme.strokeColor, lineWidth: 1)
-        )
+        .accessibilityIdentifier("documents.previewPane")
     }
 
     private var inspectorPane: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-            PaneHeader("Inspector", subtitle: "File metadata, detected context, and linked transactions.")
+            PaneHeader("Inspector", subtitle: "Metadata and linked transactions for the selected document.")
                 .padding(.horizontal, AppTheme.contentPadding)
                 .padding(.top, AppTheme.spacingM)
 
-            if let selectedDocument {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-                        InspectorPane("Document Details") {
-                            InspectorSectionRow(
-                                "Type",
-                                value: documentTypeLabel(selectedDocument.documentType),
-                                valueAccessibilityIdentifier: "documents.inspector.type"
-                            )
-                            InspectorSectionRow("Status", value: metadataLabel(selectedDocument.metadataStatus))
-                            InspectorSectionRow("Issue Date", value: formattedDate(selectedDocument.issueDate))
-                            InspectorSectionRow("Origin", value: originLabel(selectedDocument.origin))
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.spacingM) {
+                    if let selectedItem {
+                        InspectorPane("Document", style: .card) {
+                            InspectorSectionRow("Type", value: selectedItem.typeLabel)
+                            InspectorSectionRow("Issue Date", value: selectedItem.dateLabel)
+                            InspectorSectionRow("Status", value: selectedItem.statusText)
                         }
+                    }
 
-                        InspectorPane("File Metadata") {
-                            InspectorSectionRow("Media Type", value: selectedDocument.mediaType)
-                            InspectorSectionRow("Parse Version", value: selectedDocument.parseVersion)
-                            InspectorSectionRow(
-                                "Extracted Text",
-                                value: selectedDocument.extractedText?.isEmpty == false ? "Available" : "Not extracted"
-                            )
-                        }
-
-                        InspectorPane("Linked Transactions") {
-                            if linkedTransactions.isEmpty {
-                                PaneEmptyState(
-                                    "No Linked Transactions",
-                                    subtitle: "Attach this document to a transaction when the evidence trail is ready.",
-                                    systemImage: "paperclip"
-                                )
-                            } else {
+                    InspectorPane("Linked Transactions", style: .grouped) {
+                        if linkedTransactions.isEmpty {
+                            Text("No linked transactions yet.")
+                                .font(AppTheme.metaFont)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            VStack(alignment: .leading, spacing: AppTheme.spacingS) {
                                 ForEach(linkedTransactions, id: \.id) { transaction in
-                                    SourceListRow(
+                                    DocumentReferenceRow(
                                         title: transaction.counterpartyName,
                                         subtitle: amountString(transaction),
                                         systemImage: "list.bullet.rectangle"
                                     )
                                 }
                             }
-
-                            Button("Link Transaction…", action: onLinkTransaction)
-                                .buttonStyle(.borderedProminent)
-                                .accessibilityIdentifier("documents.linkTransaction")
-                                .focused($focusedPane, equals: .inspectorAction)
                         }
+
+                        Button("Link Transaction…", action: onLinkTransaction)
+                            .buttonStyle(.borderedProminent)
+                            .accessibilityIdentifier("documents.linkTransaction")
                     }
-                    .padding(AppTheme.contentPadding)
                 }
-            } else {
-                centeredEmptyState(
-                    PaneEmptyState(
-                        "No Document Selected",
-                        subtitle: "Select a document in the browser to inspect its metadata and links.",
-                        systemImage: "doc"
-                    )
-                )
+                .padding(AppTheme.contentPadding)
             }
         }
     }
 
-    private var filteredEmptyState: some View {
-        PaneEmptyState(
-            "No Matching Documents",
-            subtitle: filteredEmptySubtitle,
-            systemImage: "line.3.horizontal.decrease.circle"
-        ) {
-            if query.isEmpty == false {
-                Button("Clear Search", action: onClearSearch)
-                    .buttonStyle(.bordered)
-                    .accessibilityIdentifier("documents.clearSearchButton")
-            }
+    private var selectedItem: DocumentBrowserItem? {
+        items.first(where: { $0.id == selectedDocumentId })
+    }
 
-            if scope != .all {
-                Button("Show All Types", action: onResetScope)
-                    .buttonStyle(.bordered)
-                    .accessibilityIdentifier("documents.showAllTypesButton")
+    private var sortedItems: [DocumentBrowserItem] {
+        items.sorted { lhs, rhs in
+            switch sortOption {
+            case .newest:
+                return (lhs.issueDate ?? .distantPast) > (rhs.issueDate ?? .distantPast)
+            case .oldest:
+                return (lhs.issueDate ?? .distantFuture) < (rhs.issueDate ?? .distantFuture)
+            case .name:
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
             }
-
-            Button("Import Document", systemImage: "plus", action: onImportDocument)
-                .buttonStyle(.borderedProminent)
         }
     }
 
     private var filteredEmptySubtitle: String {
         if query.isEmpty == false && scope != .all {
-            return "Nothing matches the current search text and type scope."
+            return "Adjust the search text or type filter to restore results."
         }
         if query.isEmpty == false {
-            return "Nothing matches the current search text."
+            return "Try a different search term."
         }
-        return "No imported documents match the current type scope."
-    }
-
-    private var selectedDocument: Document? {
-        documents.first(where: { $0.id == selectedDocumentId }) ?? documents.first
+        return "Change the active type filter to show more documents."
     }
 
     private func centeredEmptyState<Content: View>(_ content: Content) -> some View {
@@ -328,91 +363,43 @@ public struct DocumentsFeatureView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
-    private func focusPrimaryPane() {
-        guard isActive, documents.isEmpty == false else { return }
-        Task { @MainActor in
-            focusedPane = .browser
-        }
-    }
-
-    private func supportsPreview(for document: Document) -> Bool {
-        if document.mediaType == "application/pdf" || document.originalFilename.lowercased().hasSuffix(".pdf") {
-            return true
-        }
-        guard let type = UTType(mimeType: document.mediaType) else {
-            return false
-        }
-        return type.conforms(to: .image)
-    }
-
-    private func previewSubtitle(_ document: Document) -> String {
-        [documentTypeLabel(document.documentType), formattedDate(document.issueDate)]
-            .filter { $0 != "n/a" }
-            .joined(separator: " • ")
-    }
-
-    private func metadataTone(_ status: MetadataStatus) -> StatusBadge.Tone {
-        switch status {
-        case .proposed:
-            return .warning
-        case .confirmed:
-            return .success
-        }
-    }
-
-    private func documentTypeLabel(_ documentType: DocumentType) -> String {
-        switch documentType {
-        case .unknown:
-            return "Unknown"
-        case .receipt:
-            return "Receipt"
-        case .invoice:
-            return "Invoice"
-        case .bankStatement:
-            return "Bank Statement"
-        case .salaryCertificate:
-            return "Salary Certificate"
-        case .healthInsuranceCertificate:
-            return "Health Insurance Certificate"
-        case .pillar3aCertificate:
-            return "Pillar 3a Certificate"
-        }
-    }
-
-    private func metadataLabel(_ status: MetadataStatus) -> String {
-        switch status {
-        case .proposed:
-            return "Proposed"
-        case .confirmed:
-            return "Confirmed"
-        }
-    }
-
-    private func originLabel(_ origin: DocumentOrigin) -> String {
-        switch origin {
-        case .userImport:
-            return "User Import"
-        case .importPipeline:
-            return "Import Pipeline"
-        }
-    }
-
-    private func formattedDate(_ date: Date?) -> String {
-        guard let date else { return "n/a" }
-        return date.formatted(date: .abbreviated, time: .omitted)
-    }
-
     private func amountString(_ transaction: ALDomain.Transaction) -> String {
         let value = Decimal(transaction.amountMinor) / 100
         return "\(NSDecimalNumber(decimal: value).stringValue) \(transaction.currency)"
     }
 
-    private var documentSelection: Binding<DocumentID?> {
-        Binding(
-            get: { selectedDocumentId },
-            set: { selection in
-                onSelectDocument(selection)
+    @ViewBuilder
+    private func documentRow(_ item: DocumentBrowserItem) -> some View {
+        HStack(alignment: .top, spacing: AppTheme.spacingS) {
+            Image(systemName: item.systemImage)
+                .font(.title3)
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                Text(item.title)
+                    .font(.body.weight(.medium))
+                    .lineLimit(1)
+
+                Text(item.subtitle)
+                    .font(AppTheme.metaFont)
+                    .foregroundStyle(AppTheme.subduedForegroundColor)
+                    .lineLimit(1)
+
+                HStack(spacing: AppTheme.spacingXS) {
+                    StatusBadge(item.typeLabel, tone: .neutral)
+                    Text(item.dateLabel)
+                        .font(AppTheme.metaFont)
+                        .foregroundStyle(.secondary)
+                }
             }
-        )
+
+            Spacer()
+
+            Text(item.statusText)
+                .font(AppTheme.metaFont)
+                .foregroundStyle(item.tone == .success ? .secondary : Color.orange)
+        }
+        .padding(.vertical, AppTheme.spacingXS)
     }
 }

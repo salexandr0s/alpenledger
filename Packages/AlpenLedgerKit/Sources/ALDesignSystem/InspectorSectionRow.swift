@@ -19,7 +19,7 @@ public struct InspectorSectionRow: View {
     }
 
     public var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: AppTheme.spacingM) {
+        let content = HStack(alignment: .firstTextBaseline, spacing: AppTheme.spacingM) {
             if let systemImage {
                 Label(title, systemImage: systemImage)
                     .font(AppTheme.inspectorLabelFont)
@@ -36,7 +36,16 @@ public struct InspectorSectionRow: View {
             Text(value)
                 .font(AppTheme.inspectorValueFont)
                 .multilineTextAlignment(.trailing)
-                .accessibilityIdentifier(valueAccessibilityIdentifier ?? "")
+        }
+
+        if let valueAccessibilityIdentifier {
+            content
+                .accessibilityElement(children: .ignore)
+                .accessibilityIdentifier(valueAccessibilityIdentifier)
+                .accessibilityLabel(value)
+                .accessibilityValue(value)
+        } else {
+            content
         }
     }
 }

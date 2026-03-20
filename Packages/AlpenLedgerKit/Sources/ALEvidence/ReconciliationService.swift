@@ -20,6 +20,32 @@ public final class ReconciliationService: @unchecked Sendable {
         try repository.fetchAgentProposals(workspaceId: storage.manifest.workspace.id, status: status)
     }
 
+    public func proposal(id: AgentProposalID) throws -> AgentProposal? {
+        try repository.fetchAgentProposal(id: id)
+    }
+
+    @discardableResult
+    public func rejectProposal(_ proposalId: AgentProposalID, now: Date = .now) throws -> AgentProposal {
+        guard var proposal = try repository.fetchAgentProposal(id: proposalId) else {
+            throw DomainError.workspaceNotFound
+        }
+        guard proposal.status != .rejected else {
+            return proposal
+        }
+
+        proposal.status = .rejected
+        proposal.decidedAt = now
+        try repository.saveAgentProposal(proposal)
+        try auditLogger.log(
+            actorType: .user,
+            actorId: "user",
+            eventType: .proposalRejected,
+            objectRef: ObjectRef(kind: .agentProposal, id: proposal.id.rawValue),
+            payload: proposal.summary
+        )
+        return proposal
+    }
+
     @discardableResult
     public func syncDocumentLinkProposal(
         for document: Document,
@@ -45,12 +71,18 @@ public final class ReconciliationService: @unchecked Sendable {
         )
 
         let previousStatus = existing?.status
+        let resolvedStatus: ProposalStatus
+        if previousStatus == .rejected, hasConfirmedLink == false {
+            resolvedStatus = .rejected
+        } else {
+            resolvedStatus = hasConfirmedLink ? .resolved : .pending
+        }
         proposal.summary = summary
         proposal.rationale = rationale
         proposal.confidence = 0.25
         proposal.targetRef = ObjectRef(kind: .document, id: document.id.rawValue)
-        proposal.status = hasConfirmedLink ? .resolved : .pending
-        proposal.decidedAt = hasConfirmedLink ? now : nil
+        proposal.status = resolvedStatus
+        proposal.decidedAt = resolvedStatus == .pending ? nil : now
 
         try repository.saveAgentProposal(proposal)
 

@@ -13,6 +13,7 @@ public enum IssueSeverity: String, Codable, CaseIterable, Sendable {
 public enum IssueStatus: String, Codable, CaseIterable, Sendable {
     case open
     case resolved
+    case dismissed
 }
 
 public struct Issue: Hashable, Codable, Sendable {

@@ -23,7 +23,7 @@ public struct WorkspaceCreationFormView: View {
     }
 
     public var body: some View {
-        InspectorPane(title, subtitle: detail) {
+        InspectorPane(title, subtitle: detail, style: .card) {
             VStack(alignment: .leading, spacing: AppTheme.spacingM) {
                 StatusBadge("Encrypted locally", tone: .info)
 
@@ -39,9 +39,14 @@ public struct WorkspaceCreationFormView: View {
                     .font(.subheadline)
                     .foregroundStyle(AppTheme.subduedForegroundColor)
 
-                Button(createLabel, action: onCreateWorkspace)
+                Button(action: onCreateWorkspace) {
+                    Text(createLabel)
+                }
                     .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                     .disabled(trimmedWorkspaceName.isEmpty)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(createLabel)
                     .accessibilityIdentifier("workspace.createButton")
             }
         }
