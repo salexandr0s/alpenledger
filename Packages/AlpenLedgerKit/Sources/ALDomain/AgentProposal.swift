@@ -16,7 +16,7 @@ public enum ProposalStatus: String, Codable, CaseIterable, Sendable {
 
 public struct AgentProposal: Hashable, Codable, Sendable {
     public let id: AgentProposalID
-    public var fingerprint: String
+    public let fingerprint: String
     public let workspaceId: WorkspaceID
     public var agentKind: AgentKind
     public var proposalType: ProposalType
@@ -25,7 +25,7 @@ public struct AgentProposal: Hashable, Codable, Sendable {
     public var rationale: String
     public var confidence: Double
     public var status: ProposalStatus
-    public var createdAt: Date
+    public let createdAt: Date
     public var decidedAt: Date?
 
     public init(

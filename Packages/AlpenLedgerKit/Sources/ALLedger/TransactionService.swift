@@ -2,7 +2,7 @@ import Foundation
 import ALDomain
 import ALStorage
 
-public final class TransactionService: @unchecked Sendable {
+public final class TransactionService: Sendable {
     private let transactionRepository: any TransactionRepository
     private let evidenceLinkRepository: any EvidenceLinkRepository
 

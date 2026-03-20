@@ -1961,9 +1961,8 @@ final class WorkspaceAppModel {
         return formatter.localizedString(for: date, relativeTo: container.nowProvider())
     }
 
-    private func amountString(_ amountMinor: Int64, currency: String) -> String {
-        let value = Decimal(amountMinor) / 100
-        return "\(NSDecimalNumber(decimal: value).stringValue) \(currency)"
+    private func amountString(_ amountMinor: Int64, currency: CurrencyCode) -> String {
+        MoneyFormatter().format(minorUnits: amountMinor, currency: currency)
     }
 
     private func accountTypeLabel(_ accountType: FinancialAccountType) -> String {
@@ -2078,9 +2077,7 @@ final class WorkspaceAppModel {
     private func valueString(for fact: TaxFact) -> String {
         switch fact.valueType {
         case .money:
-            let amount = Decimal(fact.moneyMinor ?? 0) / 100
-            let number = NSDecimalNumber(decimal: amount).stringValue
-            return "\(number) \(fact.currency ?? "CHF")"
+            return MoneyFormatter().format(minorUnits: fact.moneyMinor ?? 0, currency: fact.currency ?? .chf)
         case .text:
             return fact.textValue ?? "n/a"
         case .bool:

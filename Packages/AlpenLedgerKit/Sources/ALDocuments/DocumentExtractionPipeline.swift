@@ -3,7 +3,7 @@ import PDFKit
 import UniformTypeIdentifiers
 import ALDomain
 
-public final class DocumentExtractionPipeline: @unchecked Sendable {
+public final class DocumentExtractionPipeline: Sendable {
     public init() {}
 
     public func extractText(from url: URL, mediaType: String) -> String? {

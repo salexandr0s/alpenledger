@@ -2,7 +2,7 @@ import Foundation
 import ALDomain
 import ALStorage
 
-public final class DocumentQueryService: @unchecked Sendable {
+public final class DocumentQueryService: Sendable {
     private let storage: WorkspaceStorage
 
     public init(storage: WorkspaceStorage) {

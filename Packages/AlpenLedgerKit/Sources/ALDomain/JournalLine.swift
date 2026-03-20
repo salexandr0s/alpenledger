@@ -6,7 +6,7 @@ public struct JournalLine: Hashable, Codable, Sendable {
     public let ledgerAccountId: LedgerAccountID
     public var debitMinor: Int64
     public var creditMinor: Int64
-    public var currency: String
+    public var currency: CurrencyCode
     public var taxCode: String?
     public var sourceObjectRef: ObjectRef?
     public var memo: String
@@ -17,7 +17,7 @@ public struct JournalLine: Hashable, Codable, Sendable {
         ledgerAccountId: LedgerAccountID,
         debitMinor: Int64,
         creditMinor: Int64,
-        currency: String,
+        currency: CurrencyCode,
         taxCode: String? = nil,
         sourceObjectRef: ObjectRef? = nil,
         memo: String = ""
@@ -32,7 +32,7 @@ public struct JournalLine: Hashable, Codable, Sendable {
         self.ledgerAccountId = ledgerAccountId
         self.debitMinor = debitMinor
         self.creditMinor = creditMinor
-        self.currency = currency.uppercased()
+        self.currency = currency
         self.taxCode = taxCode
         self.sourceObjectRef = sourceObjectRef
         self.memo = memo

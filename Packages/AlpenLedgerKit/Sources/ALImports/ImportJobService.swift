@@ -3,7 +3,7 @@ import ALDomain
 import ALStorage
 import ALAudit
 
-public final class ImportJobService: @unchecked Sendable {
+public final class ImportJobService: Sendable {
     private let repository: any ImportJobRepository
     private let pipeline: ImportPipeline
     private let workspaceId: WorkspaceID

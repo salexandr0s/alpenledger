@@ -2,7 +2,7 @@ import Foundation
 import ALDomain
 import ALStorage
 
-public final class RequirementService: @unchecked Sendable {
+public final class RequirementService: Sendable {
     private let repository: any RequirementRepository
 
     public init(storage: WorkspaceStorage) {

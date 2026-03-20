@@ -3,27 +3,13 @@ import ALAudit
 import ALDomain
 import ALStorage
 
-public final class EvidenceRefreshService: @unchecked Sendable {
+public final class EvidenceRefreshService: Sendable {
     private let storage: WorkspaceStorage
     private let requirementService: RequirementService
     private let issueService: IssueService
     private let reconciliationService: ReconciliationService
     private let nowProvider: @Sendable () -> Date
     private let calendar = Calendar(identifier: .gregorian)
-    private let dayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
-    private let monthFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "LLLL yyyy"
-        return formatter
-    }()
 
     public init(
         storage: WorkspaceStorage,
@@ -67,6 +53,22 @@ public final class EvidenceRefreshService: @unchecked Sendable {
         try reconciliationService.listProposals(status: status)
     }
 
+    private func makeDayFormatter() -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }
+
+    private func makeMonthFormatter() -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "LLLL yyyy"
+        return formatter
+    }
+
     private func activeTaxYear(for entityId: LegalEntityID, now: Date) throws -> TaxYear? {
         try storage.taxYearRepository
             .fetchTaxYears(entityId: entityId)
@@ -84,19 +86,21 @@ public final class EvidenceRefreshService: @unchecked Sendable {
         }
 
         let statementImports = try storage.statementImportRepository.fetchStatementImports(accountId: account.id)
+        let dayFmt = makeDayFormatter()
+        let monthFmt = makeMonthFormatter()
         for bucket in completedBuckets(for: taxYear, account: account, now: now) {
             let satisfiedImport = statementImports.first(where: { statementImport in
                 statementImport.coverageStart <= bucket.end && statementImport.coverageEnd >= bucket.start
             })
             let accountRef = ObjectRef(kind: .financialAccount, id: account.id.rawValue)
-            let requirementFingerprint = "statement-coverage|\(account.id)|\(dayFormatter.string(from: bucket.start))"
+            let requirementFingerprint = "statement-coverage|\(account.id)|\(dayFmt.string(from: bucket.start))"
             let requirement = try requirementService.syncRequirement(
                 fingerprint: requirementFingerprint,
                 entityId: entityId,
                 taxYearId: taxYear.id,
                 code: .statementCoverage,
                 subjectRef: accountRef,
-                summary: "Statement coverage for \(monthFormatter.string(from: bucket.start))",
+                summary: "Statement coverage for \(monthFmt.string(from: bucket.start))",
                 coverageStart: bucket.start,
                 coverageEnd: bucket.end,
                 status: satisfiedImport == nil ? .pending : .satisfied,
@@ -104,8 +108,8 @@ public final class EvidenceRefreshService: @unchecked Sendable {
                 now: now
             )
 
-            let issueFingerprint = "missing-statement-coverage|\(account.id)|\(dayFormatter.string(from: bucket.start))"
-            let summary = "Missing \(account.statementCadence.rawValue) statement for \(account.displayName) in \(monthFormatter.string(from: bucket.start))"
+            let issueFingerprint = "missing-statement-coverage|\(account.id)|\(dayFmt.string(from: bucket.start))"
+            let summary = "Missing \(account.statementCadence.rawValue) statement for \(account.displayName) in \(monthFmt.string(from: bucket.start))"
             _ = try issueService.syncIssue(
                 fingerprint: issueFingerprint,
                 entityId: entityId,

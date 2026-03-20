@@ -3,7 +3,7 @@ import ALAudit
 import ALDomain
 import ALStorage
 
-public final class IssueService: @unchecked Sendable {
+public final class IssueService: Sendable {
     private let storage: WorkspaceStorage
     private let repository: any IssueRepository
     private let auditLogger: AuditLogger
@@ -114,7 +114,7 @@ public final class IssueService: @unchecked Sendable {
         now: Date
     ) throws -> Issue {
         guard var issue = try repository.fetchIssue(id: issueId) else {
-            throw DomainError.workspaceNotFound
+            throw DomainError.issueNotFound
         }
         guard issue.status != status else {
             return issue

@@ -13,11 +13,11 @@ public struct LegalEntity: Hashable, Codable, Sendable {
     public var legalName: String
     public var displayName: String
     public var country: String
-    public var canton: String?
+    public var canton: CantonCode?
     public var taxIdOrUID: String?
     public var fiscalYearStartMonth: Int
     public var fiscalYearStartDay: Int
-    public var parentEntityId: LegalEntityID?
+    public let parentEntityId: LegalEntityID?
 
     public init(
         id: LegalEntityID = LegalEntityID(),
@@ -26,7 +26,7 @@ public struct LegalEntity: Hashable, Codable, Sendable {
         legalName: String,
         displayName: String,
         country: String = "CH",
-        canton: String? = nil,
+        canton: CantonCode? = nil,
         taxIdOrUID: String? = nil,
         fiscalYearStartMonth: Int = 1,
         fiscalYearStartDay: Int = 1,

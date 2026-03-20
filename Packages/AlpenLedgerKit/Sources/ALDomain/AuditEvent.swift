@@ -30,8 +30,8 @@ public enum AuditEventType: String, Codable, CaseIterable, Sendable {
 public struct AuditEvent: Hashable, Codable, Sendable {
     public let id: AuditEventID
     public let workspaceId: WorkspaceID
-    public var actorType: AuditActorType
-    public var actorId: String
+    public let actorType: AuditActorType
+    public let actorId: String
     public var eventType: AuditEventType
     public var objectRef: ObjectRef
     public var payload: String?

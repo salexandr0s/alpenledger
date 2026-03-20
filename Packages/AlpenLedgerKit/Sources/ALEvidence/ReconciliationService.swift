@@ -3,7 +3,7 @@ import ALAudit
 import ALDomain
 import ALStorage
 
-public final class ReconciliationService: @unchecked Sendable {
+public final class ReconciliationService: Sendable {
     private let storage: WorkspaceStorage
     private let repository: any AgentProposalRepository
     private let evidenceLinkRepository: any EvidenceLinkRepository

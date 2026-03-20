@@ -6,7 +6,7 @@ public protocol AuditEventWriter: Sendable {
     func write(_ event: AuditEvent) throws
 }
 
-public final class AuditLogger: AuditEventWriter, @unchecked Sendable {
+public final class AuditLogger: AuditEventWriter, Sendable {
     private let repository: any AuditEventRepository
     private let workspaceId: WorkspaceID
 

@@ -9,9 +9,9 @@ public struct StatementImport: Hashable, Codable, Sendable {
     public let id: StatementImportID
     public let accountId: FinancialAccountID
     public let importJobId: ImportJobID
-    public var sourceBlobHash: String
-    public var sourceFormat: String
-    public var sourceFingerprint: String
+    public let sourceBlobHash: String
+    public let sourceFormat: String
+    public let sourceFingerprint: String
     public var coverageStart: Date
     public var coverageEnd: Date
     public var openingBalanceMinor: Int64?

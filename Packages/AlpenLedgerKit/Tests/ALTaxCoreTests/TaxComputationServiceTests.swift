@@ -29,7 +29,7 @@ func zurichNaturalPersonFixtureImportProducesObservedFacts() throws {
         #expect(fact.valueType.rawValue == expected.valueType)
         #expect(fact.moneyMinor == expected.moneyMinor)
         #expect(fact.boolValue == expected.boolValue)
-        #expect(fact.currency == expected.currency)
+        #expect(fact.currency?.rawValue == expected.currency)
     }
 }
 

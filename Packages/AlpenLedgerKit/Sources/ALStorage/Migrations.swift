@@ -242,5 +242,12 @@ func migrate(dbPool: DatabasePool) throws {
         try db.create(index: "taxFacts_fingerprint_current", on: "taxFacts", columns: ["fingerprint", "isCurrent"], ifNotExists: true)
     }
 
+    migrator.registerMigration("v4_performance_indexes") { db in
+        try db.create(index: "transactions_account_bookingDate", on: "transactions", columns: ["accountId", "bookingDate"], ifNotExists: true)
+        try db.create(index: "evidenceLinks_sourceRef", on: "evidenceLinks", columns: ["sourceRef"], ifNotExists: true)
+        try db.create(index: "evidenceLinks_targetRef", on: "evidenceLinks", columns: ["targetRef"], ifNotExists: true)
+        try db.create(index: "auditEvents_workspace_occurredAt", on: "auditEvents", columns: ["workspaceId", "occurredAt"], ifNotExists: true)
+    }
+
     try migrator.migrate(dbPool)
 }

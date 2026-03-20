@@ -19,7 +19,7 @@ public struct Transaction: Hashable, Codable, Sendable {
     public var bookingDate: Date
     public var valueDate: Date?
     public var amountMinor: Int64
-    public var currency: String
+    public var currency: CurrencyCode
     public var counterpartyName: String
     public var memo: String
     public var reference: String?
@@ -35,7 +35,7 @@ public struct Transaction: Hashable, Codable, Sendable {
         bookingDate: Date,
         valueDate: Date? = nil,
         amountMinor: Int64,
-        currency: String,
+        currency: CurrencyCode,
         counterpartyName: String,
         memo: String,
         reference: String? = nil,
@@ -50,7 +50,7 @@ public struct Transaction: Hashable, Codable, Sendable {
         self.bookingDate = bookingDate
         self.valueDate = valueDate
         self.amountMinor = amountMinor
-        self.currency = currency.uppercased()
+        self.currency = currency
         self.counterpartyName = counterpartyName
         self.memo = memo
         self.reference = reference

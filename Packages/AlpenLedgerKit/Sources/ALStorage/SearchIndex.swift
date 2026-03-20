@@ -7,7 +7,7 @@ public protocol SearchIndex: Sendable {
     func searchDocumentIDs(workspaceId: WorkspaceID, query: String) throws -> [DocumentID]
 }
 
-public final class SQLiteSearchIndex: SearchIndex, @unchecked Sendable {
+public final class SQLiteSearchIndex: SearchIndex, Sendable {
     private let dbPool: DatabasePool
 
     public init(dbPool: DatabasePool) {
@@ -31,7 +31,8 @@ public final class SQLiteSearchIndex: SearchIndex, @unchecked Sendable {
     }
 
     public func searchDocumentIDs(workspaceId: WorkspaceID, query: String) throws -> [DocumentID] {
-        guard query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+        let sanitized = sanitizeFTS5Query(query)
+        guard sanitized.isEmpty == false else {
             return []
         }
 
@@ -44,14 +45,22 @@ public final class SQLiteSearchIndex: SearchIndex, @unchecked Sendable {
                 WHERE workspaceId = ? AND content MATCH ?
                 ORDER BY rank
                 """,
-                arguments: [workspaceId, query]
+                arguments: [workspaceId, sanitized]
             )
-            return rows.compactMap { row in
+            return rows.compactMap { (row: Row) in
                 guard let value: String = row["documentId"], let uuid = UUID(uuidString: value) else {
                     return nil
                 }
                 return DocumentID(rawValue: uuid)
             }
         }
+    }
+
+    private func sanitizeFTS5Query(_ input: String) -> String {
+        let stripped = input
+            .replacingOccurrences(of: "\"", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard stripped.isEmpty == false else { return "" }
+        return "\"\(stripped)\""
     }
 }

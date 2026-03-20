@@ -481,8 +481,7 @@ public struct LedgerFeatureView: View {
     }
 
     private func amountString(_ transaction: ALDomain.Transaction) -> String {
-        let value = Decimal(transaction.amountMinor) / 100
-        return "\(NSDecimalNumber(decimal: value).stringValue) \(transaction.currency)"
+        MoneyFormatter().format(minorUnits: transaction.amountMinor, currency: transaction.currency)
     }
 
     private func formattedDate(_ date: Date?) -> String {

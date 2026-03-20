@@ -18,7 +18,7 @@ public enum IssueStatus: String, Codable, CaseIterable, Sendable {
 
 public struct Issue: Hashable, Codable, Sendable {
     public let id: IssueID
-    public var fingerprint: String
+    public let fingerprint: String
     public let workspaceId: WorkspaceID
     public var entityId: LegalEntityID?
     public var taxYearId: TaxYearID?
@@ -28,7 +28,7 @@ public struct Issue: Hashable, Codable, Sendable {
     public var summary: String
     public var objectRef: ObjectRef
     public var relatedRef: ObjectRef?
-    public var firstDetectedAt: Date
+    public let firstDetectedAt: Date
     public var lastDetectedAt: Date
 
     public init(

@@ -23,15 +23,15 @@ public enum MetadataStatus: String, Codable, CaseIterable, Sendable {
 public struct Document: Hashable, Codable, Sendable {
     public let id: DocumentID
     public let workspaceId: WorkspaceID
-    public var importJobId: ImportJobID?
-    public var blobHash: String
+    public let importJobId: ImportJobID?
+    public let blobHash: String
     public var originalFilename: String
     public var mediaType: String
     public var origin: DocumentOrigin
     public var documentType: DocumentType
     public var issueDate: Date?
-    public var detectedEntityId: LegalEntityID?
-    public var detectedTaxYearId: TaxYearID?
+    public let detectedEntityId: LegalEntityID?
+    public let detectedTaxYearId: TaxYearID?
     public var extractedText: String?
     public var metadataStatus: MetadataStatus
     public var parseVersion: String

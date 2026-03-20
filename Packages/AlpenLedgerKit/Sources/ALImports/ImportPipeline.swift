@@ -1,9 +1,10 @@
 import Foundation
+import GRDB
 import ALDomain
 import ALStorage
 import ALAudit
 
-public final class ImportPipeline: @unchecked Sendable {
+public final class ImportPipeline: Sendable {
     private let storage: WorkspaceStorage
     private let auditLogger: AuditLogger
     private let importers: [any Importer]
@@ -49,9 +50,13 @@ public final class ImportPipeline: @unchecked Sendable {
             completedImportJob.completedAt = .now
             completedImportJob.warningCount = payload.parseLog.warnings.count
 
-            try storage.statementImportRepository.saveStatementImport(payload.statementImport)
-            try storage.transactionRepository.saveTransactions(payload.transactions)
-            try storage.importJobRepository.saveImportJob(completedImportJob)
+            try storage.inTransaction { db in
+                try payload.statementImport.save(db)
+                for transaction in payload.transactions {
+                    try transaction.save(db)
+                }
+                try completedImportJob.save(db)
+            }
             try auditLogger.log(
                 eventType: .importJobCompleted,
                 objectRef: ObjectRef(kind: .importJob, id: completedImportJob.id.rawValue),

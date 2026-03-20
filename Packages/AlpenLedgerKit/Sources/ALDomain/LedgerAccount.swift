@@ -20,7 +20,7 @@ public struct LedgerAccount: Hashable, Codable, Sendable {
     public var name: String
     public var category: LedgerCategory
     public var normalBalance: NormalBalance
-    public var parentId: LedgerAccountID?
+    public let parentId: LedgerAccountID?
     public var taxRole: String?
     public var isControlAccount: Bool
 

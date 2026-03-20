@@ -30,7 +30,7 @@ public struct ComputedTaxFact: Hashable, Sendable {
     public let textValue: String?
     public let boolValue: Bool?
     public let dateValue: Date?
-    public let currency: String?
+    public let currency: CurrencyCode?
     public let status: TaxFactStatus
     public let provenanceRefs: [ObjectRef]
     public let confidence: Double
@@ -42,7 +42,7 @@ public struct ComputedTaxFact: Hashable, Sendable {
         textValue: String? = nil,
         boolValue: Bool? = nil,
         dateValue: Date? = nil,
-        currency: String? = nil,
+        currency: CurrencyCode? = nil,
         status: TaxFactStatus,
         provenanceRefs: [ObjectRef] = [],
         confidence: Double = 1.0
@@ -74,11 +74,14 @@ private struct RulePackKey: Hashable {
 }
 
 public final class RulePackRegistry: @unchecked Sendable {
+    private let lock = NSLock()
     private var personalRulePacks: [RulePackKey: any PersonalTaxRulePack] = [:]
 
     public init() {}
 
     public func registerPersonalTaxRulePack(_ rulePack: any PersonalTaxRulePack) {
+        lock.lock()
+        defer { lock.unlock() }
         personalRulePacks[
             RulePackKey(
                 jurisdictionCode: rulePack.jurisdictionCode,
@@ -91,6 +94,8 @@ public final class RulePackRegistry: @unchecked Sendable {
         jurisdictionCode: String,
         rulesetVersion: String
     ) -> (any PersonalTaxRulePack)? {
-        personalRulePacks[RulePackKey(jurisdictionCode: jurisdictionCode, rulesetVersion: rulesetVersion)]
+        lock.lock()
+        defer { lock.unlock() }
+        return personalRulePacks[RulePackKey(jurisdictionCode: jurisdictionCode, rulesetVersion: rulesetVersion)]
     }
 }

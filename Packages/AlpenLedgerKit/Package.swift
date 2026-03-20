@@ -18,9 +18,6 @@ let package = Package(
         .library(name: "ALEvidence", targets: ["ALEvidence"]),
         .library(name: "ALTaxCore", targets: ["ALTaxCore"]),
         .library(name: "ALTaxCH", targets: ["ALTaxCH"]),
-        .library(name: "ALExports", targets: ["ALExports"]),
-        .library(name: "ALToolBus", targets: ["ALToolBus"]),
-        .library(name: "ALAI", targets: ["ALAI"]),
         .library(name: "ALDesignSystem", targets: ["ALDesignSystem"]),
         .library(name: "ALFeatures", targets: ["ALFeatures"]),
     ],
@@ -79,6 +76,7 @@ let package = Package(
                 "ALAudit",
                 "ALDocuments",
                 "ALLedger",
+                .product(name: "GRDB", package: "GRDB.swift"),
             ]
         ),
         .target(
@@ -114,37 +112,6 @@ let package = Package(
             ]
         ),
         .target(
-            name: "ALExports",
-            dependencies: [
-                "ALDomain",
-                "ALStorage",
-                "ALAudit",
-                "ALTaxCore",
-                "ALTaxCH",
-                "ALDocuments",
-            ]
-        ),
-        .target(
-            name: "ALToolBus",
-            dependencies: [
-                "ALDomain",
-                "ALAudit",
-                "ALWorkspace",
-                "ALLedger",
-                "ALDocuments",
-                "ALImports",
-            ]
-        ),
-        .target(
-            name: "ALAI",
-            dependencies: [
-                "ALDomain",
-                "ALStorage",
-                "ALAudit",
-                "ALToolBus",
-            ]
-        ),
-        .target(
             name: "ALDesignSystem"
         ),
         .target(
@@ -153,12 +120,6 @@ let package = Package(
                 "ALDesignSystem",
                 "ALDomain",
                 "ALWorkspace",
-                "ALLedger",
-                "ALDocuments",
-                "ALImports",
-                "ALAudit",
-                "ALTaxCore",
-                "ALTaxCH",
             ]
         ),
         .testTarget(

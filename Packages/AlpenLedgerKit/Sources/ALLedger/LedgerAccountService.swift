@@ -2,7 +2,7 @@ import Foundation
 import ALDomain
 import ALStorage
 
-public final class LedgerAccountService: @unchecked Sendable {
+public final class LedgerAccountService: Sendable {
     private let repository: any LedgerAccountRepository
 
     public init(storage: WorkspaceStorage) {

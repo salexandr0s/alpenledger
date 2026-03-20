@@ -2,19 +2,19 @@ import Foundation
 import ALDomain
 import ALStorage
 
-public final class CSVBankStatementImporter: Importer, @unchecked Sendable {
+public final class CSVBankStatementImporter: Importer, Sendable {
     public let parserKey = "csv.bankstatement"
-    public let parserVersion = "1.0.0"
+    public let parserVersion = "1.1.0"
 
-    private let dateFormatter: DateFormatter = {
+    public init() {}
+
+    private func makeDateFormatter() -> DateFormatter {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
-    }()
-
-    public init() {}
+    }
 
     public func canRecognize(_ url: URL) throws -> Bool {
         guard url.pathExtension.lowercased() == "csv" else {
@@ -25,6 +25,7 @@ public final class CSVBankStatementImporter: Importer, @unchecked Sendable {
     }
 
     public func parse(_ url: URL, accountId: FinancialAccountID, importJobId: ImportJobID, sourceBlobHash: String) throws -> ImportedStatementPayload {
+        let df = makeDateFormatter()
         let lines = try String(contentsOf: url, encoding: .utf8)
             .components(separatedBy: .newlines)
             .filter { $0.isEmpty == false }
@@ -32,20 +33,48 @@ public final class CSVBankStatementImporter: Importer, @unchecked Sendable {
             throw DomainError.unsupportedImportFormat
         }
 
-        let rows = lines.dropFirst().enumerated().map { index, line -> Transaction in
-            let columns = line.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
-            let bookingDate = dateFormatter.date(from: columns[0]) ?? .now
-            let valueDate = columns[1].isEmpty ? nil : dateFormatter.date(from: columns[1])
-            let amountMinor = Int64((Double(columns[2]) ?? 0) * 100)
-            let balanceMinor = columns[7].isEmpty ? nil : Int64((Double(columns[7]) ?? 0) * 100)
+        var warnings: [String] = []
+        let rows: [Transaction] = lines.dropFirst().enumerated().compactMap { index, line in
+            let csvRow = index + 2
+            let columns = parseCSVRow(line)
+
+            guard columns.count >= 8 else {
+                warnings.append("Row \(csvRow): expected 8 columns, got \(columns.count) — skipped")
+                return nil
+            }
+
+            guard let bookingDate = df.date(from: columns[0]) else {
+                warnings.append("Row \(csvRow): unparseable booking date '\(columns[0])' — skipped")
+                return nil
+            }
+
+            let valueDate = columns[1].isEmpty ? nil : df.date(from: columns[1])
+
+            let amountMinor: Int64
+            if let decimal = Decimal(string: columns[2]) {
+                amountMinor = Money(majorUnits: decimal, currency: .chf).minorUnits
+            } else {
+                warnings.append("Row \(csvRow): unparseable amount '\(columns[2])' — skipped")
+                return nil
+            }
+
+            let balanceMinor: Int64?
+            if columns[7].isEmpty {
+                balanceMinor = nil
+            } else if let decimal = Decimal(string: columns[7]) {
+                balanceMinor = Money(majorUnits: decimal, currency: .chf).minorUnits
+            } else {
+                balanceMinor = nil
+            }
+
             return Transaction(
                 accountId: accountId,
                 originKind: .imported,
-                sourceLineRef: "csv:\(index + 2)",
+                sourceLineRef: "csv:\(csvRow)",
                 bookingDate: bookingDate,
                 valueDate: valueDate,
                 amountMinor: amountMinor,
-                currency: columns[3],
+                currency: CurrencyCode(rawValue: columns[3]) ?? .chf,
                 counterpartyName: columns[4],
                 memo: columns[5],
                 reference: columns[6].isEmpty ? nil : columns[6],
@@ -53,8 +82,11 @@ public final class CSVBankStatementImporter: Importer, @unchecked Sendable {
             )
         }
 
-        let coverageStart = rows.map(\.bookingDate).min() ?? .now
-        let coverageEnd = rows.map(\.bookingDate).max() ?? .now
+        guard rows.isEmpty == false else {
+            throw DomainError.csvParseError(row: 0, reason: "No valid rows after parsing — all rows were skipped")
+        }
+        let coverageStart = rows.map(\.bookingDate).min()!
+        let coverageEnd = rows.map(\.bookingDate).max()!
         let statementImport = StatementImport(
             accountId: accountId,
             importJobId: importJobId,
@@ -72,8 +104,48 @@ public final class CSVBankStatementImporter: Importer, @unchecked Sendable {
             transaction.statementImportId = statementImport.id
             return transaction
         }
-        let parseLog = ParseLog(parserKey: parserKey, parserVersion: parserVersion, importedRowCount: normalizedTransactions.count)
+        let parseLog = ParseLog(parserKey: parserKey, parserVersion: parserVersion, importedRowCount: normalizedTransactions.count, warnings: warnings)
         return ImportedStatementPayload(statementImport: statementImport, transactions: normalizedTransactions, parseLog: parseLog)
+    }
+
+    private func parseCSVRow(_ line: String) -> [String] {
+        var fields: [String] = []
+        var current = ""
+        var inQuotes = false
+        var i = line.startIndex
+
+        while i < line.endIndex {
+            let char = line[i]
+            if inQuotes {
+                if char == "\"" {
+                    let next = line.index(after: i)
+                    if next < line.endIndex, line[next] == "\"" {
+                        current.append("\"")
+                        i = line.index(after: next)
+                    } else {
+                        inQuotes = false
+                        i = line.index(after: i)
+                    }
+                } else {
+                    current.append(char)
+                    i = line.index(after: i)
+                }
+            } else {
+                if char == "\"" {
+                    inQuotes = true
+                    i = line.index(after: i)
+                } else if char == "," {
+                    fields.append(current)
+                    current = ""
+                    i = line.index(after: i)
+                } else {
+                    current.append(char)
+                    i = line.index(after: i)
+                }
+            }
+        }
+        fields.append(current)
+        return fields
     }
 
     private func firstLine(of url: URL) throws -> String {

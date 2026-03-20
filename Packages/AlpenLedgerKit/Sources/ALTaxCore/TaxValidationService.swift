@@ -30,7 +30,7 @@ public struct TaxReadinessSummary: Hashable, Sendable {
     }
 }
 
-public final class TaxValidationService: @unchecked Sendable {
+public final class TaxValidationService: Sendable {
     private let storage: WorkspaceStorage
     private let rulePackRegistry: RulePackRegistry
 
@@ -40,8 +40,8 @@ public final class TaxValidationService: @unchecked Sendable {
     }
 
     public func readinessSummary(entityId: LegalEntityID, taxYearId: TaxYearID) throws -> TaxReadinessSummary {
-        let entity = try requireEntity(entityId: entityId)
-        let taxYear = try requireTaxYear(entityId: entityId, taxYearId: taxYearId)
+        let entity = try storage.requireEntity(entityId: entityId)
+        let taxYear = try storage.requireTaxYear(entityId: entityId, taxYearId: taxYearId)
         let currentFacts = try storage.taxFactRepository.fetchTaxFacts(entityId: entityId, taxYearId: taxYearId, currentOnly: true)
         return try readinessSummary(entity: entity, taxYear: taxYear, currentFacts: currentFacts)
     }
@@ -94,23 +94,4 @@ public final class TaxValidationService: @unchecked Sendable {
         return rulePack.expectedConceptCodes(for: entity)
     }
 
-    private func requireEntity(entityId: LegalEntityID) throws -> LegalEntity {
-        guard let entity = try storage.legalEntityRepository
-            .fetchLegalEntities(workspaceId: storage.manifest.workspace.id)
-            .first(where: { $0.id == entityId })
-        else {
-            throw DomainError.workspaceNotFound
-        }
-        return entity
-    }
-
-    private func requireTaxYear(entityId: LegalEntityID, taxYearId: TaxYearID) throws -> TaxYear {
-        guard let taxYear = try storage.taxYearRepository
-            .fetchTaxYears(entityId: entityId)
-            .first(where: { $0.id == taxYearId })
-        else {
-            throw DomainError.workspaceNotFound
-        }
-        return taxYear
-    }
 }

@@ -22,10 +22,10 @@ public struct FinancialAccount: Hashable, Codable, Sendable {
     public var accountType: FinancialAccountType
     public var institutionName: String
     public var displayName: String
-    public var currency: String
+    public var currency: CurrencyCode
     public var ibanMask: String?
     public var statementCadence: StatementCadence
-    public var ledgerControlAccountId: LedgerAccountID
+    public let ledgerControlAccountId: LedgerAccountID
     public var openedAt: Date
     public var closedAt: Date?
 
@@ -35,7 +35,7 @@ public struct FinancialAccount: Hashable, Codable, Sendable {
         accountType: FinancialAccountType,
         institutionName: String,
         displayName: String,
-        currency: String = "CHF",
+        currency: CurrencyCode = .chf,
         ibanMask: String? = nil,
         statementCadence: StatementCadence = .monthly,
         ledgerControlAccountId: LedgerAccountID,
@@ -47,7 +47,7 @@ public struct FinancialAccount: Hashable, Codable, Sendable {
         self.accountType = accountType
         self.institutionName = institutionName
         self.displayName = displayName
-        self.currency = currency.uppercased()
+        self.currency = currency
         self.ibanMask = ibanMask
         self.statementCadence = statementCadence
         self.ledgerControlAccountId = ledgerControlAccountId

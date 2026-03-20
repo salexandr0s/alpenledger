@@ -9,6 +9,12 @@ public enum DomainError: Error, LocalizedError, Equatable, Sendable {
     case workspaceNotFound
     case missingWorkspaceKey
     case unsupportedImportFormat
+    case entityNotFound
+    case taxYearNotFound
+    case issueNotFound
+    case invalidCurrencyCode(String)
+    case invalidCantonCode(String)
+    case csvParseError(row: Int, reason: String)
 
     public var errorDescription: String? {
         switch self {
@@ -28,6 +34,18 @@ public enum DomainError: Error, LocalizedError, Equatable, Sendable {
             "Workspace encryption key is missing."
         case .unsupportedImportFormat:
             "The selected file is not supported by the current importer."
+        case .entityNotFound:
+            "Legal entity could not be found."
+        case .taxYearNotFound:
+            "Tax year could not be found."
+        case .issueNotFound:
+            "Issue could not be found."
+        case let .invalidCurrencyCode(code):
+            "Invalid ISO 4217 currency code: \(code)."
+        case let .invalidCantonCode(code):
+            "Invalid Swiss canton code: \(code)."
+        case let .csvParseError(row, reason):
+            "CSV parse error at row \(row): \(reason)."
         }
     }
 }

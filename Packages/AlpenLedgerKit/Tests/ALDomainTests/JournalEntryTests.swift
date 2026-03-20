@@ -11,14 +11,14 @@ func journalEntryBalances() throws {
         ledgerAccountId: LedgerAccountID(),
         debitMinor: 1000,
         creditMinor: 0,
-        currency: "CHF"
+        currency: .chf
     )
     let creditLine = try JournalLine(
         journalEntryId: entryId,
         ledgerAccountId: LedgerAccountID(),
         debitMinor: 0,
         creditMinor: 1000,
-        currency: "CHF"
+        currency: .chf
     )
 
     let entry = try JournalEntry(
@@ -40,14 +40,14 @@ func journalEntryRejectsUnbalancedLines() throws {
         ledgerAccountId: LedgerAccountID(),
         debitMinor: 1000,
         creditMinor: 0,
-        currency: "CHF"
+        currency: .chf
     )
     let creditLine = try JournalLine(
         journalEntryId: entryId,
         ledgerAccountId: LedgerAccountID(),
         debitMinor: 0,
         creditMinor: 900,
-        currency: "CHF"
+        currency: .chf
     )
 
     #expect(throws: DomainError.self) {

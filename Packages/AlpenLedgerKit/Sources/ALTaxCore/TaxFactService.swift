@@ -2,7 +2,7 @@ import Foundation
 import ALDomain
 import ALStorage
 
-public final class TaxFactService: @unchecked Sendable {
+public final class TaxFactService: Sendable {
     private let repository: any TaxFactRepository
 
     public init(storage: WorkspaceStorage) {
@@ -149,7 +149,7 @@ public final class TaxFactService: @unchecked Sendable {
             existing.textValue == computed.textValue &&
             existing.boolValue == computed.boolValue &&
             existing.dateValue == computed.dateValue &&
-            existing.currency == computed.currency?.uppercased() &&
+            existing.currency == computed.currency &&
             existing.status == computed.status &&
             existing.rulesetVersion == rulesetVersion &&
             existing.provenanceRefs == computed.provenanceRefs &&

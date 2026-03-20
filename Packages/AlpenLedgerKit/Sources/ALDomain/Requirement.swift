@@ -12,7 +12,7 @@ public enum RequirementStatus: String, Codable, CaseIterable, Sendable {
 
 public struct Requirement: Hashable, Codable, Sendable {
     public let id: RequirementID
-    public var fingerprint: String
+    public let fingerprint: String
     public let entityId: LegalEntityID
     public var taxYearId: TaxYearID?
     public var requirementCode: RequirementCode
@@ -22,7 +22,7 @@ public struct Requirement: Hashable, Codable, Sendable {
     public var coverageEnd: Date?
     public var status: RequirementStatus
     public var satisfiedByRef: ObjectRef?
-    public var createdAt: Date
+    public let createdAt: Date
     public var updatedAt: Date
 
     public init(

@@ -2,7 +2,7 @@ import Foundation
 import ALDomain
 import ALStorage
 
-public final class ProvenanceTraceService: @unchecked Sendable {
+public final class ProvenanceTraceService: Sendable {
     private let repository: any AuditEventRepository
     private let workspaceId: WorkspaceID
 

@@ -10,7 +10,7 @@ public struct Workspace: Hashable, Codable, Sendable {
     public var name: String
     public var storageVersion: Int
     public let createdAt: Date
-    public var defaultCurrency: String
+    public var defaultCurrency: CurrencyCode
     public var privacyMode: PrivacyMode
     public var encryptionSaltRef: String
 
@@ -19,7 +19,7 @@ public struct Workspace: Hashable, Codable, Sendable {
         name: String,
         storageVersion: Int = 1,
         createdAt: Date = .now,
-        defaultCurrency: String = "CHF",
+        defaultCurrency: CurrencyCode = .chf,
         privacyMode: PrivacyMode = .standard,
         encryptionSaltRef: String
     ) throws {
@@ -31,7 +31,7 @@ public struct Workspace: Hashable, Codable, Sendable {
         self.name = trimmedName
         self.storageVersion = storageVersion
         self.createdAt = createdAt
-        self.defaultCurrency = defaultCurrency.uppercased()
+        self.defaultCurrency = defaultCurrency
         self.privacyMode = privacyMode
         self.encryptionSaltRef = encryptionSaltRef
     }

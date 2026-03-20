@@ -2,7 +2,7 @@ import Foundation
 import ALDomain
 import ALStorage
 
-public final class TaxYearService: @unchecked Sendable {
+public final class TaxYearService: Sendable {
     private let repository: any TaxYearRepository
 
     public init(storage: WorkspaceStorage) {

@@ -95,7 +95,7 @@ func taxFactsRoundTripProvenanceAsJSON() throws {
         conceptCode: "personal.income.salary_gross",
         valueType: .money,
         moneyMinor: 9800000,
-        currency: "CHF",
+        currency: .chf,
         status: .observed,
         rulesetVersion: "zh-personal-2026-v1",
         provenanceRefs: [
@@ -133,7 +133,7 @@ func taxFactRepositoryPreservesSingleCurrentVersionAfterSupersession() throws {
                 conceptCode: "personal.income.salary_gross",
                 valueType: .money,
                 moneyMinor: 9800000,
-                currency: "CHF",
+                currency: .chf,
                 status: .observed,
                 provenanceRefs: [ObjectRef(kind: .document, id: UUID())]
             )
@@ -151,7 +151,7 @@ func taxFactRepositoryPreservesSingleCurrentVersionAfterSupersession() throws {
                 conceptCode: "personal.income.salary_gross",
                 valueType: .money,
                 moneyMinor: 9900000,
-                currency: "CHF",
+                currency: .chf,
                 status: .observed,
                 provenanceRefs: [ObjectRef(kind: .document, id: UUID())]
             )

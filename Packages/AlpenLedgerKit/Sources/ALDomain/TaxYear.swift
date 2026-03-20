@@ -12,7 +12,7 @@ public struct TaxYear: Hashable, Codable, Sendable {
     public var year: Int
     public var periodStart: Date
     public var periodEnd: Date
-    public var canton: String?
+    public var canton: CantonCode?
     public var filingMode: String
     public var rulesetVersion: String
     public var status: TaxYearStatus
@@ -23,9 +23,9 @@ public struct TaxYear: Hashable, Codable, Sendable {
         year: Int,
         periodStart: Date,
         periodEnd: Date,
-        canton: String? = nil,
+        canton: CantonCode? = nil,
         filingMode: String = "standard",
-        rulesetVersion: String = "ch.v1",
+        rulesetVersion: String,
         status: TaxYearStatus = .open
     ) {
         self.id = id

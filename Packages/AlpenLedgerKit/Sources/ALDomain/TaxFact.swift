@@ -15,7 +15,7 @@ public enum TaxFactStatus: String, Codable, CaseIterable, Sendable {
 
 public struct TaxFact: Hashable, Codable, Sendable {
     public let id: TaxFactID
-    public var fingerprint: String
+    public let fingerprint: String
     public let entityId: LegalEntityID
     public let taxYearId: TaxYearID
     public var jurisdictionCode: String
@@ -25,15 +25,15 @@ public struct TaxFact: Hashable, Codable, Sendable {
     public var textValue: String?
     public var boolValue: Bool?
     public var dateValue: Date?
-    public var currency: String?
+    public var currency: CurrencyCode?
     public var status: TaxFactStatus
     public var rulesetVersion: String
     public var provenanceRefs: [ObjectRef]
     public var confidence: Double
-    public var supersedesFactId: TaxFactID?
+    public let supersedesFactId: TaxFactID?
     public var isCurrent: Bool
     public var overrideReason: String?
-    public var createdAt: Date
+    public let createdAt: Date
     public var updatedAt: Date
 
     public init(
@@ -48,7 +48,7 @@ public struct TaxFact: Hashable, Codable, Sendable {
         textValue: String? = nil,
         boolValue: Bool? = nil,
         dateValue: Date? = nil,
-        currency: String? = nil,
+        currency: CurrencyCode? = nil,
         status: TaxFactStatus,
         rulesetVersion: String,
         provenanceRefs: [ObjectRef] = [],
@@ -70,7 +70,7 @@ public struct TaxFact: Hashable, Codable, Sendable {
         self.textValue = textValue
         self.boolValue = boolValue
         self.dateValue = dateValue
-        self.currency = currency?.uppercased()
+        self.currency = currency
         self.status = status
         self.rulesetVersion = rulesetVersion
         self.provenanceRefs = provenanceRefs

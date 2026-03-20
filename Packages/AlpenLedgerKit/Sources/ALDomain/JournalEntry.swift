@@ -14,13 +14,13 @@ public enum JournalEntryStatus: String, Codable, CaseIterable, Sendable {
 public struct JournalEntry: Hashable, Codable, Sendable {
     public let id: JournalEntryID
     public let entityId: LegalEntityID
-    public var taxYearId: TaxYearID?
+    public let taxYearId: TaxYearID?
     public var entryNumber: String
     public var effectiveDate: Date
     public var kind: JournalEntryKind
     public var status: JournalEntryStatus
     public var memo: String
-    public var reversalOfId: JournalEntryID?
+    public let reversalOfId: JournalEntryID?
     public var createdBy: String
     public var approvedBy: String?
     public var approvedAt: Date?

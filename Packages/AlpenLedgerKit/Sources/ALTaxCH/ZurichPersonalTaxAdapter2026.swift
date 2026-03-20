@@ -100,7 +100,7 @@ public struct ZurichPersonalTaxAdapter2026: PersonalTaxAdapter {
             }
         let netProfitMinor = revenueMinor - expenseMinor
         let provenanceRefs = includedTransactions.map { ObjectRef(kind: .transaction, id: $0.id.rawValue) }
-        let currency = includedTransactions.first?.currency ?? "CHF"
+        let currency = includedTransactions.first?.currency ?? .chf
 
         return [
             ComputedTaxFact(
@@ -170,7 +170,7 @@ public struct ZurichPersonalTaxAdapter2026: PersonalTaxAdapter {
         case .salaryCertificate:
             guard
                 let moneyMinor = values["salary_gross_minor"].flatMap(Int64.init),
-                let currency = values["currency"]
+                let currency = values["currency"].flatMap({ CurrencyCode(rawValue: $0) })
             else {
                 return nil
             }
@@ -183,7 +183,7 @@ public struct ZurichPersonalTaxAdapter2026: PersonalTaxAdapter {
         case .healthInsuranceCertificate:
             guard
                 let moneyMinor = values["health_insurance_premiums_minor"].flatMap(Int64.init),
-                let currency = values["currency"]
+                let currency = values["currency"].flatMap({ CurrencyCode(rawValue: $0) })
             else {
                 return nil
             }
@@ -196,7 +196,7 @@ public struct ZurichPersonalTaxAdapter2026: PersonalTaxAdapter {
         case .pillar3aCertificate:
             guard
                 let moneyMinor = values["pillar3a_contributions_minor"].flatMap(Int64.init),
-                let currency = values["currency"]
+                let currency = values["currency"].flatMap({ CurrencyCode(rawValue: $0) })
             else {
                 return nil
             }
@@ -224,5 +224,5 @@ private struct ParsedTaxDocument {
     let moneyConceptCode: String
     let readinessConceptCode: String
     let moneyMinor: Int64
-    let currency: String
+    let currency: CurrencyCode
 }

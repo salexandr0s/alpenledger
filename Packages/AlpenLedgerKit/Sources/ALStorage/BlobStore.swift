@@ -7,6 +7,8 @@ public protocol BlobStore: Sendable {
     func store(contentsOf url: URL) throws -> String
     func read(hash: String) throws -> Data
     func materialize(hash: String, fileExtension: String?) throws -> URL
+    func cleanupMaterialized() throws
+    func cleanupMaterialized(hash: String, fileExtension: String?) throws
 }
 
 public final class EncryptedBlobStore: BlobStore, @unchecked Sendable {
@@ -50,6 +52,25 @@ public final class EncryptedBlobStore: BlobStore, @unchecked Sendable {
         let destinationURL = paths.tempURL.appendingPathComponent(filename)
         try read(hash: hash).write(to: destinationURL, options: .atomic)
         return destinationURL
+    }
+
+    public func cleanupMaterialized() throws {
+        guard fileManager.fileExists(atPath: paths.tempURL.path) else { return }
+        let contents = try fileManager.contentsOfDirectory(
+            at: paths.tempURL,
+            includingPropertiesForKeys: nil
+        )
+        for url in contents {
+            try? fileManager.removeItem(at: url)
+        }
+    }
+
+    public func cleanupMaterialized(hash: String, fileExtension: String?) throws {
+        let filename = fileExtension.map { "\(hash).\($0)" } ?? hash
+        let url = paths.tempURL.appendingPathComponent(filename)
+        if fileManager.fileExists(atPath: url.path) {
+            try fileManager.removeItem(at: url)
+        }
     }
 
     private func encryptedBlobURL(for hash: String) -> URL {

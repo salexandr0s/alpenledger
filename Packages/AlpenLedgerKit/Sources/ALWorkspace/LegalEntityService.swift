@@ -3,7 +3,7 @@ import ALDomain
 import ALStorage
 import ALAudit
 
-public final class LegalEntityService: @unchecked Sendable {
+public final class LegalEntityService: Sendable {
     public struct DeletionCheck: Sendable, Equatable {
         public let statementImportCount: Int
         public let transactionCount: Int
@@ -69,7 +69,7 @@ public final class LegalEntityService: @unchecked Sendable {
             kind: .naturalPerson,
             legalName: storage.manifest.workspace.name,
             displayName: "Personal",
-            canton: "ZH"
+            canton: .zh
         )
         try saveNewEntity(entity, defaultInstitutionName: "Personal Bank")
         return entity
@@ -82,7 +82,7 @@ public final class LegalEntityService: @unchecked Sendable {
             kind: .soleProprietor,
             legalName: name,
             displayName: name,
-            canton: "ZH"
+            canton: .zh
         )
         try saveNewEntity(entity, defaultInstitutionName: "Business Bank")
         return entity
@@ -200,7 +200,7 @@ public final class LegalEntityService: @unchecked Sendable {
             periodStart: periodStart,
             periodEnd: periodEnd,
             canton: entity.canton,
-            rulesetVersion: entity.canton?.uppercased() == "ZH" ? "zh-personal-2026-v1" : "ch.v1"
+            rulesetVersion: entity.canton == .zh ? "zh-personal-2026-v1" : "ch.v1"
         )
         try storage.taxYearRepository.saveTaxYear(taxYear)
     }

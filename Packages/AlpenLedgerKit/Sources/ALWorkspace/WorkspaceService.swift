@@ -3,7 +3,7 @@ import ALDomain
 import ALStorage
 import ALAudit
 
-public final class WorkspaceService: @unchecked Sendable {
+public final class WorkspaceService: Sendable {
     private let storageManager: WorkspaceStorageManager
     private let recentStore: RecentWorkspacesStore
     private let nowProvider: @Sendable () -> Date

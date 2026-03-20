@@ -41,6 +41,10 @@ public struct WorkspaceStorage: Sendable {
     public let taxFactRepository: any TaxFactRepository
     public let agentProposalRepository: any AgentProposalRepository
     public let auditEventRepository: any AuditEventRepository
+
+    public func inTransaction(_ work: (GRDB.Database) throws -> Void) throws {
+        try dbPool.write(work)
+    }
 }
 
 public final class WorkspaceStorageManager: @unchecked Sendable {
@@ -113,6 +117,7 @@ public final class WorkspaceStorageManager: @unchecked Sendable {
         try migrate(dbPool: dbPool)
 
         let blobStore = EncryptedBlobStore(paths: paths, key: crypto.blobKey, fileManager: fileManager)
+        try? blobStore.cleanupMaterialized()
         let searchIndex = SQLiteSearchIndex(dbPool: dbPool)
 
         let workspaceRepository = GRDBWorkspaceRepository(dbPool: dbPool)
@@ -157,18 +162,18 @@ public final class WorkspaceStorageManager: @unchecked Sendable {
 }
 
 public extension JSONEncoder {
-    static let alpenLedger: JSONEncoder = {
+    static var alpenLedger: JSONEncoder {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         return encoder
-    }()
+    }
 }
 
 public extension JSONDecoder {
-    static let alpenLedger: JSONDecoder = {
+    static var alpenLedger: JSONDecoder {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return decoder
-    }()
+    }
 }

@@ -4,7 +4,7 @@ import ALDomain
 import ALStorage
 import ALAudit
 
-public final class DocumentService: @unchecked Sendable {
+public final class DocumentService: Sendable {
     private let storage: WorkspaceStorage
     private let auditLogger: AuditLogger
     private let extractionPipeline: DocumentExtractionPipeline
@@ -45,10 +45,12 @@ public final class DocumentService: @unchecked Sendable {
             return existing
         }
 
-        let materializedURL = try storage.blobStore.materialize(hash: blobHash, fileExtension: url.pathExtension.isEmpty ? nil : url.pathExtension)
+        let fileExt = url.pathExtension.isEmpty ? nil : url.pathExtension
+        let materializedURL = try storage.blobStore.materialize(hash: blobHash, fileExtension: fileExt)
         let extractedText = extractionPipeline.extractText(from: materializedURL, mediaType: mediaType)
         let documentType = extractionPipeline.detectDocumentType(filename: url.lastPathComponent, extractedText: extractedText)
         let issueDate = extractionPipeline.inferredIssueDate(from: extractedText)
+        try? storage.blobStore.cleanupMaterialized(hash: blobHash, fileExtension: fileExt)
 
         let document = Document(
             workspaceId: storage.manifest.workspace.id,
