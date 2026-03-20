@@ -112,8 +112,14 @@ AlpenLedger.xcworkspace
         └── ALFeatures
 ```
 
+### Entity-scoping pattern
+Scoping is enforced at the session layer (`ActiveWorkspaceSession`), which filters data by `activeEntityId` before it reaches the UI. Individual services remain workspace-wide; `ActiveWorkspaceSession.refreshCoreData()` filters `financialAccounts`, `documents`, and `issues` by the active entity. This keeps the scoping logic in one place rather than scattered across service classes, while still allowing cross-entity operations (e.g., deletion checks, evidence refresh) without special "unscoped" overloads.
+
+### App layer decomposition
+`WorkspaceAppModel` delegates to `ActiveWorkspaceSession` for services, data caching, and refresh. Snapshot computation lives in `WorkspaceAppModel+Snapshots`, and presentation helpers (labels, symbols, formatters) in `PresentationHelpers`. `WorkspaceAppModel` itself is a thin facade with navigation state and action dispatch.
+
 ### Boundary rule
-No UI layer talks directly to storage or models.  
+No UI layer talks directly to storage or models.
 The AI layer also talks to the system only through the same typed use-case / tool interfaces.
 
 ## 6. Data architecture
@@ -149,6 +155,18 @@ Represents:
 - household/joint context,
 - sole proprietorship,
 - legal entity (GmbH/AG/association).
+
+### EntityWorkspace
+User-facing scope that ties a `LegalEntity` to its workspace presentation. Enables entity switching — the "which entity am I working as" anchor. Not a replacement for `Workspace` or `LegalEntity`.
+
+### TaxProfile
+Consolidated tax configuration per entity: taxationType, canton, municipality, marital status, number of dependents, and optional ruleset version override.
+
+### TransactionCategory
+Entity-scoped transaction/expense categorization with hierarchical codes (`parentId`), tax roles, and system-defined vs user-created distinction.
+
+### InvoiceRecord
+Invoice-specific structured metadata linked to a `Document`: counterparty, amounts, direction (receivable/payable), payment status, and optional linked transaction.
 
 ### TaxYear
 Represents an entity/year/jurisdiction scope for filings, rulesets, issues, and exports.
@@ -194,6 +212,8 @@ A stored file with:
 - counterparties,
 - amount hints,
 - confidence.
+
+Document has an authoritative `entityId` FK (nullable, backfilled from `detectedEntityId` during migration v5), separate from the heuristic `detectedEntityId`.
 
 ### EvidenceLink
 Explicit relationship between documents and transactions, journal entries, tax facts, or filing fields.
@@ -259,6 +279,7 @@ These should be enforced centrally:
 7. **No filing can reach “ready” while critical blocking issues remain open.**
 8. **No transaction can be silently deleted once imported; only reversed, archived, or superseded.**
 9. **No journal posting, truth-affecting evidence confirmation, or filing finalization happens without approval.**
+10. **Every operational query path supports optional entity-scoping via `activeEntityId`.**
 
 ## 7. File and document architecture
 

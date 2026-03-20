@@ -201,6 +201,65 @@ final class AlpenLedgerAppUITests: XCTestCase {
         waitForNonExistence("settings.entity.remove.advisory-studio")
     }
 
+    func testEntitySwitcherScopesDataByEntity() throws {
+        app.launch()
+
+        createWorkspace(named: "Entity Switching Workspace")
+        importSampleDataFromMenu()
+
+        // Create a sole proprietor entity via Settings
+        navigate(to: "nav.settings")
+        createSoleProprietor(named: "Advisory Studio")
+
+        // Entity switcher should appear now that 2+ entities exist
+        let entitySwitcher = element("sidebar.entitySwitcher")
+        XCTAssertTrue(entitySwitcher.waitForExistence(timeout: 5))
+
+        // Navigate to Ledger — verify accounts visible for the natural person
+        navigate(to: "nav.ledger")
+        let personalAccount = element("ledger.account.personal-bank")
+        XCTAssertTrue(personalAccount.waitForExistence(timeout: 5))
+
+        // Switch to sole proprietor via entity switcher
+        entitySwitcher.click()
+        let solePropMenuItem = app.menuItems["Advisory Studio"]
+        XCTAssertTrue(solePropMenuItem.waitForExistence(timeout: 5))
+        solePropMenuItem.click()
+
+        // Verify ledger shows different accounts for sole proprietor
+        let businessAccount = element("ledger.account.business-bank")
+        XCTAssertTrue(businessAccount.waitForExistence(timeout: 5))
+
+        // Navigate to Documents — verify scoped filtering
+        navigate(to: "nav.documents")
+        let documentsList = element("documents.list")
+        XCTAssertTrue(documentsList.waitForExistence(timeout: 5))
+
+        // Switch back to natural person
+        entitySwitcher.click()
+        let personalMenuItem = app.menuItems["Personal"]
+        XCTAssertTrue(personalMenuItem.waitForExistence(timeout: 5))
+        personalMenuItem.click()
+
+        // Verify original documents reappear
+        navigate(to: "nav.documents")
+        let receiptDocument = element("documents.document.sample-receipt-pdf")
+        XCTAssertTrue(receiptDocument.waitForExistence(timeout: 5))
+    }
+
+    private func createSoleProprietor(named name: String) {
+        let solePropField = element("settings.solePropNameField")
+        XCTAssertTrue(solePropField.waitForExistence(timeout: 5))
+        replaceText(in: solePropField, with: name)
+
+        let addButton = element("settings.addSolePropButton")
+        XCTAssertTrue(addButton.waitForExistence(timeout: 5))
+        addButton.click()
+
+        let removeButton = element("settings.entity.remove.\(accessibilitySlug(name))")
+        XCTAssertTrue(removeButton.waitForExistence(timeout: 5))
+    }
+
     private func element(_ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
