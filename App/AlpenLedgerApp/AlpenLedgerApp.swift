@@ -12,7 +12,7 @@ struct AlpenLedgerApp: App {
         WindowGroup {
             RootSplitView(model: model)
                 .frame(minWidth: 1200, minHeight: 720)
-                .alert("Error", isPresented: errorPresentedBinding) {
+                .alert("Error", isPresented: $model.isShowingErrorAlert) {
                     Button("OK", role: .cancel) {}
                 } message: {
                     Text(model.errorMessage ?? "Unknown error")
@@ -33,16 +33,6 @@ struct AlpenLedgerApp: App {
         }
     }
 
-    private var errorPresentedBinding: Binding<Bool> {
-        Binding(
-            get: { model.errorMessage != nil },
-            set: { isPresented in
-                if isPresented == false {
-                    model.errorMessage = nil
-                }
-            }
-        )
-    }
 }
 
 private struct WorkspaceCommandMenu: Commands {
