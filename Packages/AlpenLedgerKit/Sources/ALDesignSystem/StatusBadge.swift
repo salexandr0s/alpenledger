@@ -89,10 +89,10 @@ public struct StatusBadge: View {
                 Text(title)
             }
         }
-        .font(.caption.bold())
+        .font(.caption2.bold())
         .symbolRenderingMode(AppTheme.symbolRenderingMode)
-        .padding(.horizontal, AppTheme.spacingS)
-        .padding(.vertical, AppTheme.spacingXS)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
         .foregroundStyle(tone.foregroundStyle)
         .background(tone.backgroundStyle, in: Capsule())
         .overlay(

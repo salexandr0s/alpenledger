@@ -34,6 +34,10 @@ public struct LedgerFeatureView: View {
     @FocusState private var focusedPane: FocusTarget?
     @State private var searchQuery = ""
     @State private var dateRange: DateRangeFilter = .all
+    @State private var transactionSelection: TransactionID?
+    @State private var sortOrder: [KeyPathComparator<ALDomain.Transaction>] = [
+        .init(\.bookingDate, order: .reverse),
+    ]
 
     private let accounts: [LedgerAccountSummary]
     private let selectedAccountId: FinancialAccountID?
@@ -85,6 +89,8 @@ public struct LedgerFeatureView: View {
         self.onLinkDocument = onLinkDocument
     }
 
+    // MARK: - Body
+
     public var body: some View {
         Group {
             if accounts.isEmpty {
@@ -104,15 +110,15 @@ public struct LedgerFeatureView: View {
 
                     transactionPane
                         .frame(minWidth: 640)
-
-                    if isInspectorVisible {
-                        inspectorPane
-                            .frame(minWidth: AppTheme.inspectorIdealWidth)
-                            .transition(AppTheme.inspectorTransition(reduceMotion: reduceMotion))
-                    }
+                }
+                .inspector(isPresented: inspectorBinding) {
+                    inspectorContent
+                        .inspectorColumnWidth(min: 240, ideal: 280, max: 340)
                 }
             }
         }
+        .navigationTitle("Ledger")
+        .navigationSubtitle("Transactions and linked evidence")
         .animation(AppTheme.panelAnimation(reduceMotion: reduceMotion), value: isInspectorVisible)
         .onAppear(perform: focusPrimaryPane)
         .onChange(of: isActive) { _, active in
@@ -123,7 +129,17 @@ public struct LedgerFeatureView: View {
         .onChange(of: selectedAccountId) { _, _ in
             focusPrimaryPane()
         }
+        .onChange(of: transactionSelection) { _, newValue in
+            onSelectTransaction(newValue)
+        }
+        .onChange(of: selectedTransactionId) { _, newValue in
+            if transactionSelection != newValue {
+                transactionSelection = newValue
+            }
+        }
     }
+
+    // MARK: - Empty / Prompt States
 
     private var emptyWorkspaceState: some View {
         PaneEmptyState(
@@ -137,9 +153,23 @@ public struct LedgerFeatureView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private var selectionPromptPane: some View {
+        PaneEmptyState(
+            "Select an account",
+            subtitle: "Choose an account from the left to review transaction activity.",
+            systemImage: "list.bullet.rectangle"
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Account Sidebar
+
     private var accountPane: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-            PaneHeader("Accounts", subtitle: "Banks, cards, and other money sources.") {
+            HStack {
+                Text("Accounts")
+                    .font(AppTheme.sectionTitleFont)
+                Spacer()
                 Button("Import Transactions", action: onImportCSV)
                     .buttonStyle(.bordered)
             }
@@ -148,34 +178,32 @@ public struct LedgerFeatureView: View {
 
             List(selection: accountSelection) {
                 ForEach(accounts) { account in
-                    HStack(alignment: .top, spacing: AppTheme.spacingS) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(AppTheme.accentSurfaceColor)
-                                .frame(width: 36, height: 36)
+                    HStack(spacing: AppTheme.spacingS) {
+                        Label {
+                            VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                                Text(account.title)
+                                    .font(.body.weight(.medium))
 
+                                Text("\(account.accountTypeLabel) \u{2022} \(account.subtitle)")
+                                    .font(AppTheme.metaFont)
+                                    .foregroundStyle(AppTheme.subduedForegroundColor)
+
+                                StatusBadge(account.statusText, tone: account.tone)
+                            }
+                        } icon: {
                             Image(systemName: account.systemImage)
                                 .symbolRenderingMode(AppTheme.symbolRenderingMode)
                                 .foregroundStyle(Color.accentColor)
                         }
 
-                        VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
-                            Text(account.title)
-                                .font(.body.weight(.medium))
-
-                            Text("\(account.accountTypeLabel) • \(account.subtitle)")
-                                .font(AppTheme.metaFont)
-                                .foregroundStyle(AppTheme.subduedForegroundColor)
-
-                            StatusBadge(account.statusText, tone: account.tone)
-                        }
-
                         Spacer(minLength: AppTheme.spacingS)
 
-                        Text(account.balanceText)
-                            .font(.body.weight(.semibold))
-                            .monospacedDigit()
-                            .multilineTextAlignment(.trailing)
+                        LabeledContent {} label: {
+                            Text(account.balanceText)
+                                .font(.body.weight(.semibold))
+                                .monospacedDigit()
+                                .multilineTextAlignment(.trailing)
+                        }
                     }
                     .padding(.vertical, AppTheme.spacingXS)
                     .tag(account.id)
@@ -188,21 +216,10 @@ public struct LedgerFeatureView: View {
         }
     }
 
-    private var selectionPromptPane: some View {
-        PaneEmptyState(
-            "Select an account",
-            subtitle: "Choose an account from the left to review transaction activity.",
-            systemImage: "list.bullet.rectangle"
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
+    // MARK: - Transaction Pane (Table)
 
     private var transactionPane: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-            PaneHeader(selectedAccount?.title ?? "Transactions", subtitle: transactionSubtitle)
-                .padding(.horizontal, AppTheme.contentPadding)
-                .padding(.top, AppTheme.spacingM)
-
             HStack(spacing: AppTheme.spacingS) {
                 TextField("Search transactions", text: $searchQuery)
                     .textFieldStyle(.roundedBorder)
@@ -225,6 +242,7 @@ public struct LedgerFeatureView: View {
                 .accessibilityIdentifier("ledger.scopeMenu")
             }
             .padding(.horizontal, AppTheme.contentPadding)
+            .padding(.top, AppTheme.spacingM)
 
             if allTransactionsCount == 0 {
                 centeredEmptyState(
@@ -249,7 +267,7 @@ public struct LedgerFeatureView: View {
                             .accessibilityIdentifier("ledger.showAllButton")
                     }
                 )
-            } else if filteredTransactions.isEmpty {
+            } else if sortedTransactions.isEmpty {
                 centeredEmptyState(
                     PaneEmptyState(
                         "No matching transactions",
@@ -258,81 +276,92 @@ public struct LedgerFeatureView: View {
                     )
                 )
             } else {
-                VStack(spacing: 0) {
-                    transactionListHeader
+                Table(of: ALDomain.Transaction.self, selection: $transactionSelection, sortOrder: $sortOrder) {
+                    TableColumn("Date", value: \.bookingDate) { transaction in
+                        Text(formattedDate(transaction.bookingDate))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    .width(AppTheme.ledgerDateColumnWidth)
 
-                    ScrollView {
-                        LazyVStack(spacing: AppTheme.spacingXS) {
-                            ForEach(filteredTransactions) { transaction in
-                                Button {
-                                    onSelectTransaction(transaction.id)
-                                } label: {
-                                    transactionRow(transaction)
-                                        .padding(.horizontal, AppTheme.spacingS)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background {
-                                            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                                                .fill(
-                                                    selectedTransactionId == transaction.id
-                                                        ? AppTheme.accentSurfaceColor
-                                                        : AppTheme.secondarySurfaceColor.opacity(0.35)
-                                                )
-                                        }
-                                }
-                                .buttonStyle(.plain)
-                                .contentShape(Rectangle())
-                                .accessibilityLabel(transaction.counterpartyName)
-                                .accessibilityValue("\(formattedDate(transaction.bookingDate)), \(amountString(transaction)), \(reviewLabel(transaction.reviewState))")
-                                .accessibilityIdentifier("ledger.transaction.\(accessibilitySlug(transaction.counterpartyName))")
+                    TableColumn("Description", value: \.counterpartyName) { transaction in
+                        VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                            Text(transaction.counterpartyName)
+                                .lineLimit(1)
+
+                            if transaction.memo.isEmpty == false {
+                                Text(transaction.memo)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
                             }
                         }
-                        .padding(.vertical, AppTheme.spacingXXS)
+                        .accessibilityLabel(transaction.counterpartyName)
+                        .accessibilityValue("\(formattedDate(transaction.bookingDate)), \(amountString(transaction)), \(reviewLabel(transaction.reviewState))")
+                        .accessibilityIdentifier("ledger.transaction.\(accessibilitySlug(transaction.counterpartyName))")
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .focusable()
-                    .focused($focusedPane, equals: .transactions)
-                    .accessibilityIdentifier("ledger.transactions")
+                    .width(min: AppTheme.ledgerCounterpartyMinWidth, ideal: AppTheme.ledgerCounterpartyIdealWidth)
+
+                    TableColumn("Amount", value: \.amountMinor) { transaction in
+                        Text(amountString(transaction))
+                            .monospacedDigit()
+                            .foregroundStyle(transaction.amountMinor >= 0 ? Color.green : .primary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    .width(AppTheme.ledgerAmountColumnWidth)
+
+                    TableColumn("Review", value: \.reviewState.rawValue) { transaction in
+                        Text(reviewLabel(transaction.reviewState))
+                            .font(AppTheme.metaFont)
+                            .foregroundStyle(transaction.reviewState == .pending ? Color.orange : .secondary)
+                    }
+                    .width(AppTheme.ledgerReviewColumnWidth)
+                } rows: {
+                    ForEach(sortedTransactions) { transaction in
+                        TableRow(transaction)
+                    }
                 }
-                .padding(.horizontal, AppTheme.contentPadding)
-                .padding(.bottom, AppTheme.contentPadding)
+                .focusable()
+                .focused($focusedPane, equals: .transactions)
+                .accessibilityIdentifier("ledger.transactions")
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private var inspectorPane: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-            PaneHeader("Inspector", subtitle: "Details for the selected transaction.")
-                .padding(.horizontal, AppTheme.contentPadding)
-                .padding(.top, AppTheme.spacingM)
+    // MARK: - Inspector
 
+    private var inspectorContent: some View {
+        Group {
             if let selectedTransaction {
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-                        InspectorPane("Transaction", style: .card) {
-                            StatusBadge(reviewLabel(selectedTransaction.reviewState), tone: reviewTone(selectedTransaction.reviewState))
-                            InspectorSectionRow(
-                                "Counterparty",
-                                value: selectedTransaction.counterpartyName,
-                                valueAccessibilityIdentifier: "ledger.inspector.counterparty"
-                            )
-                            InspectorSectionRow("Booked", value: formattedDate(selectedTransaction.bookingDate))
-                            InspectorSectionRow("Amount", value: amountString(selectedTransaction))
-                            if let reference = selectedTransaction.reference, reference.isEmpty == false {
-                                InspectorSectionRow("Reference", value: reference)
-                            }
-                            if selectedTransaction.memo.isEmpty == false {
-                                InspectorSectionRow("Memo", value: selectedTransaction.memo)
+                        GroupBox("Transaction") {
+                            VStack(alignment: .leading, spacing: AppTheme.inspectorRowSpacing) {
+                                StatusBadge(reviewLabel(selectedTransaction.reviewState), tone: reviewTone(selectedTransaction.reviewState))
+                                InspectorSectionRow(
+                                    "Counterparty",
+                                    value: selectedTransaction.counterpartyName,
+                                    valueAccessibilityIdentifier: "ledger.inspector.counterparty"
+                                )
+                                InspectorSectionRow("Booked", value: formattedDate(selectedTransaction.bookingDate))
+                                InspectorSectionRow("Amount", value: amountString(selectedTransaction))
+                                if let reference = selectedTransaction.reference, reference.isEmpty == false {
+                                    InspectorSectionRow("Reference", value: reference)
+                                }
+                                if selectedTransaction.memo.isEmpty == false {
+                                    InspectorSectionRow("Memo", value: selectedTransaction.memo)
+                                }
                             }
                         }
 
-                        InspectorPane("Linked Documents", style: .grouped) {
-                            if linkedDocuments.isEmpty {
-                                Text("Select Link Document to attach supporting evidence.")
-                                    .font(AppTheme.metaFont)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                        GroupBox("Linked Documents") {
+                            VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                                if linkedDocuments.isEmpty {
+                                    Text("Select Link Document to attach supporting evidence.")
+                                        .font(AppTheme.metaFont)
+                                        .foregroundStyle(.secondary)
+                                } else {
                                     ForEach(linkedDocuments, id: \.id) { document in
                                         DocumentReferenceRow(
                                             title: document.originalFilename,
@@ -341,11 +370,11 @@ public struct LedgerFeatureView: View {
                                         )
                                     }
                                 }
-                            }
 
-                            Button("Link Document…", action: onLinkDocument)
-                                .buttonStyle(.borderedProminent)
-                                .accessibilityIdentifier("ledger.linkDocument")
+                                Button("Link Document\u{2026}", action: onLinkDocument)
+                                    .buttonStyle(.borderedProminent)
+                                    .accessibilityIdentifier("ledger.linkDocument")
+                            }
                         }
                     }
                     .padding(AppTheme.contentPadding)
@@ -360,12 +389,14 @@ public struct LedgerFeatureView: View {
         }
     }
 
+    // MARK: - Computed Properties
+
     private var selectedAccount: LedgerAccountSummary? {
         accounts.first(where: { $0.id == selectedAccountId })
     }
 
     private var selectedTransaction: ALDomain.Transaction? {
-        filteredTransactions.first(where: { $0.id == selectedTransactionId })
+        sortedTransactions.first(where: { $0.id == selectedTransactionId })
             ?? transactions.first(where: { $0.id == selectedTransactionId })
     }
 
@@ -375,11 +406,15 @@ public struct LedgerFeatureView: View {
         }
     }
 
+    private var sortedTransactions: [ALDomain.Transaction] {
+        filteredTransactions.sorted(using: sortOrder)
+    }
+
     private var transactionSubtitle: String {
         guard let selectedAccount else {
             return "Select an account to review transactions."
         }
-        return "\(filteredTransactions.count) shown of \(allTransactionsCount) • \(selectedAccount.subtitle)"
+        return "\(filteredTransactions.count) shown of \(allTransactionsCount) \u{2022} \(selectedAccount.subtitle)"
     }
 
     private var accountSelection: Binding<FinancialAccountID?> {
@@ -388,63 +423,19 @@ public struct LedgerFeatureView: View {
             set: { onSelectAccount($0) }
         )
     }
+
+    private var inspectorBinding: Binding<Bool> {
+        Binding(
+            get: { isInspectorVisible },
+            set: { _ in }
+        )
+    }
+
+    // MARK: - Helpers
+
     private func centeredEmptyState<Content: View>(_ content: Content) -> some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-    }
-
-    private var transactionListHeader: some View {
-        HStack(spacing: AppTheme.spacingS) {
-            Text("Date")
-                .frame(width: AppTheme.ledgerDateColumnWidth, alignment: .leading)
-
-            Text("Description")
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text("Amount")
-                .frame(width: AppTheme.ledgerAmountColumnWidth, alignment: .trailing)
-
-            Text("Review")
-                .frame(width: AppTheme.ledgerReviewColumnWidth, alignment: .leading)
-        }
-        .font(AppTheme.metaFont)
-        .foregroundStyle(AppTheme.subduedForegroundColor)
-        .padding(.horizontal, AppTheme.spacingS)
-        .padding(.top, AppTheme.spacingXS)
-        .padding(.bottom, AppTheme.spacingXXS)
-    }
-
-    private func transactionRow(_ transaction: ALDomain.Transaction) -> some View {
-        HStack(alignment: .top, spacing: AppTheme.spacingS) {
-            Text(formattedDate(transaction.bookingDate))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .frame(width: AppTheme.ledgerDateColumnWidth, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
-                Text(transaction.counterpartyName)
-                    .lineLimit(1)
-
-                if transaction.memo.isEmpty == false {
-                    Text(transaction.memo)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text(amountString(transaction))
-                .monospacedDigit()
-                .foregroundStyle(transaction.amountMinor >= 0 ? Color.green : .primary)
-                .frame(width: AppTheme.ledgerAmountColumnWidth, alignment: .trailing)
-
-            Text(reviewLabel(transaction.reviewState))
-                .font(AppTheme.metaFont)
-                .foregroundStyle(transaction.reviewState == .pending ? Color.orange : .secondary)
-                .frame(width: AppTheme.ledgerReviewColumnWidth, alignment: .leading)
-        }
-        .padding(.vertical, AppTheme.tableRowVerticalPadding)
     }
 
     private func focusPrimaryPane() {

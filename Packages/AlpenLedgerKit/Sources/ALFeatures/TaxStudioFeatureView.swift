@@ -31,30 +31,20 @@ public struct TaxStudioFeatureView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-            PaneHeader(
-                "Tax Studio",
-                subtitle: "Readiness, missing facts, and grounded tax evidence.",
-                style: .page
-            )
-            .padding(.horizontal, AppTheme.contentPadding)
-            .padding(.top, AppTheme.spacingM)
-
-            toolbarRow
-                .padding(.horizontal, AppTheme.contentPadding)
-
-            if snapshot.inspector != nil {
-                HSplitView {
-                    mainContent
-                        .frame(minWidth: 620)
-
-                    inspectorPane
-                        .frame(minWidth: 340)
-                }
-            } else {
-                mainContent
+        mainContent
+            .inspector(isPresented: inspectorPresented) {
+                inspectorContent
+                    .inspectorColumnWidth(min: 280, ideal: 320, max: 380)
             }
-        }
+            .navigationTitle("Tax Studio")
+            .navigationSubtitle("Readiness, facts, and blockers")
+    }
+
+    private var inspectorPresented: Binding<Bool> {
+        Binding(
+            get: { snapshot.inspector != nil },
+            set: { _ in }
+        )
     }
 
     private var toolbarRow: some View {
@@ -86,8 +76,14 @@ public struct TaxStudioFeatureView: View {
     private var mainContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-                InspectorPane("Readiness", subtitle: snapshot.readinessSummary, style: .card) {
+                toolbarRow
+
+                GroupBox("Readiness") {
                     VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                        Text(snapshot.readinessSummary)
+                            .font(AppTheme.metaFont)
+                            .foregroundStyle(AppTheme.subduedForegroundColor)
+
                         ForEach(snapshot.checklistItems) { item in
                             Button {
                                 selection = item.selection
@@ -114,65 +110,69 @@ public struct TaxStudioFeatureView: View {
                 }
 
                 VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-                    PaneHeader("Facts", subtitle: "Observed and derived facts for the selected entity and year.")
+                    VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                        Text("Facts")
+                            .font(AppTheme.sectionTitleFont)
+                            .bold()
+                        Text("Observed and derived facts for the selected entity and year.")
+                            .font(AppTheme.sectionSubtitleFont)
+                            .foregroundStyle(.secondary)
+                    }
 
                     ForEach(snapshot.factCategories) { category in
-                        DisclosureGroup(
-                            isExpanded: expansionBinding(for: category.id)
-                        ) {
-                            VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                                if category.items.isEmpty {
-                                    HStack(spacing: AppTheme.spacingS) {
-                                        Text("No data yet")
-                                            .font(AppTheme.metaFont)
-                                            .foregroundStyle(.secondary)
+                        GroupBox {
+                            DisclosureGroup(
+                                isExpanded: expansionBinding(for: category.id)
+                            ) {
+                                VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                                    if category.items.isEmpty {
+                                        HStack(spacing: AppTheme.spacingS) {
+                                            Text("No data yet")
+                                                .font(AppTheme.metaFont)
+                                                .foregroundStyle(.secondary)
 
-                                        Button("Add") {
-                                            selection = snapshot.checklistItems.first?.selection
-                                        }
-                                        .buttonStyle(.plain)
-                                        .font(AppTheme.metaFont)
-                                        .foregroundStyle(Color.accentColor)
-                                    }
-                                    .padding(.top, AppTheme.spacingXS)
-                                } else {
-                                    ForEach(category.items) { fact in
-                                        Button {
-                                            selection = fact.selection
-                                        } label: {
-                                            HStack(alignment: .top, spacing: AppTheme.spacingS) {
-                                                WorkItemRow(
-                                                    title: fact.title,
-                                                    subtitle: fact.value,
-                                                    systemImage: fact.systemImage,
-                                                    statusTitle: fact.statusText,
-                                                    tone: fact.tone
-                                                )
-                                                Spacer()
+                                            Button("Add") {
+                                                selection = snapshot.checklistItems.first?.selection
                                             }
-                                            .contentShape(Rectangle())
+                                            .buttonStyle(.plain)
+                                            .font(AppTheme.metaFont)
+                                            .foregroundStyle(Color.accentColor)
                                         }
-                                        .buttonStyle(.plain)
-                                        .accessibilityIdentifier("taxStudio.fact.\(accessibilitySlug(fact.title))")
+                                        .padding(.top, AppTheme.spacingXS)
+                                    } else {
+                                        ForEach(category.items) { fact in
+                                            Button {
+                                                selection = fact.selection
+                                            } label: {
+                                                HStack(alignment: .top, spacing: AppTheme.spacingS) {
+                                                    WorkItemRow(
+                                                        title: fact.title,
+                                                        subtitle: fact.value,
+                                                        systemImage: fact.systemImage,
+                                                        statusTitle: fact.statusText,
+                                                        tone: fact.tone
+                                                    )
+                                                    Spacer()
+                                                }
+                                                .contentShape(Rectangle())
+                                            }
+                                            .buttonStyle(.plain)
+                                            .accessibilityIdentifier("taxStudio.fact.\(accessibilitySlug(fact.title))")
+                                        }
                                     }
                                 }
-                            }
-                            .padding(.top, AppTheme.spacingXS)
-                        } label: {
-                            HStack {
-                                Text(category.title)
-                                    .font(.headline)
-                                Spacer()
-                                Text(category.completionText)
-                                    .font(AppTheme.metaFont)
-                                    .foregroundStyle(.secondary)
+                                .padding(.top, AppTheme.spacingXS)
+                            } label: {
+                                HStack {
+                                    Text(category.title)
+                                        .font(.headline)
+                                    Spacer()
+                                    Text(category.completionText)
+                                        .font(AppTheme.metaFont)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
-                        .padding(AppTheme.groupedPanelPadding)
-                        .background(
-                            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                                .fill(AppTheme.subtleSurfaceColor)
-                        )
                     }
                 }
             }
@@ -180,24 +180,26 @@ public struct TaxStudioFeatureView: View {
         }
     }
 
-    private var inspectorPane: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-            PaneHeader("Inspector", subtitle: "Selected fact or requirement details.")
-                .padding(.horizontal, AppTheme.contentPadding)
-                .padding(.top, AppTheme.spacingM)
-
+    private var inspectorContent: some View {
+        Group {
             if let inspector = snapshot.inspector {
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-                        InspectorPane(inspector.title, subtitle: inspector.subtitle, style: .card) {
-                            StatusBadge(inspector.statusText, tone: inspector.tone)
+                        GroupBox(inspector.title) {
+                            VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                                Text(inspector.subtitle)
+                                    .font(AppTheme.metaFont)
+                                    .foregroundStyle(AppTheme.subduedForegroundColor)
 
-                            ForEach(inspector.details) { detail in
-                                InspectorSectionRow(detail.label, value: detail.value)
+                                StatusBadge(inspector.statusText, tone: inspector.tone)
+
+                                ForEach(inspector.details) { detail in
+                                    InspectorSectionRow(detail.label, value: detail.value)
+                                }
                             }
                         }
 
-                        InspectorPane("Evidence", style: .grouped) {
+                        GroupBox("Evidence") {
                             if inspector.evidence.isEmpty {
                                 Text("No linked evidence yet.")
                                     .font(AppTheme.metaFont)

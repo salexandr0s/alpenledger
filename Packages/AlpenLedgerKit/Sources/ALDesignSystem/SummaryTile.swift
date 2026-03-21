@@ -44,39 +44,32 @@ public struct SummaryTile: View {
     }
 
     public var body: some View {
-        let content = VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-            Label(title, systemImage: systemImage)
-                .font(style == .prominent ? AppTheme.summaryTitleFont : AppTheme.metaFont)
-                .foregroundStyle(AppTheme.subduedForegroundColor)
-                .symbolRenderingMode(AppTheme.symbolRenderingMode)
+        let content = GroupBox {
+            VStack(alignment: .leading, spacing: AppTheme.spacingXS) {
+                Label(title, systemImage: systemImage)
+                    .font(style == .prominent ? AppTheme.summaryTitleFont : AppTheme.metaFont)
+                    .foregroundStyle(AppTheme.subduedForegroundColor)
+                    .symbolRenderingMode(AppTheme.symbolRenderingMode)
 
-            Text(value)
-                .font(style == .prominent ? AppTheme.summaryValueFont : AppTheme.compactMetricValueFont)
-                .bold()
-                .monospacedDigit()
-                .contentTransition(.numericText())
+                Text(value)
+                    .font(style == .prominent ? AppTheme.summaryValueFont : AppTheme.compactMetricValueFont)
+                    .bold()
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
 
-            if let subtitle, subtitle.isEmpty == false {
-                switch subtitlePresentation {
-                case .secondary:
-                    Text(subtitle)
-                        .font(AppTheme.metaFont)
-                        .foregroundStyle(AppTheme.subduedForegroundColor)
-                case .badge:
-                    StatusBadge(subtitle, tone: tone)
+                if let subtitle, subtitle.isEmpty == false {
+                    switch subtitlePresentation {
+                    case .secondary:
+                        Text(subtitle)
+                            .font(AppTheme.metaFont)
+                            .foregroundStyle(AppTheme.subduedForegroundColor)
+                    case .badge:
+                        StatusBadge(subtitle, tone: tone)
+                    }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(style == .prominent ? AppTheme.panelPadding : AppTheme.compactPanelPadding)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .fill(style == .prominent ? AppTheme.emphasizedSurfaceColor : AppTheme.subtleSurfaceColor)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .stroke(style == .prominent ? AppTheme.strokeColor : AppTheme.strokeColor.opacity(0.65), lineWidth: 1)
-        )
         .animation(AppTheme.countAnimation, value: value)
 
         if let accessibilityIdentifier {

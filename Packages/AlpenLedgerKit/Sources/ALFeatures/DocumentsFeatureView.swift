@@ -30,7 +30,9 @@ public struct DocumentsFeatureView: View {
     @Binding private var query: String
     @Binding private var scope: DocumentFilterScope
     @State private var sortOption: SortOption = .newest
-    @State private var isDropTargeted = false
+    @State private var sortOrder: [KeyPathComparator<DocumentBrowserItem>] = [
+        KeyPathComparator(\DocumentBrowserItem.issueDate, order: .reverse)
+    ]
 
     private let items: [DocumentBrowserItem]
     private let allDocumentsCount: Int
@@ -90,31 +92,45 @@ public struct DocumentsFeatureView: View {
         Group {
             if allDocumentsCount == 0 {
                 emptyDropZone
-            } else if selectedItem == nil {
-                HSplitView {
-                    browserPane
-                        .frame(minWidth: 380)
-
-                    selectionPromptPane
-                        .frame(minWidth: 520)
-                }
+            } else if sortedItems.isEmpty {
+                filteredEmptyPane
             } else {
                 HSplitView {
-                    browserPane
+                    documentTable
                         .frame(minWidth: 380)
 
                     previewPane
                         .frame(minWidth: 520)
+                }
+            }
+        }
+        .navigationTitle("Documents")
+        .navigationSubtitle("Search and preview source files")
+        .toolbar {
+            ToolbarItemGroup {
+                Menu(scope.title) {
+                    ForEach(DocumentFilterScope.allCases) { option in
+                        Button(option.title) {
+                            onSetScope(option)
+                        }
+                    }
+                }
+                .accessibilityIdentifier("documents.scopeMenu")
 
-                    if isInspectorVisible {
-                        inspectorPane
-                            .frame(minWidth: AppTheme.inspectorIdealWidth)
-                            .transition(AppTheme.inspectorTransition(reduceMotion: reduceMotion))
+                Menu(sortOption.title) {
+                    ForEach(SortOption.allCases) { option in
+                        Button(option.title) {
+                            sortOption = option
+                            syncSortOrder(option)
+                        }
                     }
                 }
             }
         }
-        .animation(AppTheme.panelAnimation(reduceMotion: reduceMotion), value: isInspectorVisible)
+        .inspector(isPresented: inspectorBinding) {
+            inspectorContent
+                .inspectorColumnWidth(min: 240, ideal: 280, max: 340)
+        }
         .searchable(text: $query, placement: .toolbar, prompt: "Search documents")
         .onChange(of: query) { _, _ in
             onRefreshSearchResults()
@@ -124,187 +140,154 @@ public struct DocumentsFeatureView: View {
             guard urls.isEmpty == false else { return false }
             onImportDocuments(urls)
             return true
-        } isTargeted: { isTargeted in
-            isDropTargeted = isTargeted
         }
     }
 
+    // MARK: - Empty States
+
     private var emptyDropZone: some View {
-        VStack(spacing: AppTheme.spacingL) {
-            VStack(spacing: AppTheme.spacingS) {
-                Image(systemName: "square.and.arrow.down.on.square")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
-
-                Text("Import your first document")
-                    .font(.title3.weight(.semibold))
-
-                Text("Drag and drop receipts, statements, and tax forms here, or click to browse.")
-                    .font(AppTheme.pageSubtitleFont)
-                    .foregroundStyle(AppTheme.subduedForegroundColor)
-                    .multilineTextAlignment(.center)
-            }
-
+        ContentUnavailableView {
+            Label("Import your first document", systemImage: "square.and.arrow.down.on.square")
+        } description: {
+            Text("Drag and drop receipts, statements, and tax forms here, or click to browse.")
+        } actions: {
             Button("Import Document", action: onImportDocument)
                 .buttonStyle(.borderedProminent)
                 .accessibilityIdentifier("documents.importButton")
         }
-        .padding(AppTheme.spacingXXL)
-        .frame(maxWidth: 520)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.largeCornerRadius)
-                .fill(AppTheme.emphasizedSurfaceColor)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.largeCornerRadius)
-                .strokeBorder(
-                    style: StrokeStyle(lineWidth: 1, dash: [8, 8])
-                )
-                .foregroundStyle(isDropTargeted ? Color.accentColor : AppTheme.strokeColor)
-        )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var browserPane: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-            PaneHeader("Documents", subtitle: "\(sortedItems.count) shown of \(allDocumentsCount)") {
-                HStack(spacing: AppTheme.spacingS) {
-                    Menu(scope.title) {
-                        ForEach(DocumentFilterScope.allCases) { option in
-                            Button(option.title) {
-                                onSetScope(option)
-                            }
-                        }
-                    }
-                    .accessibilityIdentifier("documents.scopeMenu")
+    private var filteredEmptyPane: some View {
+        centeredEmptyState(
+            PaneEmptyState(
+                "No matching documents",
+                subtitle: filteredEmptySubtitle,
+                systemImage: "magnifyingglass"
+            ) {
+                if query.isEmpty == false {
+                    Button("Clear Search", action: onClearSearch)
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("documents.clearSearchButton")
+                }
 
-                    Menu(sortOption.title) {
-                        ForEach(SortOption.allCases) { option in
-                            Button(option.title) {
-                                sortOption = option
-                            }
-                        }
-                    }
+                if scope != .all {
+                    Button("Show All Types", action: onResetScope)
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("documents.showAllTypesButton")
                 }
             }
-            .padding(.horizontal, AppTheme.contentPadding)
-            .padding(.top, AppTheme.spacingM)
+        )
+    }
 
-            if sortedItems.isEmpty {
-                centeredEmptyState(
-                    PaneEmptyState(
-                        "No matching documents",
-                        subtitle: filteredEmptySubtitle,
-                        systemImage: "magnifyingglass"
-                    ) {
-                        if query.isEmpty == false {
-                            Button("Clear Search", action: onClearSearch)
-                                .buttonStyle(.bordered)
-                                .accessibilityIdentifier("documents.clearSearchButton")
-                        }
+    // MARK: - Document Table
 
-                        if scope != .all {
-                            Button("Show All Types", action: onResetScope)
-                                .buttonStyle(.bordered)
-                                .accessibilityIdentifier("documents.showAllTypesButton")
-                        }
+    private var documentTable: some View {
+        Table(of: DocumentBrowserItem.self, selection: documentSelection, sortOrder: $sortOrder) {
+            TableColumn("Name", sortUsing: KeyPathComparator(\DocumentBrowserItem.title)) { item in
+                HStack(spacing: AppTheme.spacingS) {
+                    Image(systemName: item.systemImage)
+                        .foregroundStyle(Color.accentColor)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(item.title)
+                            .lineLimit(1)
+
+                        Text(item.subtitle)
+                            .font(AppTheme.metaFont)
+                            .foregroundStyle(AppTheme.subduedForegroundColor)
+                            .lineLimit(1)
                     }
-                )
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: AppTheme.spacingXS) {
-                        ForEach(sortedItems) { item in
-                            Button {
-                                onSelectDocument(item.id)
-                            } label: {
-                                documentRow(item)
-                                    .padding(.horizontal, AppTheme.spacingS)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background {
-                                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                                            .fill(
-                                                selectedDocumentId == item.id
-                                                    ? AppTheme.accentSurfaceColor
-                                                    : AppTheme.secondarySurfaceColor.opacity(0.35)
-                                            )
-                                    }
-                            }
-                            .buttonStyle(.plain)
-                            .contentShape(Rectangle())
-                            .accessibilityLabel(item.title)
-                            .accessibilityValue("\(item.typeLabel), \(item.dateLabel), \(item.statusText)")
-                            .accessibilityIdentifier("documents.document.\(accessibilitySlug(item.title))")
-                        }
-                    }
-                    .padding(.vertical, AppTheme.spacingXXS)
                 }
-                .padding(.horizontal, AppTheme.contentPadding)
-                .padding(.bottom, AppTheme.contentPadding)
-                .accessibilityIdentifier("documents.list")
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(item.title)
+                .accessibilityValue("\(item.typeLabel), \(item.dateLabel), \(item.statusText)")
+                .accessibilityIdentifier("documents.document.\(accessibilitySlug(item.title))")
+            }
+            .width(min: AppTheme.documentsFilenameMinWidth, ideal: AppTheme.documentsFilenameIdealWidth)
+
+            TableColumn("Type", sortUsing: KeyPathComparator(\DocumentBrowserItem.typeLabel)) { item in
+                StatusBadge(item.typeLabel, tone: .neutral)
+            }
+            .width(AppTheme.documentsTypeColumnWidth)
+
+            TableColumn("Date", sortUsing: KeyPathComparator(\DocumentBrowserItem.issueDate)) { item in
+                Text(item.dateLabel)
+                    .font(AppTheme.metaFont)
+                    .foregroundStyle(.secondary)
+            }
+            .width(AppTheme.documentsIssueDateColumnWidth)
+
+            TableColumn("Status", sortUsing: KeyPathComparator(\DocumentBrowserItem.statusText)) { item in
+                Text(item.statusText)
+                    .font(AppTheme.metaFont)
+                    .foregroundStyle(item.tone == .success ? .secondary : Color.orange)
+            }
+            .width(AppTheme.documentsStatusColumnWidth)
+        } rows: {
+            ForEach(sortedItems) { item in
+                TableRow(item)
             }
         }
+        .onChange(of: sortOrder) { _, newOrder in
+            syncSortOptionFromOrder(newOrder)
+        }
+        .accessibilityIdentifier("documents.list")
     }
 
-    private var selectionPromptPane: some View {
-        PaneEmptyState(
-            "Select a document",
-            subtitle: "Choose a receipt, statement, or tax form to preview and inspect it.",
-            systemImage: "doc.text"
-        )
-        .accessibilityIdentifier("documents.selectionPrompt")
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
+    // MARK: - Preview Pane
 
     private var previewPane: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-            PaneHeader(selectedItem?.title ?? "Preview", subtitle: selectedItem?.typeLabel ?? "Selected document preview.")
-                .padding(.horizontal, AppTheme.contentPadding)
-                .padding(.top, AppTheme.spacingM)
-                .accessibilityIdentifier("documents.preview.title")
-
+        VStack(alignment: .leading, spacing: 0) {
             Group {
-                if let previewURL {
-                    DocumentPreviewHost(fileURL: previewURL, mediaType: selectedItem?.mediaType ?? "application/pdf")
+                if let selectedItem {
+                    if let previewURL {
+                        DocumentPreviewHost(fileURL: previewURL, mediaType: selectedItem.mediaType)
+                    } else {
+                        PaneEmptyState(
+                            "Preview unavailable",
+                            subtitle: "This file imported correctly, but preview is not available for this format.",
+                            systemImage: "doc.text.magnifyingglass"
+                        )
+                    }
                 } else {
                     PaneEmptyState(
-                        "Preview unavailable",
-                        subtitle: "This file imported correctly, but preview is not available for this format.",
-                        systemImage: "doc.text.magnifyingglass"
+                        "Select a document",
+                        subtitle: "Choose a receipt, statement, or tax form to preview and inspect it.",
+                        systemImage: "doc.text"
                     )
+                    .accessibilityIdentifier("documents.selectionPrompt")
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                    .fill(AppTheme.emphasizedSurfaceColor)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                    .stroke(AppTheme.strokeColor, lineWidth: 1)
-            )
-            .padding(.horizontal, AppTheme.contentPadding)
-            .padding(.bottom, AppTheme.contentPadding)
         }
         .accessibilityIdentifier("documents.previewPane")
     }
 
-    private var inspectorPane: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-            PaneHeader("Inspector", subtitle: "Metadata and linked transactions for the selected document.")
-                .padding(.horizontal, AppTheme.contentPadding)
-                .padding(.top, AppTheme.spacingM)
+    // MARK: - Inspector
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-                    if let selectedItem {
-                        InspectorPane("Document", style: .card) {
+    private var inspectorBinding: Binding<Bool> {
+        Binding(
+            get: { isInspectorVisible && selectedItem != nil },
+            set: { _ in }
+        )
+    }
+
+    private var inspectorContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: AppTheme.spacingM) {
+                if let selectedItem {
+                    GroupBox("Document") {
+                        VStack(alignment: .leading, spacing: AppTheme.inspectorRowSpacing) {
                             InspectorSectionRow("Type", value: selectedItem.typeLabel)
                             InspectorSectionRow("Issue Date", value: selectedItem.dateLabel)
                             InspectorSectionRow("Status", value: selectedItem.statusText)
                         }
                     }
+                }
 
-                    InspectorPane("Linked Transactions", style: .grouped) {
+                GroupBox("Linked Transactions") {
+                    VStack(alignment: .leading, spacing: AppTheme.inspectorRowSpacing) {
                         if linkedTransactions.isEmpty {
                             Text("No linked transactions yet.")
                                 .font(AppTheme.metaFont)
@@ -326,9 +309,18 @@ public struct DocumentsFeatureView: View {
                             .accessibilityIdentifier("documents.linkTransaction")
                     }
                 }
-                .padding(AppTheme.contentPadding)
             }
+            .padding(AppTheme.contentPadding)
         }
+    }
+
+    // MARK: - Helpers
+
+    private var documentSelection: Binding<DocumentID?> {
+        Binding(
+            get: { selectedDocumentId },
+            set: { onSelectDocument($0) }
+        )
     }
 
     private var selectedItem: DocumentBrowserItem? {
@@ -336,16 +328,7 @@ public struct DocumentsFeatureView: View {
     }
 
     private var sortedItems: [DocumentBrowserItem] {
-        items.sorted { lhs, rhs in
-            switch sortOption {
-            case .newest:
-                return (lhs.issueDate ?? .distantPast) > (rhs.issueDate ?? .distantPast)
-            case .oldest:
-                return (lhs.issueDate ?? .distantFuture) < (rhs.issueDate ?? .distantFuture)
-            case .name:
-                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-            }
-        }
+        items.sorted(using: sortOrder)
     }
 
     private var filteredEmptySubtitle: String {
@@ -367,38 +350,23 @@ public struct DocumentsFeatureView: View {
         MoneyFormatter().format(minorUnits: transaction.amountMinor, currency: transaction.currency)
     }
 
-    @ViewBuilder
-    private func documentRow(_ item: DocumentBrowserItem) -> some View {
-        HStack(alignment: .top, spacing: AppTheme.spacingS) {
-            Image(systemName: item.systemImage)
-                .font(.title3)
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 28)
-
-            VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
-                Text(item.title)
-                    .font(.body.weight(.medium))
-                    .lineLimit(1)
-
-                Text(item.subtitle)
-                    .font(AppTheme.metaFont)
-                    .foregroundStyle(AppTheme.subduedForegroundColor)
-                    .lineLimit(1)
-
-                HStack(spacing: AppTheme.spacingXS) {
-                    StatusBadge(item.typeLabel, tone: .neutral)
-                    Text(item.dateLabel)
-                        .font(AppTheme.metaFont)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            Text(item.statusText)
-                .font(AppTheme.metaFont)
-                .foregroundStyle(item.tone == .success ? .secondary : Color.orange)
+    private func syncSortOrder(_ option: SortOption) {
+        switch option {
+        case .newest:
+            sortOrder = [KeyPathComparator(\DocumentBrowserItem.issueDate, order: .reverse)]
+        case .oldest:
+            sortOrder = [KeyPathComparator(\DocumentBrowserItem.issueDate, order: .forward)]
+        case .name:
+            sortOrder = [KeyPathComparator(\DocumentBrowserItem.title, order: .forward)]
         }
-        .padding(.vertical, AppTheme.spacingXS)
+    }
+
+    private func syncSortOptionFromOrder(_ order: [KeyPathComparator<DocumentBrowserItem>]) {
+        guard let first = order.first else { return }
+        if first.keyPath == \DocumentBrowserItem.issueDate {
+            sortOption = first.order == .reverse ? .newest : .oldest
+        } else if first.keyPath == \DocumentBrowserItem.title {
+            sortOption = .name
+        }
     }
 }

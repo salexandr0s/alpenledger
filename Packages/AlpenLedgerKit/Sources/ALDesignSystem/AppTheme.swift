@@ -10,26 +10,24 @@ public enum AppTheme {
     public static let spacingXL: CGFloat = 32
     public static let spacingXXL: CGFloat = 40
 
-    public static let cornerRadius: CGFloat = 12
-    public static let largeCornerRadius: CGFloat = 16
+    public static let cornerRadius: CGFloat = 8
+    public static let largeCornerRadius: CGFloat = 10
     public static let panelPadding: CGFloat = 18
     public static let groupedPanelPadding: CGFloat = 16
     public static let compactPanelPadding: CGFloat = 14
-    public static let contentPadding: CGFloat = 24
-    public static let narrowContentPadding: CGFloat = 18
+    public static let contentPadding: CGFloat = 20
+    public static let narrowContentPadding: CGFloat = 16
     public static let sidebarSectionSpacing: CGFloat = 8
     public static let sidebarRowVerticalPadding: CGFloat = 7
     public static let sidebarRowIconWidth: CGFloat = 18
     public static let tableRowVerticalPadding: CGFloat = 6
     public static let tableCellHorizontalPadding: CGFloat = 8
-    public static let toolbarChipHorizontalPadding: CGFloat = 10
-    public static let toolbarChipVerticalPadding: CGFloat = 5
     public static let inspectorSectionSpacing: CGFloat = 14
     public static let inspectorRowSpacing: CGFloat = 10
     public static let emptyStateSpacing: CGFloat = 12
     public static let emptyStateActionSpacing: CGFloat = 8
     public static let sidebarIdealWidth: CGFloat = 230
-    public static let inspectorIdealWidth: CGFloat = 300
+    public static let inspectorIdealWidth: CGFloat = 280
     public static let chooserMaxWidth: CGFloat = 1040
     public static let emptyStateMaxWidth: CGFloat = 320
 
@@ -54,8 +52,6 @@ public enum AppTheme {
     public static let accentSurfaceColor = Color.accentColor.opacity(0.08)
     public static let strokeColor = Color(nsColor: .separatorColor).opacity(0.45)
     public static let strongStrokeColor = Color(nsColor: .separatorColor).opacity(0.65)
-    public static let sidebarBadgeFill = Color(nsColor: .selectedContentBackgroundColor).opacity(0.12)
-    public static let toolbarChipFill = Color(nsColor: .controlColor)
     public static let subduedForegroundColor = Color.secondary
     public static let symbolRenderingMode: SymbolRenderingMode = .hierarchical
 
@@ -77,7 +73,6 @@ public enum AppTheme {
     public static let inspectorValueFont: Font = .body
     public static let summaryTitleFont: Font = metaFont
     public static let summaryValueFont: Font = prominentMetricValueFont
-    public static let toolbarChipFont: Font = .caption
     public static let emptyStateTitleFont: Font = .headline
     public static let emptyStateSubtitleFont: Font = .subheadline
 

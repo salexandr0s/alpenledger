@@ -27,56 +27,66 @@ public struct InspectorPane<Content: View>: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.inspectorSectionSpacing) {
-            VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
-                Text(title)
-                    .font(AppTheme.paneTitleFont)
-                    .bold()
+        switch style {
+        case .grouped:
+            groupedBody
+        case .card:
+            cardBody
+        }
+    }
 
-                if let subtitle, subtitle.isEmpty == false {
-                    Text(subtitle)
-                        .font(AppTheme.paneSubtitleFont)
-                        .foregroundStyle(AppTheme.subduedForegroundColor)
-                }
+    private var headerView: some View {
+        VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+            Text(title)
+                .font(AppTheme.paneTitleFont)
+                .bold()
+
+            if let subtitle, subtitle.isEmpty == false {
+                Text(subtitle)
+                    .font(AppTheme.paneSubtitleFont)
+                    .foregroundStyle(AppTheme.subduedForegroundColor)
             }
+        }
+    }
+
+    private var contentBody: some View {
+        VStack(alignment: .leading, spacing: AppTheme.inspectorRowSpacing) {
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var groupedBody: some View {
+        GroupBox {
+            if showsDivider {
+                Divider()
+            }
+            contentBody
+        } label: {
+            headerView
+        }
+    }
+
+    private var cardBody: some View {
+        VStack(alignment: .leading, spacing: AppTheme.inspectorSectionSpacing) {
+            headerView
 
             if showsDivider {
                 Divider()
             }
 
-            VStack(alignment: .leading, spacing: AppTheme.inspectorRowSpacing) {
-                content
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            contentBody
         }
-        .padding(style == .card ? AppTheme.panelPadding : AppTheme.groupedPanelPadding)
+        .padding(AppTheme.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .fill(backgroundColor)
+                .fill(AppTheme.emphasizedSurfaceColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .stroke(borderColor, lineWidth: 1)
+                .stroke(AppTheme.strongStrokeColor, lineWidth: 1)
         )
-    }
-
-    private var backgroundColor: Color {
-        switch style {
-        case .grouped:
-            return AppTheme.subtleSurfaceColor
-        case .card:
-            return AppTheme.emphasizedSurfaceColor
-        }
-    }
-
-    private var borderColor: Color {
-        switch style {
-        case .grouped:
-            return AppTheme.strokeColor.opacity(0.6)
-        case .card:
-            return AppTheme.strongStrokeColor
-        }
     }
 }

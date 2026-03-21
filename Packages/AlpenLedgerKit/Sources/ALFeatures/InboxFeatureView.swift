@@ -28,48 +28,31 @@ public struct InboxFeatureView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-            PaneHeader(
-                "Inbox",
-                subtitle: "Resolve issues, proposals, and imports before they become filing surprises.",
-                style: .page
-            )
-            .padding(.horizontal, AppTheme.contentPadding)
-            .padding(.top, AppTheme.spacingM)
-
-            controls
-                .padding(.horizontal, AppTheme.contentPadding)
-
-            HSplitView {
-                listPane
-                    .frame(minWidth: 420)
-
-                inspectorPane
-                    .frame(minWidth: AppTheme.inspectorIdealWidth)
-            }
-        }
-        .onChange(of: selection) { _, newValue in
-            if let newValue {
-                selectedTab = tab(for: newValue)
-            }
-        }
-    }
-
-    private var controls: some View {
-        HStack(spacing: AppTheme.spacingM) {
-            Picker("Inbox Tab", selection: $selectedTab) {
-                ForEach(snapshot.tabs) { tab in
-                    Text("\(tab.tab.title) \(tab.count)")
-                        .tag(tab.tab)
-                        .accessibilityIdentifier("inbox.tab.\(tab.tab.rawValue)")
+        listPane
+            .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    Picker("Inbox Tab", selection: $selectedTab) {
+                        ForEach(snapshot.tabs) { tab in
+                            Text("\(tab.tab.title) \(tab.count)")
+                                .tag(tab.tab)
+                                .accessibilityIdentifier("inbox.tab.\(tab.tab.rawValue)")
+                        }
+                    }
+                    .pickerStyle(.segmented)
                 }
             }
-            .pickerStyle(.segmented)
-
-            TextField("Search inbox", text: $searchQuery)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 240)
-        }
+            .inspector(isPresented: .constant(true)) {
+                inspectorContent
+                    .inspectorColumnWidth(min: 260, ideal: 300, max: 360)
+            }
+            .searchable(text: $searchQuery, placement: .toolbar, prompt: "Search inbox")
+            .navigationTitle("Inbox")
+            .navigationSubtitle("Resolve issues, proposals, and imports")
+            .onChange(of: selection) { _, newValue in
+                if let newValue {
+                    selectedTab = tab(for: newValue)
+                }
+            }
     }
 
     private var listPane: some View {
@@ -105,29 +88,27 @@ public struct InboxFeatureView: View {
         .accessibilityIdentifier("inbox.list")
     }
 
-    private var inspectorPane: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-            PaneHeader("Inspector", subtitle: "Details for the selected inbox item.")
-                .padding(.horizontal, AppTheme.contentPadding)
-                .padding(.top, AppTheme.spacingM)
-
+    private var inspectorContent: some View {
+        Group {
             if let inspector = snapshot.inspector {
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-                        InspectorPane(inspector.title, subtitle: inspector.subtitle, style: .card) {
-                            StatusBadge(inspector.statusText, tone: inspector.tone)
+                        GroupBox(inspector.title) {
+                            VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                                StatusBadge(inspector.statusText, tone: inspector.tone)
 
-                            Text(inspector.description)
-                                .font(AppTheme.pageSubtitleFont)
-                                .foregroundStyle(AppTheme.subduedForegroundColor)
+                                Text(inspector.description)
+                                    .font(AppTheme.pageSubtitleFont)
+                                    .foregroundStyle(AppTheme.subduedForegroundColor)
 
-                            ForEach(inspector.details) { detail in
-                                InspectorSectionRow(detail.label, value: detail.value)
+                                ForEach(inspector.details) { detail in
+                                    InspectorSectionRow(detail.label, value: detail.value)
+                                }
                             }
                         }
 
                         if inspector.actions.isEmpty == false {
-                            InspectorPane("Actions", style: .grouped) {
+                            GroupBox("Actions") {
                                 HStack(spacing: AppTheme.spacingS) {
                                     ForEach(inspector.actions) { action in
                                         switch action.role {
@@ -159,11 +140,8 @@ public struct InboxFeatureView: View {
                 Text("Select an issue, proposal, or import to inspect it.")
                     .font(AppTheme.metaFont)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, AppTheme.contentPadding)
-                    .padding(.top, AppTheme.spacingS)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-
-            Spacer()
         }
     }
 

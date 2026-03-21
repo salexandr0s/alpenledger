@@ -29,16 +29,14 @@ public struct SettingsFeatureView: View {
     }
 
     public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-                PaneHeader("Settings", subtitle: "Workspace metadata, entity setup, and local data controls.", style: .page)
-
-                workspaceCard
-                entitiesCard
-                addEntityCard
-            }
-            .padding(AppTheme.contentPadding)
+        Form {
+            workspaceSection
+            entitiesSection
+            addEntitySection
         }
+        .formStyle(.grouped)
+        .navigationTitle("Settings")
+        .navigationSubtitle("Workspace and entity configuration")
         .onAppear {
             workspaceDraftName = snapshot.workspace.name
         }
@@ -47,11 +45,16 @@ public struct SettingsFeatureView: View {
         }
     }
 
-    private var workspaceCard: some View {
-        InspectorPane("Workspace", subtitle: "Core workspace details and trust settings.", style: .card) {
+    private var workspaceSection: some View {
+        Section("Workspace") {
             HStack(spacing: AppTheme.spacingS) {
                 TextField("Workspace name", text: $workspaceDraftName)
-                    .textFieldStyle(.roundedBorder)
+                    .onSubmit {
+                        let trimmed = workspaceDraftName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty {
+                            onRenameWorkspace(workspaceDraftName)
+                        }
+                    }
                     .accessibilityIdentifier("settings.workspaceNameField")
 
                 Button("Save") {
@@ -62,38 +65,35 @@ public struct SettingsFeatureView: View {
                 .accessibilityIdentifier("settings.renameWorkspaceButton")
             }
 
-            InspectorSectionRow("Type", value: snapshot.workspace.type)
-            InspectorSectionRow("Location", value: snapshot.workspace.location)
-            InspectorSectionRow("Encryption", value: snapshot.workspace.encryptionStatus)
-            InspectorSectionRow("Created", value: snapshot.workspace.createdAt)
+            LabeledContent("Type", value: snapshot.workspace.type)
+            LabeledContent("Location", value: snapshot.workspace.location)
+            LabeledContent("Encryption", value: snapshot.workspace.encryptionStatus)
+            LabeledContent("Created", value: snapshot.workspace.createdAt)
         }
     }
 
-    private var entitiesCard: some View {
-        InspectorPane("Entities", subtitle: "Manage the people and businesses inside this workspace.", style: .card) {
+    private var entitiesSection: some View {
+        Section("Entities") {
             if snapshot.entities.isEmpty {
                 Text("No entities configured.")
                     .font(AppTheme.metaFont)
                     .foregroundStyle(.secondary)
             } else {
-                VStack(alignment: .leading, spacing: AppTheme.spacingM) {
-                    ForEach(snapshot.entities) { entity in
-                        EntityEditorRow(
-                            entity: entity,
-                            onRename: onRenameEntity,
-                            onRemove: onRemoveEntity
-                        )
-                    }
+                ForEach(snapshot.entities) { entity in
+                    EntityEditorRow(
+                        entity: entity,
+                        onRename: onRenameEntity,
+                        onRemove: onRemoveEntity
+                    )
                 }
             }
         }
     }
 
-    private var addEntityCard: some View {
-        InspectorPane("Add Entity", subtitle: "Create a sole proprietorship without leaving the workspace.", style: .card) {
+    private var addEntitySection: some View {
+        Section("Add Entity") {
             HStack(spacing: AppTheme.spacingS) {
                 TextField("Business name", text: $newSolePropName)
-                    .textFieldStyle(.roundedBorder)
                     .accessibilityIdentifier("settings.solePropNameField")
 
                 Button("Add Sole Proprietor", action: onCreateSoleProp)
@@ -127,7 +127,6 @@ private struct EntityEditorRow: View {
         VStack(alignment: .leading, spacing: AppTheme.spacingS) {
             HStack(spacing: AppTheme.spacingS) {
                 TextField("Entity name", text: $draftName)
-                    .textFieldStyle(.roundedBorder)
                     .accessibilityIdentifier("settings.entity.name.\(accessibilitySlug(entity.name))")
 
                 Button("Save") {
@@ -145,7 +144,7 @@ private struct EntityEditorRow: View {
                 .accessibilityIdentifier("settings.entity.remove.\(accessibilitySlug(entity.name))")
             }
 
-            Text("\(entity.kindLabel) • \(entity.detail)")
+            Text("\(entity.kindLabel) \u{2022} \(entity.detail)")
                 .font(AppTheme.metaFont)
                 .foregroundStyle(.secondary)
 
@@ -155,10 +154,5 @@ private struct EntityEditorRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(AppTheme.groupedPanelPadding)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .fill(AppTheme.subtleSurfaceColor)
-        )
     }
 }

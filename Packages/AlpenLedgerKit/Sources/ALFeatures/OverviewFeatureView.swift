@@ -18,12 +18,6 @@ public struct OverviewFeatureView: View {
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppTheme.spacingL) {
-                PaneHeader(
-                    snapshot.workspaceName,
-                    subtitle: snapshot.workspaceSubtitle,
-                    style: .page
-                )
-
                 metricsRow
 
                 ViewThatFits(in: .horizontal) {
@@ -46,6 +40,8 @@ public struct OverviewFeatureView: View {
             .padding(AppTheme.contentPadding)
             .transition(AppTheme.chromeTransition(reduceMotion: reduceMotion))
         }
+        .navigationTitle(snapshot.workspaceName)
+        .navigationSubtitle(snapshot.workspaceSubtitle)
     }
 
     private var metricsRow: some View {
@@ -102,17 +98,27 @@ public struct OverviewFeatureView: View {
                                 Button {
                                     performAction(secondary.action)
                                 } label: {
-                                    HStack(alignment: .top, spacing: AppTheme.spacingS) {
-                                        NavigationListRow(
-                                            title: secondary.title,
-                                            subtitle: secondary.subtitle,
-                                            systemImage: secondary.systemImage
-                                        )
+                                    HStack(spacing: AppTheme.spacingS) {
+                                        Label {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(secondary.title)
+                                                    .font(.body)
+                                                if secondary.subtitle.isEmpty == false {
+                                                    Text(secondary.subtitle)
+                                                        .font(.subheadline)
+                                                        .foregroundStyle(.secondary)
+                                                }
+                                            }
+                                        } icon: {
+                                            Image(systemName: secondary.systemImage)
+                                                .foregroundStyle(.secondary)
+                                        }
+
+                                        Spacer()
 
                                         Image(systemName: "chevron.right")
                                             .font(.caption.weight(.semibold))
                                             .foregroundStyle(.tertiary)
-                                            .padding(.top, AppTheme.spacingXXS)
                                     }
                                     .contentShape(Rectangle())
                                 }
@@ -167,12 +173,12 @@ public struct OverviewFeatureView: View {
                         .accessibilityIdentifier("overview.review.\(accessibilitySlug(item.id))")
                     }
 
-                    Button("View all →") {
+                    Button("View All") {
                         performAction(.openInbox(selection: nil))
                     }
                     .buttonStyle(.plain)
                     .font(AppTheme.metaFont)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(.tint)
                 }
             }
         }

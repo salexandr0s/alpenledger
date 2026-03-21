@@ -22,49 +22,32 @@ public struct WorkspaceChooserView: View {
     }
 
     public var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    AppTheme.windowChromeColor,
-                    AppTheme.secondarySurfaceColor.opacity(0.75),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+        VStack(spacing: AppTheme.spacingXL) {
+            Spacer(minLength: AppTheme.spacingXL)
 
-            VStack(spacing: AppTheme.spacingXL) {
-                Spacer(minLength: AppTheme.spacingXL)
+            header
 
-                header
+            recentWorkspacesCard
 
-                recentWorkspacesCard
+            actionRow
 
-                actionRow
-
-                Spacer(minLength: AppTheme.spacingXL)
-            }
-            .padding(AppTheme.contentPadding)
-            .frame(maxWidth: 640)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .transition(AppTheme.chromeTransition(reduceMotion: reduceMotion))
+            Spacer(minLength: AppTheme.spacingXL)
         }
+        .padding(AppTheme.contentPadding)
+        .frame(maxWidth: 640)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .transition(AppTheme.chromeTransition(reduceMotion: reduceMotion))
+        .navigationTitle("AlpenLedger")
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("workspace.chooser")
     }
 
     private var header: some View {
         VStack(spacing: AppTheme.spacingM) {
-            ZStack {
-                Circle()
-                    .fill(AppTheme.accentSurfaceColor)
-                    .frame(width: 72, height: 72)
-
-                Image(systemName: "checkmark.shield")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
-                    .symbolRenderingMode(AppTheme.symbolRenderingMode)
-            }
+            Image(systemName: "checkmark.shield")
+                .font(.system(size: 40, weight: .light))
+                .foregroundStyle(.secondary)
+                .symbolRenderingMode(AppTheme.symbolRenderingMode)
 
             VStack(spacing: AppTheme.spacingXS) {
                 Text(snapshot.title)
@@ -83,17 +66,12 @@ public struct WorkspaceChooserView: View {
     }
 
     private var recentWorkspacesCard: some View {
-        InspectorPane(
-            "Recent Workspaces",
-            subtitle: snapshot.recentWorkspaces.isEmpty ? "Create your first workspace to get started." : "Pick up where you left off.",
-            style: .card,
-            showsDivider: snapshot.recentWorkspaces.isEmpty == false
-        ) {
+        GroupBox("Recent Workspaces") {
             if snapshot.recentWorkspaces.isEmpty {
-                PaneEmptyState(
+                ContentUnavailableView(
                     "No recent workspaces",
-                    subtitle: "Create a workspace or open one from disk.",
-                    systemImage: "folder"
+                    systemImage: "folder",
+                    description: Text("Create a workspace or open one from disk.")
                 )
             } else {
                 VStack(spacing: AppTheme.spacingXS) {
@@ -120,10 +98,6 @@ public struct WorkspaceChooserView: View {
                             }
                             .padding(.horizontal, AppTheme.spacingM)
                             .padding(.vertical, AppTheme.spacingS)
-                            .background(
-                                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                                    .fill(AppTheme.subtleSurfaceColor)
-                            )
                         }
                         .buttonStyle(.plain)
                         .accessibilityElement(children: .ignore)
