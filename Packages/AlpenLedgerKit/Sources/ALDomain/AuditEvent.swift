@@ -25,6 +25,8 @@ public enum AuditEventType: String, Codable, CaseIterable, Sendable {
     case issueOpened
     case issueResolved
     case issueDismissed
+    case entityWorkspaceCreated
+    case entityWorkspaceDeleted
 }
 
 public struct AuditEvent: Hashable, Codable, Sendable {

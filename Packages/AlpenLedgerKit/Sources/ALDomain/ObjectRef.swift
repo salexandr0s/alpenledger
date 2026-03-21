@@ -18,6 +18,11 @@ public enum ObjectKind: String, Codable, CaseIterable, Sendable {
     case requirement
     case issue
     case agentProposal
+    case entityWorkspace
+    case taxProfile
+    case transactionCategory
+    case invoiceRecord
+    case filingPackage
 }
 
 public struct ObjectRef: Hashable, Codable, Sendable {

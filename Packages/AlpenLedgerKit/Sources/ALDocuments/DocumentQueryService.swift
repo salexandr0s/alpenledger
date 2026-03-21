@@ -9,6 +9,10 @@ public final class DocumentQueryService: Sendable {
         self.storage = storage
     }
 
+    public func listDocuments(entityId: LegalEntityID) throws -> [Document] {
+        try storage.documentRepository.fetchDocuments(entityId: entityId)
+    }
+
     public func listDocuments(query: String = "") throws -> [Document] {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmedQuery.isEmpty == false else {

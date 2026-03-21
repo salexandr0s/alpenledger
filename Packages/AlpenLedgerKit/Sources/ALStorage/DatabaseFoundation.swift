@@ -40,6 +40,11 @@ public struct WorkspaceStorage: Sendable {
     public let issueRepository: any IssueRepository
     public let taxFactRepository: any TaxFactRepository
     public let agentProposalRepository: any AgentProposalRepository
+    public let entityWorkspaceRepository: any EntityWorkspaceRepository
+    public let taxProfileRepository: any TaxProfileRepository
+    public let categoryRepository: any TransactionCategoryRepository
+    public let invoiceRecordRepository: any InvoiceRecordRepository
+    public let filingPackageRepository: any FilingPackageRepository
     public let auditEventRepository: any AuditEventRepository
 
     public func inTransaction(_ work: (GRDB.Database) throws -> Void) throws {
@@ -134,6 +139,11 @@ public final class WorkspaceStorageManager: @unchecked Sendable {
         let issueRepository = GRDBIssueRepository(dbPool: dbPool)
         let taxFactRepository = GRDBTaxFactRepository(dbPool: dbPool)
         let agentProposalRepository = GRDBAgentProposalRepository(dbPool: dbPool)
+        let entityWorkspaceRepository = GRDBEntityWorkspaceRepository(dbPool: dbPool)
+        let taxProfileRepository = GRDBTaxProfileRepository(dbPool: dbPool)
+        let categoryRepository = GRDBTransactionCategoryRepository(dbPool: dbPool)
+        let invoiceRecordRepository = GRDBInvoiceRecordRepository(dbPool: dbPool)
+        let filingPackageRepository = GRDBFilingPackageRepository(dbPool: dbPool)
         let auditEventRepository = GRDBAuditEventRepository(dbPool: dbPool)
 
         return WorkspaceStorage(
@@ -156,6 +166,11 @@ public final class WorkspaceStorageManager: @unchecked Sendable {
             issueRepository: issueRepository,
             taxFactRepository: taxFactRepository,
             agentProposalRepository: agentProposalRepository,
+            entityWorkspaceRepository: entityWorkspaceRepository,
+            taxProfileRepository: taxProfileRepository,
+            categoryRepository: categoryRepository,
+            invoiceRecordRepository: invoiceRecordRepository,
+            filingPackageRepository: filingPackageRepository,
             auditEventRepository: auditEventRepository
         )
     }

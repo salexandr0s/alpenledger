@@ -34,6 +34,10 @@ public enum IssueTag: Sendable {}
 public enum TaxFactTag: Sendable {}
 public enum FilingPackageTag: Sendable {}
 public enum AgentProposalTag: Sendable {}
+public enum EntityWorkspaceTag: Sendable {}
+public enum TaxProfileTag: Sendable {}
+public enum TransactionCategoryTag: Sendable {}
+public enum InvoiceRecordTag: Sendable {}
 
 public typealias WorkspaceID = EntityID<WorkspaceTag>
 public typealias LegalEntityID = EntityID<LegalEntityTag>
@@ -53,3 +57,7 @@ public typealias IssueID = EntityID<IssueTag>
 public typealias TaxFactID = EntityID<TaxFactTag>
 public typealias FilingPackageID = EntityID<FilingPackageTag>
 public typealias AgentProposalID = EntityID<AgentProposalTag>
+public typealias EntityWorkspaceID = EntityID<EntityWorkspaceTag>
+public typealias TaxProfileID = EntityID<TaxProfileTag>
+public typealias TransactionCategoryID = EntityID<TransactionCategoryTag>
+public typealias InvoiceRecordID = EntityID<InvoiceRecordTag>

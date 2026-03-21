@@ -7,6 +7,7 @@ public protocol DocumentRepository: Sendable {
     func fetchDocument(id: DocumentID) throws -> Document?
     func fetchDocument(workspaceId: WorkspaceID, blobHash: String) throws -> Document?
     func fetchDocuments(ids: [DocumentID]) throws -> [Document]
+    func fetchDocuments(entityId: LegalEntityID) throws -> [Document]
     func saveDocument(_ document: Document) throws
 }
 
@@ -37,6 +38,15 @@ public final class GRDBDocumentRepository: DocumentRepository, Sendable {
             try Document
                 .filter(Column("workspaceId") == workspaceId && Column("blobHash") == blobHash)
                 .fetchOne(db)
+        }
+    }
+
+    public func fetchDocuments(entityId: LegalEntityID) throws -> [Document] {
+        try dbPool.read { db in
+            try Document
+                .filter(Column("entityId") == entityId)
+                .order(Column("rowid").desc)
+                .fetchAll(db)
         }
     }
 

@@ -249,5 +249,102 @@ func migrate(dbPool: DatabasePool) throws {
         try db.create(index: "auditEvents_workspace_occurredAt", on: "auditEvents", columns: ["workspaceId", "occurredAt"], ifNotExists: true)
     }
 
+    migrator.registerMigration("v5_entity_workspace_and_models") { db in
+        try db.create(table: "entityWorkspaces", ifNotExists: true) { table in
+            table.column("id", .text).primaryKey()
+            table.column("workspaceId", .text).notNull().references("workspaces", onDelete: .cascade)
+            table.column("entityId", .text).notNull().references("legalEntities", onDelete: .cascade)
+            table.column("displayName", .text).notNull()
+            table.column("isDefault", .boolean).notNull()
+            table.column("lastAccessedAt", .datetime).notNull()
+            table.column("createdAt", .datetime).notNull()
+        }
+        try db.create(index: "entityWorkspaces_workspace_entity", on: "entityWorkspaces", columns: ["workspaceId", "entityId"], unique: true, ifNotExists: true)
+
+        try db.create(table: "taxProfiles", ifNotExists: true) { table in
+            table.column("id", .text).primaryKey()
+            table.column("entityId", .text).notNull().references("legalEntities", onDelete: .cascade)
+            table.column("taxationType", .text).notNull()
+            table.column("canton", .text).notNull()
+            table.column("municipality", .text)
+            table.column("maritalStatus", .text)
+            table.column("numberOfDependents", .integer).notNull()
+            table.column("rulesetVersionOverride", .text)
+            table.column("createdAt", .datetime).notNull()
+            table.column("updatedAt", .datetime).notNull()
+        }
+        try db.create(index: "taxProfiles_entity", on: "taxProfiles", columns: ["entityId"], unique: true, ifNotExists: true)
+
+        try db.create(table: "categories", ifNotExists: true) { table in
+            table.column("id", .text).primaryKey()
+            table.column("entityId", .text).notNull().references("legalEntities", onDelete: .cascade)
+            table.column("code", .text).notNull()
+            table.column("displayName", .text).notNull()
+            table.column("parentId", .text).references("categories")
+            table.column("taxRole", .text)
+            table.column("isSystemDefined", .boolean).notNull()
+            table.column("createdAt", .datetime).notNull()
+            table.column("updatedAt", .datetime).notNull()
+        }
+        try db.create(index: "categories_entity_code", on: "categories", columns: ["entityId", "code"], unique: true, ifNotExists: true)
+
+        try db.create(table: "invoiceRecords", ifNotExists: true) { table in
+            table.column("id", .text).primaryKey()
+            table.column("documentId", .text).notNull().references("documents", onDelete: .cascade)
+            table.column("entityId", .text).notNull().references("legalEntities", onDelete: .cascade)
+            table.column("invoiceNumber", .text)
+            table.column("counterpartyName", .text).notNull()
+            table.column("issueDate", .datetime)
+            table.column("dueDate", .datetime)
+            table.column("totalAmountMinor", .integer).notNull()
+            table.column("currency", .text).notNull()
+            table.column("direction", .text).notNull()
+            table.column("status", .text).notNull()
+            table.column("linkedTransactionId", .text).references("transactions")
+            table.column("createdAt", .datetime).notNull()
+            table.column("updatedAt", .datetime).notNull()
+        }
+
+        try db.create(index: "invoiceRecords_entity", on: "invoiceRecords", columns: ["entityId"], ifNotExists: true)
+        try db.create(index: "invoiceRecords_document", on: "invoiceRecords", columns: ["documentId"], ifNotExists: true)
+
+        try db.create(table: "filingPackages", ifNotExists: true) { table in
+            table.column("id", .text).primaryKey()
+            table.column("entityId", .text).notNull().references("legalEntities", onDelete: .cascade)
+            table.column("taxYearId", .text).notNull().references("taxYears", onDelete: .cascade)
+            table.column("status", .text).notNull()
+            table.column("generatedAt", .datetime)
+            table.column("submittedAt", .datetime)
+            table.column("snapshotHash", .text)
+            table.column("exportFormat", .text).notNull()
+            table.column("createdAt", .datetime).notNull()
+            table.column("updatedAt", .datetime).notNull()
+        }
+
+        try db.create(index: "filingPackages_entity_taxYear", on: "filingPackages", columns: ["entityId", "taxYearId"], ifNotExists: true)
+
+        try db.alter(table: "documents") { table in
+            table.add(column: "entityId", .text).references("legalEntities", onDelete: .setNull)
+        }
+
+        try db.execute(sql: "UPDATE documents SET entityId = detectedEntityId WHERE detectedEntityId IS NOT NULL")
+
+        let now = ISO8601DateFormatter().string(from: Date())
+        let rows = try Row.fetchAll(db, sql: "SELECT id, workspaceId, displayName FROM legalEntities")
+        for row in rows {
+            let entityId: String = row["id"]
+            let workspaceId: String = row["workspaceId"]
+            let displayName: String = row["displayName"]
+            let ewId = UUID().uuidString.lowercased()
+            try db.execute(
+                sql: """
+                INSERT INTO entityWorkspaces (id, workspaceId, entityId, displayName, isDefault, lastAccessedAt, createdAt)
+                VALUES (?, ?, ?, ?, 1, ?, ?)
+                """,
+                arguments: [ewId, workspaceId, entityId, displayName, now, now]
+            )
+        }
+    }
+
     try migrator.migrate(dbPool)
 }

@@ -22,7 +22,7 @@ public final class DocumentService: Sendable {
     }
 
     @discardableResult
-    public func importDocument(from url: URL) throws -> Document {
+    public func importDocument(from url: URL, entityId: LegalEntityID? = nil) throws -> Document {
         let importJob = ImportJob(
             workspaceId: storage.manifest.workspace.id,
             kind: .documentIntake,
@@ -60,6 +60,7 @@ public final class DocumentService: Sendable {
             mediaType: mediaType,
             documentType: documentType,
             issueDate: issueDate,
+            entityId: entityId,
             extractedText: extractedText,
             metadataStatus: .confirmed,
             parseVersion: parserVersion

@@ -31,6 +31,7 @@ public struct Document: Hashable, Codable, Sendable {
     public var documentType: DocumentType
     public var issueDate: Date?
     public let detectedEntityId: LegalEntityID?
+    public var entityId: LegalEntityID?
     public let detectedTaxYearId: TaxYearID?
     public var extractedText: String?
     public var metadataStatus: MetadataStatus
@@ -47,6 +48,7 @@ public struct Document: Hashable, Codable, Sendable {
         documentType: DocumentType = .unknown,
         issueDate: Date? = nil,
         detectedEntityId: LegalEntityID? = nil,
+        entityId: LegalEntityID? = nil,
         detectedTaxYearId: TaxYearID? = nil,
         extractedText: String? = nil,
         metadataStatus: MetadataStatus = .proposed,
@@ -62,6 +64,7 @@ public struct Document: Hashable, Codable, Sendable {
         self.documentType = documentType
         self.issueDate = issueDate
         self.detectedEntityId = detectedEntityId
+        self.entityId = entityId
         self.detectedTaxYearId = detectedTaxYearId
         self.extractedText = extractedText
         self.metadataStatus = metadataStatus

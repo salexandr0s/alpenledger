@@ -38,8 +38,16 @@ public final class EvidenceRefreshService: Sendable {
             }
         }
 
-        let documents = try storage.documentRepository.fetchDocuments(workspaceId: storage.manifest.workspace.id)
-        for document in documents where document.documentType == .receipt || document.documentType == .invoice {
+        for entity in entities {
+            let entityDocuments = try storage.documentRepository.fetchDocuments(entityId: entity.id)
+            for document in entityDocuments where document.documentType == .receipt || document.documentType == .invoice {
+                let hasLink = try reconciliationService.hasConfirmedTransactionLink(for: document.id)
+                _ = try reconciliationService.syncDocumentLinkProposal(for: document, hasConfirmedLink: hasLink, now: now)
+            }
+        }
+
+        let unscoped = try storage.documentRepository.fetchDocuments(workspaceId: storage.manifest.workspace.id)
+        for document in unscoped where document.entityId == nil && (document.documentType == .receipt || document.documentType == .invoice) {
             let hasLink = try reconciliationService.hasConfirmedTransactionLink(for: document.id)
             _ = try reconciliationService.syncDocumentLinkProposal(for: document, hasConfirmedLink: hasLink, now: now)
         }

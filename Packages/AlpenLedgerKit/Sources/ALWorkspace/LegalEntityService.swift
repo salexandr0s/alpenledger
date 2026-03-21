@@ -162,6 +162,20 @@ public final class LegalEntityService: Sendable {
             objectRef: ObjectRef(kind: .legalEntity, id: entity.id.rawValue)
         )
 
+        let entityWorkspace = EntityWorkspace(
+            workspaceId: entity.workspaceId,
+            entityId: entity.id,
+            displayName: entity.displayName,
+            isDefault: true,
+            lastAccessedAt: nowProvider(),
+            createdAt: nowProvider()
+        )
+        try storage.entityWorkspaceRepository.saveEntityWorkspace(entityWorkspace)
+        try auditLogger.log(
+            eventType: .entityWorkspaceCreated,
+            objectRef: ObjectRef(kind: .entityWorkspace, id: entityWorkspace.id.rawValue)
+        )
+
         let accounts = LedgerTemplates.accounts(for: entity.kind, entityId: entity.id)
         for account in accounts {
             try storage.ledgerAccountRepository.saveLedgerAccount(account)

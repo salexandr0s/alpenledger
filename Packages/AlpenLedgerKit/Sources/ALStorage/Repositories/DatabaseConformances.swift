@@ -93,6 +93,22 @@ extension AuditEvent: FetchableRecord, PersistableRecord {
     public static let databaseTableName = "auditEvents"
 }
 
+extension EntityWorkspace: FetchableRecord, PersistableRecord {
+    public static let databaseTableName = "entityWorkspaces"
+}
+extension TaxProfile: FetchableRecord, PersistableRecord {
+    public static let databaseTableName = "taxProfiles"
+}
+extension TransactionCategory: FetchableRecord, PersistableRecord {
+    public static let databaseTableName = "categories"
+}
+extension InvoiceRecord: FetchableRecord, PersistableRecord {
+    public static let databaseTableName = "invoiceRecords"
+}
+extension FilingPackage: FetchableRecord, PersistableRecord {
+    public static let databaseTableName = "filingPackages"
+}
+
 extension TaxFact: FetchableRecord, PersistableRecord {
     public static let databaseTableName = "taxFacts"
 
