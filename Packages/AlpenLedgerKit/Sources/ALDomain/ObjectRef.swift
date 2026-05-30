@@ -4,9 +4,11 @@ public enum ObjectKind: String, Codable, CaseIterable, Sendable {
     case workspace
     case legalEntity
     case taxYear
+    case vatPeriod
     case taxFact
     case ledgerAccount
     case financialAccount
+    case counterparty
     case importJob
     case statementImport
     case transaction
@@ -18,6 +20,10 @@ public enum ObjectKind: String, Codable, CaseIterable, Sendable {
     case requirement
     case issue
     case agentProposal
+    case agentConversation
+    case agentMessage
+    case agentPendingApproval
+    case agentRun
     case entityWorkspace
     case taxProfile
     case transactionCategory

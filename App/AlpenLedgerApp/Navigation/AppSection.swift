@@ -30,12 +30,13 @@ enum AppSection: String, CaseIterable, Hashable, Identifiable {
     case documents
     case taxStudio
     case settings
+    case copilot
 
     var id: String { rawValue }
 
     var group: Group {
         switch self {
-        case .overview, .inbox:
+        case .overview, .inbox, .copilot:
             return .home
         case .ledger, .documents:
             return .records
@@ -54,6 +55,7 @@ enum AppSection: String, CaseIterable, Hashable, Identifiable {
         case .documents: "Documents"
         case .taxStudio: "Tax Studio"
         case .settings: "Settings"
+        case .copilot: "Copilot"
         }
     }
 
@@ -65,6 +67,7 @@ enum AppSection: String, CaseIterable, Hashable, Identifiable {
         case .documents: "Search and preview source files"
         case .taxStudio: "Readiness, facts, and blockers"
         case .settings: "Workspace and entity configuration"
+        case .copilot: "Source-backed finance and tax answers"
         }
     }
 
@@ -76,6 +79,7 @@ enum AppSection: String, CaseIterable, Hashable, Identifiable {
         case .documents: "doc.text"
         case .taxStudio: "checkmark.shield"
         case .settings: "gearshape"
+        case .copilot: "sparkles"
         }
     }
 
@@ -91,6 +95,7 @@ enum AppSection: String, CaseIterable, Hashable, Identifiable {
         case .documents: "4"
         case .taxStudio: "5"
         case .settings: "6"
+        case .copilot: "7"
         }
     }
 }

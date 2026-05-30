@@ -1,8 +1,8 @@
 # vision.md — AlpenLedger
 ## Vision for a local-first Swiss finance manager and tax return studio
 
-**Working name:** AlpenLedger  
-**Platform:** macOS-first Swift app  
+**Working name:** AlpenLedger
+**Platform:** macOS-first Swift app
 **Positioning:** a local-first Swiss finance workspace that combines accounting, document management, reconciliation, and tax-return generation for both private and business use.
 
 ## 1. Product thesis
@@ -242,7 +242,7 @@ Users should trust AlpenLedger for the same reasons they trust good bookkeeping:
 ## 10. Product strategy
 
 ### Strategy statement
-**Win on trust, locality, Swiss fit, and evidence completeness.**  
+**Win on trust, locality, Swiss fit, and evidence completeness.**
 Do not try to win on generic dashboards or mass-market personal-finance gimmicks.
 
 ### Why this can be differentiated

@@ -33,6 +33,10 @@ public struct DocumentsFeatureView: View {
     @State private var sortOrder: [KeyPathComparator<DocumentBrowserItem>] = [
         KeyPathComparator(\DocumentBrowserItem.issueDate, order: .reverse)
     ]
+    @State private var metadataDraftDocumentId: DocumentID?
+    @State private var metadataDraftType: DocumentType = .unknown
+    @State private var metadataDraftHasIssueDate = false
+    @State private var metadataDraftIssueDate = Date()
 
     private let items: [DocumentBrowserItem]
     private let allDocumentsCount: Int
@@ -49,6 +53,9 @@ public struct DocumentsFeatureView: View {
     private let onResetScope: () -> Void
     private let onSetScope: (DocumentFilterScope) -> Void
     private let onLinkTransaction: () -> Void
+    private let onArchiveDocument: () -> Void
+    private let onRestoreDocument: () -> Void
+    private let onReviewMetadata: (DocumentID, DocumentType, Date?) -> Void
 
     public init(
         query: Binding<String>,
@@ -67,7 +74,10 @@ public struct DocumentsFeatureView: View {
         onClearSearch: @escaping () -> Void,
         onResetScope: @escaping () -> Void,
         onSetScope: @escaping (DocumentFilterScope) -> Void,
-        onLinkTransaction: @escaping () -> Void
+        onLinkTransaction: @escaping () -> Void,
+        onArchiveDocument: @escaping () -> Void,
+        onRestoreDocument: @escaping () -> Void,
+        onReviewMetadata: @escaping (DocumentID, DocumentType, Date?) -> Void
     ) {
         _query = query
         _scope = scope
@@ -86,6 +96,9 @@ public struct DocumentsFeatureView: View {
         self.onResetScope = onResetScope
         self.onSetScope = onSetScope
         self.onLinkTransaction = onLinkTransaction
+        self.onArchiveDocument = onArchiveDocument
+        self.onRestoreDocument = onRestoreDocument
+        self.onReviewMetadata = onReviewMetadata
     }
 
     public var body: some View {
@@ -136,6 +149,19 @@ public struct DocumentsFeatureView: View {
             onRefreshSearchResults()
         }
         .onSubmit(of: .search, onRefreshSearchResults)
+        .onAppear(perform: syncMetadataDraft)
+        .onChange(of: selectedDocumentId) { _, _ in
+            syncMetadataDraft()
+        }
+        .onChange(of: selectedItem?.documentType) { _, _ in
+            syncMetadataDraft()
+        }
+        .onChange(of: selectedItem?.issueDate) { _, _ in
+            syncMetadataDraft()
+        }
+        .onChange(of: selectedItem?.metadataStatus) { _, _ in
+            syncMetadataDraft()
+        }
         .dropDestination(for: URL.self) { urls, _ in
             guard urls.isEmpty == false else { return false }
             onImportDocuments(urls)
@@ -156,6 +182,7 @@ public struct DocumentsFeatureView: View {
                 .accessibilityIdentifier("documents.importButton")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityIdentifier("documents.emptyDropZone")
     }
 
     private var filteredEmptyPane: some View {
@@ -242,7 +269,15 @@ public struct DocumentsFeatureView: View {
             Group {
                 if let selectedItem {
                     if let previewURL {
-                        DocumentPreviewHost(fileURL: previewURL, mediaType: selectedItem.mediaType)
+                        ZStack(alignment: .topLeading) {
+                            DocumentPreviewHost(fileURL: previewURL, mediaType: selectedItem.mediaType)
+
+                            Color.clear
+                                .frame(width: 1, height: 1)
+                                .accessibilityElement()
+                                .accessibilityLabel("Document preview")
+                                .accessibilityIdentifier("documents.previewPane")
+                        }
                     } else {
                         PaneEmptyState(
                             "Preview unavailable",
@@ -261,6 +296,8 @@ public struct DocumentsFeatureView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Document preview")
         .accessibilityIdentifier("documents.previewPane")
     }
 
@@ -278,11 +315,7 @@ public struct DocumentsFeatureView: View {
             VStack(alignment: .leading, spacing: AppTheme.spacingM) {
                 if let selectedItem {
                     GroupBox("Document") {
-                        VStack(alignment: .leading, spacing: AppTheme.inspectorRowSpacing) {
-                            InspectorSectionRow("Type", value: selectedItem.typeLabel)
-                            InspectorSectionRow("Issue Date", value: selectedItem.dateLabel)
-                            InspectorSectionRow("Status", value: selectedItem.statusText)
-                        }
+                        metadataEditor(for: selectedItem)
                     }
                 }
 
@@ -306,7 +339,38 @@ public struct DocumentsFeatureView: View {
 
                         Button("Link Transaction…", action: onLinkTransaction)
                             .buttonStyle(.borderedProminent)
+                            .disabled(selectedItem?.isArchived ?? true)
                             .accessibilityIdentifier("documents.linkTransaction")
+                    }
+                }
+
+                if let selectedItem {
+                    GroupBox("Retention") {
+                        VStack(alignment: .leading, spacing: AppTheme.inspectorRowSpacing) {
+                            if selectedItem.isArchived {
+                                if let archivedAtText = selectedItem.archivedAtText {
+                                    InspectorSectionRow("Archived At", value: archivedAtText)
+                                }
+                                if let archivedBy = selectedItem.archivedBy {
+                                    InspectorSectionRow("Archived By", value: archivedBy)
+                                }
+                                if let archiveReason = selectedItem.archiveReason {
+                                    InspectorSectionRow("Reason", value: archiveReason)
+                                }
+
+                                Button(action: onRestoreDocument) {
+                                    Label("Restore Document", systemImage: "arrow.uturn.backward.circle")
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .accessibilityIdentifier("documents.restoreDocument")
+                            } else {
+                                Button(role: .destructive, action: onArchiveDocument) {
+                                    Label("Archive Document…", systemImage: "archivebox")
+                                }
+                                .buttonStyle(.bordered)
+                                .accessibilityIdentifier("documents.archiveDocument")
+                            }
+                        }
                     }
                 }
             }
@@ -367,6 +431,107 @@ public struct DocumentsFeatureView: View {
             sortOption = first.order == .reverse ? .newest : .oldest
         } else if first.keyPath == \DocumentBrowserItem.title {
             sortOption = .name
+        }
+    }
+
+    private func syncMetadataDraft() {
+        guard let selectedItem else {
+            metadataDraftDocumentId = nil
+            metadataDraftType = .unknown
+            metadataDraftHasIssueDate = false
+            metadataDraftIssueDate = Date()
+            return
+        }
+        guard metadataDraftDocumentId != selectedItem.id ||
+            metadataDraftType != selectedItem.documentType ||
+            metadataDraftIssueDate != (selectedItem.issueDate ?? metadataDraftIssueDate) ||
+            metadataDraftHasIssueDate != (selectedItem.issueDate != nil)
+        else {
+            return
+        }
+
+        metadataDraftDocumentId = selectedItem.id
+        metadataDraftType = selectedItem.documentType
+        if let issueDate = selectedItem.issueDate {
+            metadataDraftHasIssueDate = true
+            metadataDraftIssueDate = issueDate
+        } else {
+            metadataDraftHasIssueDate = false
+            metadataDraftIssueDate = Date()
+        }
+    }
+
+    @ViewBuilder
+    private func metadataEditor(for item: DocumentBrowserItem) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.inspectorRowSpacing) {
+            Picker("Type", selection: $metadataDraftType) {
+                ForEach(DocumentType.allCases, id: \.rawValue) { type in
+                    Text(documentTypeLabel(type)).tag(type)
+                }
+            }
+            .disabled(item.isArchived)
+            .accessibilityIdentifier("documents.metadata.type")
+
+            Toggle("Issue Date", isOn: $metadataDraftHasIssueDate)
+                .disabled(item.isArchived)
+                .accessibilityIdentifier("documents.metadata.hasIssueDate")
+
+            if metadataDraftHasIssueDate {
+                DatePicker("Date", selection: $metadataDraftIssueDate, displayedComponents: .date)
+                    .disabled(item.isArchived)
+                    .accessibilityIdentifier("documents.metadata.issueDate")
+            }
+
+            InspectorSectionRow("Status", value: item.statusText)
+
+            Button(action: {
+                onReviewMetadata(item.id, metadataDraftType, metadataDraftIssueDateValue)
+            }) {
+                Label("Confirm Metadata", systemImage: "checkmark.seal")
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(canSubmitMetadataReview(for: item) == false)
+            .accessibilityIdentifier("documents.metadata.confirm")
+        }
+    }
+
+    private var metadataDraftIssueDateValue: Date? {
+        metadataDraftHasIssueDate ? metadataDraftIssueDate : nil
+    }
+
+    private func canSubmitMetadataReview(for item: DocumentBrowserItem) -> Bool {
+        guard item.isArchived == false else {
+            return false
+        }
+        return item.metadataStatus != .confirmed ||
+            item.documentType != metadataDraftType ||
+            item.issueDate != metadataDraftIssueDateValue
+    }
+
+    private func documentTypeLabel(_ documentType: DocumentType) -> String {
+        switch documentType {
+        case .unknown:
+            return "Unsorted"
+        case .receipt:
+            return "Receipt"
+        case .invoice:
+            return "Invoice"
+        case .qrBill:
+            return "QR-bill"
+        case .bankStatement:
+            return "Statement"
+        case .salaryCertificate:
+            return "Salary Certificate"
+        case .healthInsuranceCertificate:
+            return "Health Insurance"
+        case .pillar3aCertificate:
+            return "Pillar 3a"
+        case .eCH0196TaxStatement:
+            return "eCH-0196 Tax Statement"
+        case .eCH0248PensionCertificate:
+            return "eCH-0248 Pension"
+        case .eCH0275HealthInsuranceCertificate:
+            return "eCH-0275 Health Insurance"
         }
     }
 }

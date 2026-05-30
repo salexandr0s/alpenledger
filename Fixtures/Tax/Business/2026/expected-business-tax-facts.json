@@ -1,0 +1,20 @@
+[
+  {
+    "conceptCode": "personal.self_employment.expense_total",
+    "currency": "CHF",
+    "moneyMinor": 16250,
+    "valueType": "money"
+  },
+  {
+    "conceptCode": "personal.self_employment.net_profit",
+    "currency": "CHF",
+    "moneyMinor": 233750,
+    "valueType": "money"
+  },
+  {
+    "conceptCode": "personal.self_employment.revenue_gross",
+    "currency": "CHF",
+    "moneyMinor": 250000,
+    "valueType": "money"
+  }
+]

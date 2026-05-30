@@ -4,7 +4,7 @@
 SQLite/SQLCipher canonical store with append-only import truth and explicit support entities
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 
@@ -97,6 +97,12 @@ The first canonical entity set must include:
 
 The explicit addition of `LedgerAccount`, `Requirement`, and `ImportJob` is required in v1 because journal posting, missingness, and importer replay remain underspecified without them.
 
+The current schema has expanded beyond this initial list with counterparty,
+VAT-period, import-diagnostic, agent-conversation, global-search, reporting,
+backup, and support-diagnostic surfaces. Those additions preserve the same
+decision boundary: authoritative storage remains local, migration-controlled,
+audited, and separate from AI proposal state.
+
 ## Consequences
 
 Positive:
@@ -119,7 +125,11 @@ Negative:
 
 ## Follow-ups
 
-- Define the first migration set for workspace, audit, import, ledger, document, and tax tables
-- Write repository contracts that enforce raw-import immutability and approval-gated writes
-- Document on-disk workspace layout, including DB file, blob vault, and export artifacts
-- Add migration smoke tests, import replay tests, and integrity checks before adding AI features
+- Keep migration coverage current for workspace, audit, import, ledger,
+  document, tax, VAT, agent, search, backup, and support tables
+- Keep repository contracts enforcing raw-import immutability and
+  approval-gated writes
+- Keep on-disk workspace layout documented, including DB file, blob vault, and
+  export artifacts
+- Keep migration smoke tests, import replay tests, and integrity checks in the
+  readiness gate as AI features expand

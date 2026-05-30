@@ -6,19 +6,25 @@ public struct WorkspaceChooserView: View {
 
     private let snapshot: WorkspaceChooserSnapshot
     private let onCreateWorkspace: () -> Void
+    private let onCreateDemoWorkspace: () -> Void
     private let onOpenWorkspace: (WorkspaceChooserSnapshot.RecentWorkspace) -> Void
     private let onOpenExistingWorkspace: () -> Void
+    private let onShowHelp: () -> Void
 
     public init(
         snapshot: WorkspaceChooserSnapshot,
         onCreateWorkspace: @escaping () -> Void,
+        onCreateDemoWorkspace: @escaping () -> Void,
         onOpenWorkspace: @escaping (WorkspaceChooserSnapshot.RecentWorkspace) -> Void,
-        onOpenExistingWorkspace: @escaping () -> Void
+        onOpenExistingWorkspace: @escaping () -> Void,
+        onShowHelp: @escaping () -> Void
     ) {
         self.snapshot = snapshot
         self.onCreateWorkspace = onCreateWorkspace
+        self.onCreateDemoWorkspace = onCreateDemoWorkspace
         self.onOpenWorkspace = onOpenWorkspace
         self.onOpenExistingWorkspace = onOpenExistingWorkspace
+        self.onShowHelp = onShowHelp
     }
 
     public var body: some View {
@@ -26,6 +32,10 @@ public struct WorkspaceChooserView: View {
             Spacer(minLength: AppTheme.spacingXL)
 
             header
+
+            if snapshot.recentWorkspaces.isEmpty {
+                onboardingCard
+            }
 
             recentWorkspacesCard
 
@@ -98,6 +108,7 @@ public struct WorkspaceChooserView: View {
                             }
                             .padding(.horizontal, AppTheme.spacingM)
                             .padding(.vertical, AppTheme.spacingS)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityElement(children: .ignore)
@@ -108,6 +119,31 @@ public struct WorkspaceChooserView: View {
                 }
             }
         }
+    }
+
+    private var onboardingCard: some View {
+        GroupBox("First Run") {
+            VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                ForEach(snapshot.onboardingItems) { item in
+                    HStack(alignment: .top, spacing: AppTheme.spacingS) {
+                        Image(systemName: item.systemImage)
+                            .foregroundStyle(Color.accentColor)
+                            .frame(width: 24)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.title)
+                                .font(.body.weight(.medium))
+                            Text(item.detail)
+                                .font(AppTheme.metaFont)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .accessibilityIdentifier("workspace.onboarding.\(item.id)")
+                }
+            }
+            .padding(.top, AppTheme.spacingXXS)
+        }
+        .accessibilityIdentifier("workspace.onboarding")
     }
 
     private var actionRow: some View {
@@ -129,6 +165,24 @@ public struct WorkspaceChooserView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Open Existing")
                 .accessibilityIdentifier("workspace.openExistingButton")
+
+            Button(action: onCreateDemoWorkspace) {
+                Text("Create Demo")
+            }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Create Demo Workspace")
+                .accessibilityIdentifier("workspace.createDemoButton")
+
+            Button(action: onShowHelp) {
+                Label("Help", systemImage: "questionmark.circle")
+            }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Open Help")
+                .accessibilityIdentifier("workspace.openHelpButton")
         }
     }
 }

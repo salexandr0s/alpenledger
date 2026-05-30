@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-05-30",
+  "reviewedBy": "Codex readiness audit",
+  "policyDoc": "docs/fixture-governance.md",
+  "requiredPacks": [
+    "csv-bank-statement",
+    "customer-scale-bank-statement",
+    "camt-bank-report",
+    "camt-bank-statement",
+    "camt-bank-notification",
+    "document-receipt",
+    "qr-bill",
+    "zh-personal-tax-2026",
+    "ech-0196-tax-statement",
+    "ech-0248-pension-certificate",
+    "ech-0275-health-insurance-certificate",
+    "personal-tax-export",
+    "business-tax-export",
+    "vat-period-reconciliation",
+    "vat-export"
+  ],
+  "fixtures": [
+    {
+      "id": "bank.sample_statement.csv.v1",
+      "path": "Fixtures/Bank/sample-bank-statement.csv",
+      "pack": "csv-bank-statement",
+      "format": "csv",
+      "jurisdiction": "CH",
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": true,
+      "sha256": "6461b89cbe6e5dab0c7c3fd9333b086340a7acff4cdbf5062f05427deb4dca57",
+      "purpose": "Swiss bank-statement import fixture for ledger imports, reconciliation, missing-evidence checks, and sole-proprietor tax facts.",
+      "coverageTests": [
+        "CSVBankStatementImporterTests.csvImporterRecognizesFixtureHeader",
+        "CSVBankStatementImporterTests.csvImporterParsesRowsIntoTransactions",
+        "TaxComputationServiceTests.zurichSoleProprietorFixtureImportProducesProfitAndLossFacts",
+        "EvidenceRefreshServiceTests",
+        "IssueAndProposalServiceTests"
+      ]
+    },
+    {
+      "id": "bank.customer_scale_statement.csv.v1",
+      "path": "Fixtures/Bank/sample-bank-statement-customer-scale.csv",
+      "pack": "customer-scale-bank-statement",
+      "format": "csv",
+      "jurisdiction": "CH",
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "873dd78e015f6416739f794e99acf4c0bd8d9f6420104233479ae5059f5ff54b",
+      "purpose": "Customer-scale synthetic CHF bank-statement CSV for import throughput, source retention, and customer-volume regression evidence.",
+      "coverageTests": [
+        "CSVBankStatementImporterTests.csvImportJobHandlesCustomerScaleFixtureWithinRegressionBudget"
+      ]
+    },
+    {
+      "id": "bank.sample_camt052_report.xml.v1",
+      "path": "Fixtures/Bank/sample-camt052-report.xml",
+      "pack": "camt-bank-report",
+      "format": "camt.052.xml",
+      "jurisdiction": "CH",
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "1612b52214f64373c6c98472438b75db64aac15b270eb0722f811588372e2d61",
+      "purpose": "Synthetic CAMT.052 account-report fixture for Swiss XML account-report import regression coverage.",
+      "coverageTests": [
+        "CAMTBankStatementImporterTests.camt052ImporterRecognizesFixture",
+        "CAMTBankStatementImporterTests.camt052ImporterParsesReportBalancesAndTransactions",
+        "CAMTBankStatementImporterTests.importJobServiceImportsCAMT052FixtureThroughDefaultPipeline"
+      ]
+    },
+    {
+      "id": "bank.sample_camt052_multi_report.xml.v1",
+      "path": "Fixtures/Bank/sample-camt052-multi-report.xml",
+      "pack": "camt-bank-report",
+      "format": "camt.052.xml",
+      "jurisdiction": "CH",
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "7af221012ccd88daeed851a6d91244f3f70bc19cb5bb884205c302b113203b6d",
+      "purpose": "Synthetic multi-report CAMT.052 account-report fixture for coverage-window and balance-selection regression coverage.",
+      "coverageTests": [
+        "CAMTBankStatementImporterTests.camt052ImporterParsesMultiReportCoverageAndBalances"
+      ]
+    },
+    {
+      "id": "bank.sample_camt053_statement.xml.v1",
+      "path": "Fixtures/Bank/sample-camt053-statement.xml",
+      "pack": "camt-bank-statement",
+      "format": "camt.053.xml",
+      "jurisdiction": "CH",
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "69cbf1d01d8acde95bc743138c00fc7cc1993cdc86158d38027fb3e03e9d9416",
+      "purpose": "Synthetic CAMT.053 bank-statement fixture for Swiss XML statement import regression coverage.",
+      "coverageTests": [
+        "CAMTBankStatementImporterTests.camt053ImporterRecognizesFixture",
+        "CAMTBankStatementImporterTests.camt053ImporterParsesBalancesAndTransactions",
+        "CAMTBankStatementImporterTests.importJobServiceImportsCAMTFixtureThroughDefaultPipeline"
+      ]
+    },
+    {
+      "id": "bank.sample_camt053_multi_statement.xml.v1",
+      "path": "Fixtures/Bank/sample-camt053-multi-statement.xml",
+      "pack": "camt-bank-statement",
+      "format": "camt.053.xml",
+      "jurisdiction": "CH",
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "a9c891c422e939cd4bb2440a8c7e845766a64eae3fe41917258ab90008c095ed",
+      "purpose": "Synthetic multi-statement CAMT.053 fixture for coverage-window and balance-selection regression coverage.",
+      "coverageTests": [
+        "CAMTBankStatementImporterTests.camt053ImporterParsesMultiStatementCoverageAndBalances"
+      ]
+    },
+    {
+      "id": "bank.sample_camt054_notification.xml.v1",
+      "path": "Fixtures/Bank/sample-camt054-notification.xml",
+      "pack": "camt-bank-notification",
+      "format": "camt.054.xml",
+      "jurisdiction": "CH",
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "716b3451adb2dd8e5838e02dadafd067c52a4f84e7586beffb5866b30a645b1b",
+      "purpose": "Synthetic CAMT.054 debit/credit notification fixture for Swiss XML notification import regression coverage.",
+      "coverageTests": [
+        "CAMTBankStatementImporterTests.camt054ImporterRecognizesFixture",
+        "CAMTBankStatementImporterTests.camt054ImporterParsesNotificationTransactions",
+        "CAMTBankStatementImporterTests.importJobServiceImportsCAMT054FixtureThroughDefaultPipeline"
+      ]
+    },
+    {
+      "id": "bank.sample_camt054_batch_notification.xml.v1",
+      "path": "Fixtures/Bank/sample-camt054-batch-notification.xml",
+      "pack": "camt-bank-notification",
+      "format": "camt.054.xml",
+      "jurisdiction": "CH",
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "6344ae326b3b8cac1aab820f420bcb58536467c00caaccd22ad085026cfc3e7c",
+      "purpose": "Synthetic CAMT.054 multi-notification fixture with a batched entry split into transaction details.",
+      "coverageTests": [
+        "CAMTBankStatementImporterTests.camt054ImporterParsesBatchAndMultiNotificationTransactions"
+      ]
+    },
+    {
+      "id": "documents.sample_receipt.pdf.v1",
+      "path": "Fixtures/Documents/sample-receipt.pdf",
+      "pack": "document-receipt",
+      "format": "pdf",
+      "jurisdiction": "CH",
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": true,
+      "sha256": "3e4d06b90709902aaec83e8d030b0412c2288b76c3c2aede97d0a8cc9d330e55",
+      "purpose": "Synthetic receipt fixture for document import, preview, reconciliation proposal, and evidence-link review flows.",
+      "coverageTests": [
+        "EvidenceRefreshServiceTests",
+        "IssueAndProposalServiceTests",
+        "AlpenLedgerAppUITests"
+      ]
+    },
+    {
+      "id": "documents.sample_qr_bill.txt.v1",
+      "path": "Fixtures/Documents/sample-qr-bill.txt",
+      "pack": "qr-bill",
+      "format": "text-qr-bill-fixture",
+      "jurisdiction": "CH",
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "2e539244268f11f1006de17bcaff8076aa74f7e3ce3cc60a29a47c5c16b55b74",
+      "purpose": "Synthetic Swiss QR-bill text payload for document-type detection and structured payment field extraction.",
+      "coverageTests": [
+        "DocumentExtractionPipelineTests.documentTypeDetectionFindsSwissQRBillPayload",
+        "DocumentExtractionPipelineTests.qrBillExtractionParsesStructuredPaymentFields"
+      ]
+    },
+    {
+      "id": "tax.ech0196.tax_statement.2026.xml.v1",
+      "path": "Fixtures/Tax/eCH/eCH-0196-tax-statement-2026.xml",
+      "pack": "ech-0196-tax-statement",
+      "format": "ech-0196-tax-statement.xml",
+      "jurisdiction": "CH",
+      "taxYear": 2026,
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "3a195792d7782c3e63d0fe4d3e6f2e553a065abed0a1bbfe3fc29bfb5918602e",
+      "purpose": "Synthetic eCH-0196 electronic tax-statement fixture for import detection and XML tax-year extraction coverage.",
+      "coverageTests": [
+        "DocumentExtractionPipelineTests.documentPipelineRecognizesECHTaxCertificateFixtures",
+        "DocumentServiceTests.documentServiceImportsECHTaxCertificateFixturesWithDetectedTypes"
+      ]
+    },
+    {
+      "id": "tax.ech0248.pension_contributions.2026.xml.v1",
+      "path": "Fixtures/Tax/eCH/eCH-0248-pension-contributions-2026.xml",
+      "pack": "ech-0248-pension-certificate",
+      "format": "ech-0248-pension-certificate.xml",
+      "jurisdiction": "CH",
+      "taxYear": 2026,
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "66c5c1efde15d269bbadfec7810c4e6e6062c1f36861acf1af82e381d3894f56",
+      "purpose": "Synthetic eCH-0248 pension-contribution certificate fixture for import detection and XML tax-year extraction coverage.",
+      "coverageTests": [
+        "DocumentExtractionPipelineTests.documentPipelineRecognizesECHTaxCertificateFixtures",
+        "DocumentServiceTests.documentServiceImportsECHTaxCertificateFixturesWithDetectedTypes"
+      ]
+    },
+    {
+      "id": "tax.ech0275.health_insurance.2026.xml.v1",
+      "path": "Fixtures/Tax/eCH/eCH-0275-health-insurance-2026.xml",
+      "pack": "ech-0275-health-insurance-certificate",
+      "format": "ech-0275-health-insurance-certificate.xml",
+      "jurisdiction": "CH",
+      "taxYear": 2026,
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "bc142b2f704d337d68ee432fc0357306cb6110a1d21501538e7407d1fbdbb07c",
+      "purpose": "Synthetic eCH-0275 health-insurance tax-certificate fixture for import detection and XML tax-year extraction coverage.",
+      "coverageTests": [
+        "DocumentExtractionPipelineTests.documentPipelineRecognizesECHTaxCertificateFixtures",
+        "DocumentServiceTests.documentServiceImportsECHTaxCertificateFixturesWithDetectedTypes"
+      ]
+    },
+    {
+      "id": "vat.simple_quarter_2026.json.v1",
+      "path": "Fixtures/VAT/simple-quarter-2026.json",
+      "pack": "vat-period-reconciliation",
+      "format": "json-vat-period-fixture",
+      "jurisdiction": "CH",
+      "taxYear": 2026,
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "87f96cd6c3ff90d0ee91a640e9b3a427771eadf9e47d4994d3351b933618f352",
+      "purpose": "Synthetic Swiss VAT quarter fixture for transaction tax-code mapping and VAT period reconciliation.",
+      "coverageTests": [
+        "VATPeriodComputationServiceTests.vatPeriodReconcilesSwissFixtureTotals"
+      ]
+    },
+    {
+      "id": "vat.ech0217_effective_reporting_2026.xml.v1",
+      "path": "Fixtures/VAT/eCH-0217-effective-reporting-2026.xml",
+      "pack": "vat-export",
+      "format": "ech-0217-vat-export.xml",
+      "jurisdiction": "CH",
+      "taxYear": 2026,
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "3e4c7e42395965d2bbb9b7f4efdc00f4c31a6e9489131b3a98a78f497b1136ec",
+      "purpose": "Golden eCH-0217 v2.0.0 effective-reporting VAT declaration fixture generated from the synthetic Swiss VAT quarter.",
+      "coverageTests": [
+        "SwissVATDeclarationExportServiceTests.swissVATDeclarationExportGeneratesExpectedECH0217XML"
+      ]
+    },
+    {
+      "id": "tax.business.2026.expected_facts.json.v1",
+      "path": "Fixtures/Tax/Business/2026/expected-business-tax-facts.json",
+      "pack": "business-tax-export",
+      "format": "json-expected-tax-facts",
+      "jurisdiction": "CH-ZH",
+      "taxYear": 2026,
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "0b578d67cc9694d5e006ed64e4db219392dc19093d0bf8b5450764d4e546e183",
+      "purpose": "Golden expected self-employment facts for the v0.1 Zurich sole-proprietor business-tax draft review fixture.",
+      "coverageTests": [
+        "TaxComputationServiceTests.zurichSoleProprietorBusinessTaxFixtureProducesExpectedFactsAndExportReadiness"
+      ]
+    },
+    {
+      "id": "tax.business.2026.export_readiness.json.v1",
+      "path": "Fixtures/Tax/Business/2026/export-readiness.json",
+      "pack": "business-tax-export",
+      "format": "json-business-tax-export-readiness",
+      "jurisdiction": "CH-ZH",
+      "taxYear": 2026,
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "86e05ac016572aa43ca766d2ab8644c7d51e783d2c11f82c60916f169d7fe27a",
+      "purpose": "Draft business-tax export readiness fixture for the v0.1 Zurich sole-proprietor pilot boundary.",
+      "coverageTests": [
+        "TaxComputationServiceTests.zurichSoleProprietorBusinessTaxFixtureProducesExpectedFactsAndExportReadiness"
+      ]
+    },
+    {
+      "id": "tax.zh.2026.salary_certificate.txt.v1",
+      "path": "Fixtures/Tax/Zurich/2026/salary-certificate.txt",
+      "pack": "zh-personal-tax-2026",
+      "format": "text-tax-fixture",
+      "jurisdiction": "CH-ZH",
+      "taxYear": 2026,
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "9d8f20a36799bd75888b0fa26b29583c7b912ea6b2000039a67eec5df9ae1b0f",
+      "purpose": "Synthetic Zurich salary-certificate fixture for personal-tax observed fact derivation.",
+      "coverageTests": [
+        "TaxComputationServiceTests.zurichNaturalPersonFixtureImportProducesObservedFacts",
+        "TaxComputationServiceTests.taxFactExplanationResolvesSupportingDocumentRefs"
+      ]
+    },
+    {
+      "id": "tax.zh.2026.health_insurance_certificate.txt.v1",
+      "path": "Fixtures/Tax/Zurich/2026/health-insurance-certificate.txt",
+      "pack": "zh-personal-tax-2026",
+      "format": "text-tax-fixture",
+      "jurisdiction": "CH-ZH",
+      "taxYear": 2026,
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "4f43dadeba37a3a9e0052f8bc7fd28634d978398a417c2120e3eaf28f067f9ea",
+      "purpose": "Synthetic Zurich health-insurance certificate fixture for personal deduction and readiness facts.",
+      "coverageTests": [
+        "TaxComputationServiceTests.zurichNaturalPersonFixtureImportProducesObservedFacts",
+        "TaxComputationServiceTests.readinessSummaryTracksNotStartedNeedsAttentionAndReadyForReview"
+      ]
+    },
+    {
+      "id": "tax.zh.2026.pillar3a_certificate.txt.v1",
+      "path": "Fixtures/Tax/Zurich/2026/pillar3a-certificate.txt",
+      "pack": "zh-personal-tax-2026",
+      "format": "text-tax-fixture",
+      "jurisdiction": "CH-ZH",
+      "taxYear": 2026,
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "0aa9a17b982a2e92c7b9ba7f6b28e5724921ef47e4a53b7889d5843167be8818",
+      "purpose": "Synthetic Zurich pillar 3a certificate fixture for personal deduction and readiness facts.",
+      "coverageTests": [
+        "TaxComputationServiceTests.zurichNaturalPersonFixtureImportProducesObservedFacts",
+        "TaxComputationServiceTests.readinessSummaryTracksNotStartedNeedsAttentionAndReadyForReview"
+      ]
+    },
+    {
+      "id": "tax.zh.2026.expected_facts.json.v1",
+      "path": "Fixtures/Tax/Zurich/2026/expected-tax-facts.json",
+      "pack": "zh-personal-tax-2026",
+      "format": "json-expected-tax-facts",
+      "jurisdiction": "CH-ZH",
+      "taxYear": 2026,
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "41c046ce03ee35ed5c3563cf196ca0dc1c6078964c8a2fcc54740e265b319460",
+      "purpose": "Golden expected tax facts for the Zurich 2026 natural-person fixture bundle.",
+      "coverageTests": [
+        "TaxComputationServiceTests.zurichNaturalPersonFixtureImportProducesObservedFacts"
+      ]
+    },
+    {
+      "id": "tax.zh.2026.export_readiness.json.v1",
+      "path": "Fixtures/Tax/Zurich/2026/export-readiness.json",
+      "pack": "personal-tax-export",
+      "format": "json-personal-tax-export-readiness",
+      "jurisdiction": "CH-ZH",
+      "taxYear": 2026,
+      "synthetic": true,
+      "containsPersonalData": false,
+      "appResource": false,
+      "sha256": "9e33f517640fe573d6bb2375e141af5928ca2caba12b957e65d0d1b097db2457",
+      "purpose": "Draft Zurich 2026 personal-tax export readiness fixture for the v0.1 natural-person pilot boundary.",
+      "coverageTests": [
+        "TaxComputationServiceTests.zurichNaturalPersonPersonalTaxExportReadinessFixtureMatchesExpectedFacts"
+      ]
+    }
+  ]
+}

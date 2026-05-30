@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.054.001.08">
+  <BkToCstmrDbtCdtNtfctn>
+    <GrpHdr>
+      <MsgId>SYNTH-CAMT-054-2026-03</MsgId>
+      <CreDtTm>2026-03-31T18:00:00Z</CreDtTm>
+    </GrpHdr>
+    <Ntfctn>
+      <Id>SYNTHETIC-MARCH-2026-NOTIFICATION</Id>
+      <CreDtTm>2026-03-31T18:00:00Z</CreDtTm>
+      <FrToDt>
+        <FrDtTm>2026-03-01T00:00:00Z</FrDtTm>
+        <ToDtTm>2026-03-31T23:59:59Z</ToDtTm>
+      </FrToDt>
+      <Acct>
+        <Id>
+          <Othr>
+            <Id>SYNTHETIC-OPERATING-CHF</Id>
+          </Othr>
+        </Id>
+        <Ccy>CHF</Ccy>
+      </Acct>
+      <Ntry>
+        <Amt Ccy="CHF">1500.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <BookgDt>
+          <Dt>2026-03-04</Dt>
+        </BookgDt>
+        <ValDt>
+          <Dt>2026-03-04</Dt>
+        </ValDt>
+        <AcctSvcrRef>CAMT-QR-2026-03</AcctSvcrRef>
+        <NtryDtls>
+          <TxDtls>
+            <Refs>
+              <EndToEndId>QR-2026-03</EndToEndId>
+              <AcctSvcrRef>CAMT-QR-2026-03</AcctSvcrRef>
+            </Refs>
+            <AmtDtls>
+              <TxAmt>
+                <Amt Ccy="CHF">1500.00</Amt>
+              </TxAmt>
+            </AmtDtls>
+            <RltdPties>
+              <Dbtr>
+                <Nm>QR Payment Customer AG</Nm>
+              </Dbtr>
+            </RltdPties>
+            <RmtInf>
+              <Ustrd>QR invoice settlement</Ustrd>
+            </RmtInf>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="CHF">30.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <BookgDt>
+          <Dt>2026-03-05</Dt>
+        </BookgDt>
+        <ValDt>
+          <Dt>2026-03-05</Dt>
+        </ValDt>
+        <AcctSvcrRef>CAMT-FEE-2026-03</AcctSvcrRef>
+        <NtryDtls>
+          <TxDtls>
+            <Refs>
+              <EndToEndId>FEE-2026-03</EndToEndId>
+              <AcctSvcrRef>CAMT-FEE-2026-03</AcctSvcrRef>
+            </Refs>
+            <AmtDtls>
+              <TxAmt>
+                <Amt Ccy="CHF">30.00</Amt>
+              </TxAmt>
+            </AmtDtls>
+            <RltdPties>
+              <Cdtr>
+                <Nm>Bank Service Fees</Nm>
+              </Cdtr>
+            </RltdPties>
+            <RmtInf>
+              <Ustrd>Account notification fee</Ustrd>
+            </RmtInf>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+    </Ntfctn>
+  </BkToCstmrDbtCdtNtfctn>
+</Document>

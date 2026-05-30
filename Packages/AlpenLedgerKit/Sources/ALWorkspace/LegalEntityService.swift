@@ -162,11 +162,16 @@ public final class LegalEntityService: Sendable {
             objectRef: ObjectRef(kind: .legalEntity, id: entity.id.rawValue)
         )
 
+        let existingEntityWorkspaces = try storage.entityWorkspaceRepository.fetchEntityWorkspaces(
+            workspaceId: entity.workspaceId
+        )
+        let shouldBecomeDefault = existingEntityWorkspaces.contains(where: \.isDefault) == false
+
         let entityWorkspace = EntityWorkspace(
             workspaceId: entity.workspaceId,
             entityId: entity.id,
             displayName: entity.displayName,
-            isDefault: true,
+            isDefault: shouldBecomeDefault,
             lastAccessedAt: nowProvider(),
             createdAt: nowProvider()
         )

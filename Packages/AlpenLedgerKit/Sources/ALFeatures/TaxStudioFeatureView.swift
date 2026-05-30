@@ -13,6 +13,8 @@ public struct TaxStudioFeatureView: View {
     private let entities: [LegalEntity]
     private let taxYears: [TaxYear]
     private let snapshot: TaxStudioSnapshot
+    private let onLockTaxYear: () -> Void
+    private let onUnlockTaxYear: () -> Void
 
     public init(
         selectedEntityId: Binding<LegalEntityID?>,
@@ -20,7 +22,9 @@ public struct TaxStudioFeatureView: View {
         selection: Binding<TaxStudioSelection?>,
         entities: [LegalEntity],
         taxYears: [TaxYear],
-        snapshot: TaxStudioSnapshot
+        snapshot: TaxStudioSnapshot,
+        onLockTaxYear: @escaping () -> Void,
+        onUnlockTaxYear: @escaping () -> Void
     ) {
         _selectedEntityId = selectedEntityId
         _selectedTaxYearId = selectedTaxYearId
@@ -28,6 +32,8 @@ public struct TaxStudioFeatureView: View {
         self.entities = entities
         self.taxYears = taxYears
         self.snapshot = snapshot
+        self.onLockTaxYear = onLockTaxYear
+        self.onUnlockTaxYear = onUnlockTaxYear
     }
 
     public var body: some View {
@@ -70,6 +76,27 @@ public struct TaxStudioFeatureView: View {
             StatusBadge(snapshot.readinessTitle, tone: snapshot.readinessTone)
 
             Spacer()
+
+            if let periodStatus = snapshot.periodStatus {
+                StatusBadge(periodStatus.statusText, tone: periodStatus.tone)
+                    .accessibilityIdentifier("taxStudio.periodStatusBadge")
+
+                if periodStatus.canLock {
+                    Button(action: onLockTaxYear) {
+                        Label("Lock Year", systemImage: "lock")
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("taxStudio.lockYearButton")
+                }
+
+                if periodStatus.canUnlock {
+                    Button(action: onUnlockTaxYear) {
+                        Label("Reopen Year", systemImage: "lock.open")
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("taxStudio.unlockYearButton")
+                }
+            }
         }
     }
 
@@ -80,6 +107,16 @@ public struct TaxStudioFeatureView: View {
 
                 GroupBox("Readiness") {
                     VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                        if let periodStatus = snapshot.periodStatus {
+                            VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                                Text(periodStatus.title)
+                                    .font(.body.weight(.medium))
+                                Text(periodStatus.detail)
+                                    .font(AppTheme.metaFont)
+                                    .foregroundStyle(AppTheme.subduedForegroundColor)
+                            }
+                        }
+
                         Text(snapshot.readinessSummary)
                             .font(AppTheme.metaFont)
                             .foregroundStyle(AppTheme.subduedForegroundColor)
@@ -105,6 +142,136 @@ public struct TaxStudioFeatureView: View {
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                if snapshot.vatPeriods.isEmpty == false {
+                    VStack(alignment: .leading, spacing: AppTheme.spacingM) {
+                        VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                            Text("VAT")
+                                .font(AppTheme.sectionTitleFont)
+                                .bold()
+                            Text("Period reconciliation status and issues for the selected entity.")
+                                .font(AppTheme.sectionSubtitleFont)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        ForEach(snapshot.vatPeriods) { period in
+                            GroupBox {
+                                VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                                    Button {
+                                        selection = period.selection
+                                    } label: {
+                                        HStack(alignment: .top, spacing: AppTheme.spacingS) {
+                                            VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                                                Text(period.subtitle)
+                                                    .font(AppTheme.metaFont)
+                                                    .foregroundStyle(AppTheme.subduedForegroundColor)
+                                                Text(period.issueSummary)
+                                                    .font(AppTheme.metaFont)
+                                                    .foregroundStyle(AppTheme.subduedForegroundColor)
+                                            }
+
+                                            Spacer()
+
+                                            StatusBadge(period.statusText, tone: period.tone)
+                                        }
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityIdentifier("taxStudio.vatPeriod.\(period.id.rawValue.uuidString)")
+
+                                    HStack(spacing: AppTheme.spacingM) {
+                                        taxDetailColumn("Output", period.outputTaxText)
+                                        taxDetailColumn("Input", period.inputTaxText)
+                                        taxDetailColumn("Payable", period.payableTaxText)
+                                    }
+
+                                    if period.issues.isEmpty {
+                                        Text("No VAT reconciliation issues.")
+                                            .font(AppTheme.metaFont)
+                                            .foregroundStyle(.secondary)
+                                    } else {
+                                        VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                                            ForEach(period.issues) { issue in
+                                                Button {
+                                                    selection = issue.selection
+                                                } label: {
+                                                    WorkItemRow(
+                                                        title: issue.title,
+                                                        subtitle: issue.subtitle,
+                                                        systemImage: issue.systemImage,
+                                                        statusTitle: issue.statusText,
+                                                        tone: issue.tone
+                                                    )
+                                                    .contentShape(Rectangle())
+                                                }
+                                                .buttonStyle(.plain)
+                                                .accessibilityIdentifier("taxStudio.vatIssue.\(issue.id)")
+                                            }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Text(period.title)
+                                        .font(.headline)
+                                    Spacer()
+                                    Text(period.payableTaxText)
+                                        .font(AppTheme.metaFont)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if snapshot.filingPackages.isEmpty == false {
+                    VStack(alignment: .leading, spacing: AppTheme.spacingM) {
+                        VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                            Text("Filing Packages")
+                                .font(AppTheme.sectionTitleFont)
+                                .bold()
+                            Text("Prepared export artifacts and their filing boundary.")
+                                .font(AppTheme.sectionSubtitleFont)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        ForEach(snapshot.filingPackages) { filingPackage in
+                            GroupBox {
+                                Button {
+                                    selection = filingPackage.selection
+                                } label: {
+                                    HStack(alignment: .top, spacing: AppTheme.spacingS) {
+                                        Image(systemName: filingPackage.systemImage)
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 20)
+
+                                        VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+                                            Text(filingPackage.title)
+                                                .font(.body.weight(.medium))
+                                                .foregroundStyle(.primary)
+                                            Text(filingPackage.filingBoundaryText)
+                                                .font(AppTheme.metaFont)
+                                                .foregroundStyle(AppTheme.subduedForegroundColor)
+                                        }
+
+                                        Spacer()
+
+                                        StatusBadge(filingPackage.statusText, tone: filingPackage.tone)
+                                    }
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("taxStudio.filingPackage.\(filingPackage.id.rawValue.uuidString)")
+
+                                HStack(spacing: AppTheme.spacingM) {
+                                    taxDetailColumn("Format", filingPackage.exportFormatText)
+                                    taxDetailColumn("Generated", filingPackage.generatedAtText)
+                                    taxDetailColumn("Finalized", filingPackage.finalizationText)
+                                }
+                            }
                         }
                     }
                 }
@@ -234,5 +401,16 @@ public struct TaxStudioFeatureView: View {
                 }
             }
         )
+    }
+
+    private func taxDetailColumn(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.spacingXXS) {
+            Text(title)
+                .font(AppTheme.metaFont)
+                .foregroundStyle(AppTheme.subduedForegroundColor)
+            Text(value)
+                .font(.body.monospacedDigit())
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

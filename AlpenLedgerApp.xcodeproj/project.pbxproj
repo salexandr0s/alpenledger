@@ -8,34 +8,36 @@
 
 /* Begin PBXBuildFile section */
 		090C597F30A8C4ED1462AA69 /* WorkspaceAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13EFD619D7FC73C2382A6F5C /* WorkspaceAppModel.swift */; };
-		A1B2C3D4E5F60718A9B0C1D2 /* ActiveWorkspaceSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718A9B0C1D3 /* ActiveWorkspaceSession.swift */; };
-		A1B2C3D4E5F60718A9B0C1D4 /* WorkspaceAppModel+Snapshots.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718A9B0C1D5 /* WorkspaceAppModel+Snapshots.swift */; };
-		A1B2C3D4E5F60718A9B0C1D6 /* PresentationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718A9B0C1D7 /* PresentationHelpers.swift */; };
-		B3A1D7E8F2C40956A1E3B7D1 /* DetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3A1D7E8F2C40956A1E3B7D0 /* DetailView.swift */; };
-		B3A1D7E8F2C40956A1E3B7D3 /* DocumentLinkSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3A1D7E8F2C40956A1E3B7D2 /* DocumentLinkSheet.swift */; };
-		B3A1D7E8F2C40956A1E3B7D5 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3A1D7E8F2C40956A1E3B7D4 /* SidebarView.swift */; };
-		B3A1D7E8F2C40956A1E3B7D7 /* TransactionLinkSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3A1D7E8F2C40956A1E3B7D6 /* TransactionLinkSheet.swift */; };
-		B3A1D7E8F2C40956A1E3B7D9 /* WorkspaceShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3A1D7E8F2C40956A1E3B7D8 /* WorkspaceShellView.swift */; };
 		1B0F0CDAE5158505C3B1AC08 /* ALDocuments in Frameworks */ = {isa = PBXBuildFile; productRef = 8C65E55F14F7283505E8D5EF /* ALDocuments */; };
+		2C82460C684C44FF406A86A0 /* WorkspaceShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 848E6335E1F754249BEC697F /* WorkspaceShellView.swift */; };
 		2C893B1E88FF097296C64696 /* ALLedger in Frameworks */ = {isa = PBXBuildFile; productRef = 206991AA60C82400EF91E1C1 /* ALLedger */; };
 		2E2444C8A5A587F7CB116046 /* ALWorkspace in Frameworks */ = {isa = PBXBuildFile; productRef = A81C6F10C00F071C1CD1001D /* ALWorkspace */; };
 		30CB8D3691FC35758E096D8A /* ALStorage in Frameworks */ = {isa = PBXBuildFile; productRef = D09244979C7D215FF6FDA644 /* ALStorage */; };
 		40B90FF7A140D0116D1CF1DE /* sample-bank-statement.csv in Resources */ = {isa = PBXBuildFile; fileRef = 1ADC1A058888B94E71C36818 /* sample-bank-statement.csv */; };
+		41DBA3739E3A7F1467D794BF /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFD7093E8D10F4932AB76213 /* SidebarView.swift */; };
 		50D28A5351B0D87369B7E430 /* AlpenLedgerAppUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CD9D8C51E570950EAF2312F /* AlpenLedgerAppUITests.swift */; };
+		549425A7C3F5B07532A215A6 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 2D8A58596179AE2FAA898617 /* Localizable.strings */; };
 		5D772021C4C17D1DB2C3D443 /* AppRuntimeConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = F919D5DCAB173C30B54E18A5 /* AppRuntimeConfiguration.swift */; };
 		60786F4E915C8C2429A0F2F7 /* ALTaxCH in Frameworks */ = {isa = PBXBuildFile; productRef = 2D469EE7377120D9D839805C /* ALTaxCH */; };
+		6737CA98BC966C15047BC724 /* ActiveWorkspaceSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DE6D7DC3DBAD7D257E94649 /* ActiveWorkspaceSession.swift */; };
 		74530272624D6E493602CB43 /* ALImports in Frameworks */ = {isa = PBXBuildFile; productRef = 2724495F31748F8FF0AF40A9 /* ALImports */; };
 		75884702789DCA988E654C0C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9A0B1B63A5DC5CDA2FAEF4AC /* Assets.xcassets */; };
 		77EB47F89434B72C5191B25B /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCAD84BC3F7A3A98C9FC03A /* DependencyContainer.swift */; };
 		78E6BFFF8D656CE789A0EB8B /* sample-receipt.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 959B2437D86F5C90CA1970A6 /* sample-receipt.pdf */; };
 		999E7C4DE8D3B52927B25301 /* ALFeatures in Frameworks */ = {isa = PBXBuildFile; productRef = A81AAB4890010D7244718A07 /* ALFeatures */; };
+		A0BE2E211FAE173C53C80320 /* BackupPanelClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7E978DBF4B6BFE84AFB4E36 /* BackupPanelClient.swift */; };
+		A36FC936ED7D7A47C5F01E3E /* TransactionLinkSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06D16CD851C89C76773630F2 /* TransactionLinkSheet.swift */; };
 		A45333832DFE2CE7C2142F7E /* ALAudit in Frameworks */ = {isa = PBXBuildFile; productRef = 1E3D79555CE7209B52CDE988 /* ALAudit */; };
+		A5EC05B88A8E78F2278CD3E4 /* PresentationHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BCEF18E1E2EC46BEA417A76 /* PresentationHelpers.swift */; };
 		B77D210B25D1FFED5F298BF9 /* AppSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84F9BD3CC4DD1B16350FBA0B /* AppSection.swift */; };
 		BC59D98AAAD7A2FF6A5BDE12 /* RootSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CCE14D7FC301A491301012 /* RootSplitView.swift */; };
 		C262F2B98D8F6994F055774C /* ALDomain in Frameworks */ = {isa = PBXBuildFile; productRef = 6C1D0C0924D8F41CFF3B76E9 /* ALDomain */; };
 		C9A6FC57AE1B22E624E0B19C /* ALEvidence in Frameworks */ = {isa = PBXBuildFile; productRef = 64AEFBD470DC15921FFA718F /* ALEvidence */; };
 		CC36C68B2D08AB14A6FAFD51 /* AlpenLedgerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D83B6474B6C7E6FC36E7806 /* AlpenLedgerApp.swift */; };
 		D3C00BCE2BAE6A9AE4959427 /* ALTaxCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DAB2A8E5631D392688FAD63 /* ALTaxCore */; };
+		DB6293911E69BA2281C16B3E /* DetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD268AC3513FB3057A194393 /* DetailView.swift */; };
+		E79ACFA752F63F01546FB1D6 /* DocumentLinkSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61930B7FC5D7272689013CD7 /* DocumentLinkSheet.swift */; };
+		F20C230116B812B42EA3F5EF /* WorkspaceAppModel+Snapshots.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15BEEC9E91328691F5B9CB0F /* WorkspaceAppModel+Snapshots.swift */; };
 		FD12BFB5CD3D9094EAF5E376 /* AlpenLedgerAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3097DFB9BC6B9C41C7B87C1 /* AlpenLedgerAppTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -57,30 +59,32 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		06D16CD851C89C76773630F2 /* TransactionLinkSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionLinkSheet.swift; sourceTree = "<group>"; };
 		0CCAD84BC3F7A3A98C9FC03A /* DependencyContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DependencyContainer.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718A9B0C1D3 /* ActiveWorkspaceSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkspaceSession.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718A9B0C1D5 /* WorkspaceAppModel+Snapshots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkspaceAppModel+Snapshots.swift"; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718A9B0C1D7 /* PresentationHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationHelpers.swift; sourceTree = "<group>"; };
-		B3A1D7E8F2C40956A1E3B7D0 /* DetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailView.swift; sourceTree = "<group>"; };
-		B3A1D7E8F2C40956A1E3B7D2 /* DocumentLinkSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentLinkSheet.swift; sourceTree = "<group>"; };
-		B3A1D7E8F2C40956A1E3B7D4 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
-		B3A1D7E8F2C40956A1E3B7D6 /* TransactionLinkSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionLinkSheet.swift; sourceTree = "<group>"; };
-		B3A1D7E8F2C40956A1E3B7D8 /* WorkspaceShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceShellView.swift; sourceTree = "<group>"; };
+		0DE6D7DC3DBAD7D257E94649 /* ActiveWorkspaceSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWorkspaceSession.swift; sourceTree = "<group>"; };
 		13EFD619D7FC73C2382A6F5C /* WorkspaceAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceAppModel.swift; sourceTree = "<group>"; };
+		15BEEC9E91328691F5B9CB0F /* WorkspaceAppModel+Snapshots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkspaceAppModel+Snapshots.swift"; sourceTree = "<group>"; };
 		1ADC1A058888B94E71C36818 /* sample-bank-statement.csv */ = {isa = PBXFileReference; path = "sample-bank-statement.csv"; sourceTree = "<group>"; };
+		1BCEF18E1E2EC46BEA417A76 /* PresentationHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationHelpers.swift; sourceTree = "<group>"; };
 		3CD9D8C51E570950EAF2312F /* AlpenLedgerAppUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlpenLedgerAppUITests.swift; sourceTree = "<group>"; };
 		4D83B6474B6C7E6FC36E7806 /* AlpenLedgerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlpenLedgerApp.swift; sourceTree = "<group>"; };
 		52CCE14D7FC301A491301012 /* RootSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootSplitView.swift; sourceTree = "<group>"; };
+		61930B7FC5D7272689013CD7 /* DocumentLinkSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentLinkSheet.swift; sourceTree = "<group>"; };
 		6840ECE291C4E2BBFD9CB004 /* AlpenLedgerAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AlpenLedgerAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8035903DE2C3B1A45595B82C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		848E6335E1F754249BEC697F /* WorkspaceShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceShellView.swift; sourceTree = "<group>"; };
 		84F9BD3CC4DD1B16350FBA0B /* AppSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSection.swift; sourceTree = "<group>"; };
 		959B2437D86F5C90CA1970A6 /* sample-receipt.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = "sample-receipt.pdf"; sourceTree = "<group>"; };
 		9A0B1B63A5DC5CDA2FAEF4AC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C3097DFB9BC6B9C41C7B87C1 /* AlpenLedgerAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlpenLedgerAppTests.swift; sourceTree = "<group>"; };
+		C79538094D3B3743B4C83945 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		CD268AC3513FB3057A194393 /* DetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailView.swift; sourceTree = "<group>"; };
 		D6FCD6E58B289D0CF0A667CB /* AlpenLedgerAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AlpenLedgerAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E7E978DBF4B6BFE84AFB4E36 /* BackupPanelClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupPanelClient.swift; sourceTree = "<group>"; };
 		F3B78CFCC4EFB751A575111C /* AlpenLedgerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlpenLedgerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5C43549E18CA9FA6235E85F /* AlpenLedgerKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AlpenLedgerKit; path = Packages/AlpenLedgerKit; sourceTree = SOURCE_ROOT; };
 		F919D5DCAB173C30B54E18A5 /* AppRuntimeConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRuntimeConfiguration.swift; sourceTree = "<group>"; };
+		FFD7093E8D10F4932AB76213 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,6 +133,14 @@
 			path = AlpenLedgerAppTests;
 			sourceTree = "<group>";
 		};
+		55515CEEC2174857EAD7E4A8 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				2D8A58596179AE2FAA898617 /* Localizable.strings */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		5621EC0205B202B256A76577 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -142,16 +154,17 @@
 		5D342CC12527433591125D0D /* Root */ = {
 			isa = PBXGroup;
 			children = (
-				A1B2C3D4E5F60718A9B0C1D3 /* ActiveWorkspaceSession.swift */,
-				B3A1D7E8F2C40956A1E3B7D0 /* DetailView.swift */,
-				B3A1D7E8F2C40956A1E3B7D2 /* DocumentLinkSheet.swift */,
-				A1B2C3D4E5F60718A9B0C1D7 /* PresentationHelpers.swift */,
+				0DE6D7DC3DBAD7D257E94649 /* ActiveWorkspaceSession.swift */,
+				E7E978DBF4B6BFE84AFB4E36 /* BackupPanelClient.swift */,
+				CD268AC3513FB3057A194393 /* DetailView.swift */,
+				61930B7FC5D7272689013CD7 /* DocumentLinkSheet.swift */,
+				1BCEF18E1E2EC46BEA417A76 /* PresentationHelpers.swift */,
 				52CCE14D7FC301A491301012 /* RootSplitView.swift */,
-				B3A1D7E8F2C40956A1E3B7D4 /* SidebarView.swift */,
-				B3A1D7E8F2C40956A1E3B7D6 /* TransactionLinkSheet.swift */,
+				FFD7093E8D10F4932AB76213 /* SidebarView.swift */,
+				06D16CD851C89C76773630F2 /* TransactionLinkSheet.swift */,
 				13EFD619D7FC73C2382A6F5C /* WorkspaceAppModel.swift */,
-				A1B2C3D4E5F60718A9B0C1D5 /* WorkspaceAppModel+Snapshots.swift */,
-				B3A1D7E8F2C40956A1E3B7D8 /* WorkspaceShellView.swift */,
+				15BEEC9E91328691F5B9CB0F /* WorkspaceAppModel+Snapshots.swift */,
+				848E6335E1F754249BEC697F /* WorkspaceShellView.swift */,
 			);
 			path = Root;
 			sourceTree = "<group>";
@@ -194,6 +207,7 @@
 				0CCAD84BC3F7A3A98C9FC03A /* DependencyContainer.swift */,
 				8035903DE2C3B1A45595B82C /* Info.plist */,
 				12CA9B5F541E6D5356D3DCCF /* Navigation */,
+				55515CEEC2174857EAD7E4A8 /* Resources */,
 				5D342CC12527433591125D0D /* Root */,
 			);
 			path = AlpenLedgerApp;
@@ -343,6 +357,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				75884702789DCA988E654C0C /* Assets.xcassets in Resources */,
+				549425A7C3F5B07532A215A6 /* Localizable.strings in Resources */,
 				40B90FF7A140D0116D1CF1DE /* sample-bank-statement.csv in Resources */,
 				78E6BFFF8D656CE789A0EB8B /* sample-receipt.pdf in Resources */,
 			);
@@ -355,20 +370,21 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1B2C3D4E5F60718A9B0C1D2 /* ActiveWorkspaceSession.swift in Sources */,
+				6737CA98BC966C15047BC724 /* ActiveWorkspaceSession.swift in Sources */,
 				CC36C68B2D08AB14A6FAFD51 /* AlpenLedgerApp.swift in Sources */,
 				5D772021C4C17D1DB2C3D443 /* AppRuntimeConfiguration.swift in Sources */,
 				B77D210B25D1FFED5F298BF9 /* AppSection.swift in Sources */,
+				A0BE2E211FAE173C53C80320 /* BackupPanelClient.swift in Sources */,
 				77EB47F89434B72C5191B25B /* DependencyContainer.swift in Sources */,
-				B3A1D7E8F2C40956A1E3B7D1 /* DetailView.swift in Sources */,
-				B3A1D7E8F2C40956A1E3B7D3 /* DocumentLinkSheet.swift in Sources */,
-				A1B2C3D4E5F60718A9B0C1D6 /* PresentationHelpers.swift in Sources */,
+				DB6293911E69BA2281C16B3E /* DetailView.swift in Sources */,
+				E79ACFA752F63F01546FB1D6 /* DocumentLinkSheet.swift in Sources */,
+				A5EC05B88A8E78F2278CD3E4 /* PresentationHelpers.swift in Sources */,
 				BC59D98AAAD7A2FF6A5BDE12 /* RootSplitView.swift in Sources */,
-				B3A1D7E8F2C40956A1E3B7D5 /* SidebarView.swift in Sources */,
-				B3A1D7E8F2C40956A1E3B7D7 /* TransactionLinkSheet.swift in Sources */,
+				41DBA3739E3A7F1467D794BF /* SidebarView.swift in Sources */,
+				A36FC936ED7D7A47C5F01E3E /* TransactionLinkSheet.swift in Sources */,
+				F20C230116B812B42EA3F5EF /* WorkspaceAppModel+Snapshots.swift in Sources */,
 				090C597F30A8C4ED1462AA69 /* WorkspaceAppModel.swift in Sources */,
-				A1B2C3D4E5F60718A9B0C1D4 /* WorkspaceAppModel+Snapshots.swift in Sources */,
-				B3A1D7E8F2C40956A1E3B7D9 /* WorkspaceShellView.swift in Sources */,
+				2C82460C684C44FF406A86A0 /* WorkspaceShellView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -402,6 +418,17 @@
 			targetProxy = E1651382CF0B0310D7177AB2 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		2D8A58596179AE2FAA898617 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C79538094D3B3743B4C83945 /* en */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		1D7A053A76233A3A1D9D1016 /* Release */ = {
@@ -602,6 +629,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = App/AlpenLedgerApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -621,6 +649,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = App/AlpenLedgerApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

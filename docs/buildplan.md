@@ -11,7 +11,7 @@ This plan assumes you want a **serious production-grade macOS app**, not a demo:
 - AI-assisted but deterministic at the core.
 
 ### Recommended delivery horizon
-**Full track:** ~10–14 months for a robust v1  
+**Full track:** ~10–14 months for a robust v1
 **Fast-track narrowed MVP:** ~4–6 months if you reduce scope to:
 - one pilot canton,
 - personal tax only,
@@ -574,7 +574,7 @@ Outcome:
 ## 10. Pilot strategy recommendation
 
 ### Personal pilot
-Choose **one canton** for end-to-end polish first.  
+Choose **one canton** for end-to-end polish first.
 Recommendation: start with a high-usage canton such as Zurich unless you already have a better anchor customer elsewhere.
 
 ### Business pilot
@@ -628,7 +628,7 @@ That order matters. A beautiful finance app with untrustworthy tax data will fai
 
 ## 14. Final recommendation
 
-Build AlpenLedger as a **deterministic local finance engine with an evidence graph**, then layer Swiss filing adapters and AI on top.  
+Build AlpenLedger as a **deterministic local finance engine with an evidence graph**, then layer Swiss filing adapters and AI on top.
 That path gives you the highest chance of shipping something that users can trust with real personal and business taxes.
 
 ---

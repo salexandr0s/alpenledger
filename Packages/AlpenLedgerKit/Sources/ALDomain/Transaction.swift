@@ -20,9 +20,11 @@ public struct Transaction: Hashable, Codable, Sendable {
     public var valueDate: Date?
     public var amountMinor: Int64
     public var currency: CurrencyCode
+    public var counterpartyId: CounterpartyID?
     public var counterpartyName: String
     public var memo: String
     public var reference: String?
+    public var taxCode: String?
     public var balanceAfterMinor: Int64?
     public var reviewState: ReviewState
 
@@ -36,9 +38,11 @@ public struct Transaction: Hashable, Codable, Sendable {
         valueDate: Date? = nil,
         amountMinor: Int64,
         currency: CurrencyCode,
+        counterpartyId: CounterpartyID? = nil,
         counterpartyName: String,
         memo: String,
         reference: String? = nil,
+        taxCode: String? = nil,
         balanceAfterMinor: Int64? = nil,
         reviewState: ReviewState = .pending
     ) {
@@ -51,9 +55,11 @@ public struct Transaction: Hashable, Codable, Sendable {
         self.valueDate = valueDate
         self.amountMinor = amountMinor
         self.currency = currency
+        self.counterpartyId = counterpartyId
         self.counterpartyName = counterpartyName
         self.memo = memo
         self.reference = reference
+        self.taxCode = taxCode
         self.balanceAfterMinor = balanceAfterMinor
         self.reviewState = reviewState
     }

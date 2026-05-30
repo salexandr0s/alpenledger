@@ -1,7 +1,13 @@
 # ADR-003: Entity-Workspace Scoping
 
-**Status:** Accepted
-**Date:** 2026-03-20
+## Title
+Entity-workspace scoping
+
+## Status
+Accepted
+
+## Date
+2026-03-20
 
 ## Context
 

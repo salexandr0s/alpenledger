@@ -107,6 +107,20 @@ public struct InboxFeatureView: View {
                             }
                         }
 
+                        if inspector.evidence.isEmpty == false {
+                            GroupBox("Sources") {
+                                VStack(alignment: .leading, spacing: AppTheme.spacingS) {
+                                    ForEach(inspector.evidence) { item in
+                                        DocumentReferenceRow(
+                                            title: item.title,
+                                            subtitle: item.subtitle,
+                                            systemImage: item.systemImage
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         if inspector.actions.isEmpty == false {
                             GroupBox("Actions") {
                                 HStack(spacing: AppTheme.spacingS) {

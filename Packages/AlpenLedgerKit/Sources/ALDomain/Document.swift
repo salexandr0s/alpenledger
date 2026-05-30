@@ -9,15 +9,24 @@ public enum DocumentType: String, Codable, CaseIterable, Sendable {
     case unknown
     case receipt
     case invoice
+    case qrBill
     case bankStatement
     case salaryCertificate
     case healthInsuranceCertificate
     case pillar3aCertificate
+    case eCH0196TaxStatement
+    case eCH0248PensionCertificate
+    case eCH0275HealthInsuranceCertificate
 }
 
 public enum MetadataStatus: String, Codable, CaseIterable, Sendable {
     case proposed
     case confirmed
+}
+
+public enum DocumentStatus: String, Codable, CaseIterable, Sendable {
+    case active
+    case archived
 }
 
 public struct Document: Hashable, Codable, Sendable {
@@ -36,6 +45,10 @@ public struct Document: Hashable, Codable, Sendable {
     public var extractedText: String?
     public var metadataStatus: MetadataStatus
     public var parseVersion: String
+    public var status: DocumentStatus
+    public var archivedAt: Date?
+    public var archivedBy: String?
+    public var archiveReason: String?
 
     public init(
         id: DocumentID = DocumentID(),
@@ -52,7 +65,11 @@ public struct Document: Hashable, Codable, Sendable {
         detectedTaxYearId: TaxYearID? = nil,
         extractedText: String? = nil,
         metadataStatus: MetadataStatus = .proposed,
-        parseVersion: String = "v1"
+        parseVersion: String = "v1",
+        status: DocumentStatus = .active,
+        archivedAt: Date? = nil,
+        archivedBy: String? = nil,
+        archiveReason: String? = nil
     ) {
         self.id = id
         self.workspaceId = workspaceId
@@ -69,5 +86,9 @@ public struct Document: Hashable, Codable, Sendable {
         self.extractedText = extractedText
         self.metadataStatus = metadataStatus
         self.parseVersion = parseVersion
+        self.status = status
+        self.archivedAt = archivedAt
+        self.archivedBy = archivedBy
+        self.archiveReason = archiveReason
     }
 }

@@ -13,6 +13,8 @@ public struct MoneyFormatter: Sendable {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
+        formatter.groupingSeparator = "\u{2019}"
+        formatter.decimalSeparator = "."
         let value = Decimal(minorUnits) / 100
         let formatted = formatter.string(from: value as NSDecimalNumber) ?? "\(value)"
         return "\(formatted) \(currency.rawValue)"

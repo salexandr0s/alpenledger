@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.054.001.08">
+  <BkToCstmrDbtCdtNtfctn>
+    <GrpHdr>
+      <MsgId>SYNTH-CAMT-054-BATCH-2026-06</MsgId>
+      <CreDtTm>2026-06-30T18:00:00Z</CreDtTm>
+    </GrpHdr>
+    <Ntfctn>
+      <Id>SYNTHETIC-JUNE-2026-BATCH-NOTIFICATION</Id>
+      <CreDtTm>2026-06-15T18:00:00Z</CreDtTm>
+      <FrToDt>
+        <FrDtTm>2026-06-01T00:00:00Z</FrDtTm>
+        <ToDtTm>2026-06-15T23:59:59Z</ToDtTm>
+      </FrToDt>
+      <Acct>
+        <Id>
+          <Othr>
+            <Id>SYNTHETIC-OPERATING-CHF</Id>
+          </Othr>
+        </Id>
+        <Ccy>CHF</Ccy>
+      </Acct>
+      <Ntry>
+        <Amt Ccy="CHF">750.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <BookgDt>
+          <Dt>2026-06-07</Dt>
+        </BookgDt>
+        <ValDt>
+          <Dt>2026-06-07</Dt>
+        </ValDt>
+        <AcctSvcrRef>CAMT-BATCH-2026-06</AcctSvcrRef>
+        <NtryDtls>
+          <TxDtls>
+            <Refs>
+              <EndToEndId>BATCH-450</EndToEndId>
+              <AcctSvcrRef>CAMT-BATCH-450</AcctSvcrRef>
+            </Refs>
+            <AmtDtls>
+              <TxAmt>
+                <Amt Ccy="CHF">450.00</Amt>
+              </TxAmt>
+            </AmtDtls>
+            <RltdPties>
+              <Dbtr>
+                <Nm>Marketplace Customer AG</Nm>
+              </Dbtr>
+            </RltdPties>
+            <RmtInf>
+              <Ustrd>Marketplace settlement component</Ustrd>
+            </RmtInf>
+          </TxDtls>
+          <TxDtls>
+            <Refs>
+              <EndToEndId>BATCH-300</EndToEndId>
+              <AcctSvcrRef>CAMT-BATCH-300</AcctSvcrRef>
+            </Refs>
+            <AmtDtls>
+              <TxAmt>
+                <Amt Ccy="CHF">300.00</Amt>
+              </TxAmt>
+            </AmtDtls>
+            <RltdPties>
+              <Dbtr>
+                <Nm>Subscription Customer AG</Nm>
+              </Dbtr>
+            </RltdPties>
+            <RmtInf>
+              <Ustrd>Subscription settlement component</Ustrd>
+            </RmtInf>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+    </Ntfctn>
+    <Ntfctn>
+      <Id>SYNTHETIC-JUNE-2026-FEE-NOTIFICATION</Id>
+      <CreDtTm>2026-06-30T18:00:00Z</CreDtTm>
+      <FrToDt>
+        <FrDtTm>2026-06-16T00:00:00Z</FrDtTm>
+        <ToDtTm>2026-06-30T23:59:59Z</ToDtTm>
+      </FrToDt>
+      <Acct>
+        <Id>
+          <Othr>
+            <Id>SYNTHETIC-OPERATING-CHF</Id>
+          </Othr>
+        </Id>
+        <Ccy>CHF</Ccy>
+      </Acct>
+      <Ntry>
+        <Amt Ccy="CHF">80.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <BookgDt>
+          <Dt>2026-06-21</Dt>
+        </BookgDt>
+        <ValDt>
+          <Dt>2026-06-21</Dt>
+        </ValDt>
+        <AcctSvcrRef>CAMT-TERM-2026-06</AcctSvcrRef>
+        <NtryDtls>
+          <TxDtls>
+            <Refs>
+              <EndToEndId>TERM-2026-06</EndToEndId>
+              <AcctSvcrRef>CAMT-TERM-2026-06</AcctSvcrRef>
+            </Refs>
+            <AmtDtls>
+              <TxAmt>
+                <Amt Ccy="CHF">80.00</Amt>
+              </TxAmt>
+            </AmtDtls>
+            <RltdPties>
+              <Cdtr>
+                <Nm>Payment Terminal AG</Nm>
+              </Cdtr>
+            </RltdPties>
+            <RmtInf>
+              <Ustrd>Card terminal fee</Ustrd>
+            </RmtInf>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+    </Ntfctn>
+  </BkToCstmrDbtCdtNtfctn>
+</Document>

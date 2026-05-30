@@ -28,13 +28,19 @@ final class WorkspaceAppModel {
         let inspectorControl: InspectorControl?
     }
 
+    struct BackupIntegrityResult {
+        let backupName: String
+        let report: WorkspaceBackupIntegrityReport
+    }
+
     let container: DependencyContainer
-    private let uiPreferencesStore: WorkspaceUIPreferencesStore
+    let uiPreferencesStore: WorkspaceUIPreferencesStore
 
     var recentWorkspaces: [RecentWorkspaceReference] = []
     var newWorkspaceName = ""
     var newSolePropName = ""
     var documentSearchQuery = ""
+    var globalSearchQuery = ""
     var ledgerTransactionScope: LedgerTransactionScope = .all
     var documentFilterScope: DocumentFilterScope = .all
     var selectedSection: AppSection = .overview
@@ -47,12 +53,40 @@ final class WorkspaceAppModel {
     var selectedTaxFactId: TaxFactID?
     var selectedTaxStudioSelection: TaxStudioSelection?
     var isShowingNewWorkspaceSheet = false
+    var isShowingGlobalSearch = false
     var isLedgerInspectorVisible = true
     var isDocumentsInspectorVisible = true
+    var isShowingHelpCenter = false
     var isShowingDocumentLinkSheet = false
     var isShowingTransactionLinkSheet = false
+    var errorTitle = "Action could not be completed"
     var errorMessage: String?
+    var errorRecoverySuggestion: String?
     var isShowingErrorAlert = false
+    var errorAlertBody: String {
+        let message: String
+        if let trimmedMessage = errorMessage?.trimmingCharacters(in: .whitespacesAndNewlines),
+           trimmedMessage.isEmpty == false {
+            message = trimmedMessage
+        } else {
+            message = "The action could not be completed."
+        }
+
+        guard let recoverySuggestion = errorRecoverySuggestion?.trimmingCharacters(in: .whitespacesAndNewlines),
+              recoverySuggestion.isEmpty == false
+        else {
+            return message
+        }
+        return "\(message)\n\n\(recoverySuggestion)"
+    }
+    var backupStatusMessage: String?
+    var backupIntegrityResult: BackupIntegrityResult?
+    var importDefaultsStatusMessage: String?
+    var diagnosticsStatusMessage: String?
+    var workspaceLockStatusMessage: String?
+    var latestDiagnosticsReport: WorkspaceSupportDiagnosticsReport?
+    var latestSupportBundle: WorkspaceSupportBundle?
+    var databaseHealthReport: WorkspaceDatabaseHealthReport?
 
     private(set) var session: ActiveWorkspaceSession?
 
@@ -61,12 +95,16 @@ final class WorkspaceAppModel {
     private(set) var financialAccounts: [FinancialAccount] = []
     private(set) var transactions: [Transaction] = []
     private(set) var documents: [Document] = []
+    private(set) var archivedDocuments: [Document] = []
     private(set) var importJobs: [ImportJob] = []
+    private(set) var importDiagnosticsByJobId: [ImportJobID: [ImportDiagnostic]] = [:]
     private(set) var issues: [Issue] = []
     private(set) var agentProposals: [AgentProposal] = []
     private(set) var taxFacts: [TaxFact] = []
     private(set) var taxRequirements: [Requirement] = []
     private(set) var taxIssues: [Issue] = []
+    private(set) var filingPackages: [FilingPackage] = []
+    private(set) var vatPeriodReports: [VATReconciliationReport] = []
     private(set) var taxReadinessSummary = TaxReadinessSummary(
         state: .notStarted,
         openIssueCount: 0,
@@ -80,7 +118,13 @@ final class WorkspaceAppModel {
     private(set) var entityDeletionChecks: [LegalEntityID: LegalEntityService.DeletionCheck] = [:]
     private(set) var accountBalanceById: [FinancialAccountID: Int64] = [:]
     private(set) var entityWorkspaces: [EntityWorkspace] = []
+    private(set) var globalSearchResults: [GlobalSearchHit] = []
+    private(set) var preferredStatementImportAccountId: FinancialAccountID?
     var activeEntityId: LegalEntityID? { session?.activeEntityId }
+#if DEBUG
+    var shouldShowQAValidationFixturesCommand: Bool { container.featureFlags.qaValidationFixtures }
+    var canImportQAValidationFixtures: Bool { session != nil && container.featureFlags.qaValidationFixtures }
+#endif
 
     init(container: DependencyContainer) {
         self.container = container
@@ -94,6 +138,14 @@ final class WorkspaceAppModel {
         recentWorkspaces = container.workspaceService.recentWorkspaces()
     }
 
+    func presentHelpCenter() {
+        isShowingHelpCenter = true
+    }
+
+    func dismissHelpCenter() {
+        isShowingHelpCenter = false
+    }
+
     func createWorkspace() {
         perform {
             let openedStorage = try container.workspaceService.createWorkspace(named: newWorkspaceName)
@@ -103,12 +155,24 @@ final class WorkspaceAppModel {
         }
     }
 
-    func openWorkspace(_ reference: RecentWorkspaceReference) {
+    func createDemoWorkspace() {
         perform {
-            let openedStorage = try container.workspaceService.openWorkspace(at: URL(fileURLWithPath: reference.path))
+            let openedStorage = try container.workspaceService.createWorkspace(named: demoWorkspaceName())
+            newWorkspaceName = ""
             isShowingNewWorkspaceSheet = false
             configure(openedStorage)
+            try createDemoBusinessEntity()
+            try importBundledSampleData()
+            selectedSection = .overview
         }
+    }
+
+    func openWorkspace(_ reference: RecentWorkspaceReference) {
+        openWorkspace(
+            at: URL(fileURLWithPath: reference.path),
+            knownWorkspaceId: reference.workspaceId,
+            workspaceName: reference.name
+        )
     }
 
     func openExistingWorkspace() {
@@ -118,11 +182,217 @@ final class WorkspaceAppModel {
         panel.allowsMultipleSelection = false
         panel.prompt = "Open Workspace"
         if panel.runModal() == .OK, let url = panel.url {
-            perform {
-                let openedStorage = try container.workspaceService.openWorkspace(at: url)
-                isShowingNewWorkspaceSheet = false
-                configure(openedStorage)
+            openWorkspace(at: url, knownWorkspaceId: nil, workspaceName: nil)
+        }
+    }
+
+    func closeCurrentWorkspace() {
+        guard session != nil else { return }
+        clearWorkspaceState()
+        reloadRecentWorkspaces()
+    }
+
+    func lockCurrentWorkspace() {
+        guard let session,
+              uiPreferencesStore.workspaceLockEnabled(workspaceId: session.storage.manifest.workspace.id)
+        else {
+            return
+        }
+        clearWorkspaceState()
+        reloadRecentWorkspaces()
+    }
+
+    func setWorkspaceLockEnabled(_ isEnabled: Bool) {
+        guard let session else { return }
+        uiPreferencesStore.setWorkspaceLockEnabled(isEnabled, workspaceId: session.storage.manifest.workspace.id)
+        workspaceLockStatusMessage = isEnabled
+            ? "Workspace lock is enabled. Opening this workspace now requires Mac authentication."
+            : "Workspace lock is disabled. Opening this workspace will use the stored local key without an extra prompt."
+        selectedSection = .settings
+    }
+
+    func createBackupFromPanel() {
+        guard session != nil else { return }
+
+        if let url = container.backupPanelClient.createBackupDestination(defaultBackupFilename()) {
+            createBackup(at: url)
+        }
+    }
+
+    func validateBackupFromPanel() {
+        if let url = container.backupPanelClient.backupValidationSource() {
+            validateBackup(at: url)
+        }
+    }
+
+    func restoreBackupFromPanel() {
+        if let url = container.backupPanelClient.backupRestoreSource() {
+            restoreBackup(from: url)
+        }
+    }
+
+    func deleteCurrentWorkspaceFromPanel() {
+        guard let session else { return }
+
+        let workspaceName = session.storage.manifest.workspace.name
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = "Delete Current Workspace?"
+        alert.informativeText = "This removes the local workspace folder and its encryption key. Create and verify a backup before deleting. Type the workspace name to confirm: \(workspaceName)"
+        alert.addButton(withTitle: "Delete Workspace")
+        alert.addButton(withTitle: "Cancel")
+
+        let confirmationField = NSTextField(frame: NSRect(x: 0, y: 0, width: 360, height: 24))
+        confirmationField.placeholderString = workspaceName
+        confirmationField.setAccessibilityIdentifier("deleteWorkspace.confirmationField")
+        alert.accessoryView = confirmationField
+
+        if alert.runModal() == .alertFirstButtonReturn {
+            deleteCurrentWorkspace(confirmingName: confirmationField.stringValue)
+        }
+    }
+
+    private func documentRetentionReasonFromPanel(
+        title: String,
+        message: String,
+        defaultReason: String
+    ) -> String? {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = title
+        alert.informativeText = message
+        alert.addButton(withTitle: "Continue")
+        alert.addButton(withTitle: "Cancel")
+
+        let reasonField = NSTextField(frame: NSRect(x: 0, y: 0, width: 360, height: 24))
+        reasonField.stringValue = defaultReason
+        reasonField.setAccessibilityIdentifier("documentRetention.reasonField")
+        alert.accessoryView = reasonField
+
+        guard alert.runModal() == .alertFirstButtonReturn else {
+            return nil
+        }
+        return reasonField.stringValue
+    }
+
+    func exportDiagnosticsFromPanel() {
+        guard session != nil else { return }
+
+        let panel = NSSavePanel()
+        panel.canCreateDirectories = true
+        panel.prompt = "Export Diagnostics"
+        panel.nameFieldStringValue = defaultDiagnosticsFilename()
+        panel.message = "Diagnostics omit source documents, transaction descriptions, workspace names, absolute paths, and encryption keys."
+
+        if panel.runModal() == .OK, let url = panel.url {
+            exportDiagnostics(to: url)
+        }
+    }
+
+    func exportSupportBundleFromPanel() {
+        guard session != nil else { return }
+
+        let panel = NSSavePanel()
+        panel.canCreateDirectories = true
+        panel.prompt = "Export Support Bundle"
+        panel.nameFieldStringValue = defaultSupportBundleFilename()
+        panel.message = "Support bundles include sanitized diagnostics and audit-log summaries. They omit raw audit payloads, source documents, transaction descriptions, workspace names, absolute paths, and encryption keys."
+
+        if panel.runModal() == .OK, let url = panel.url {
+            exportSupportBundle(to: url)
+        }
+    }
+
+    func createBackup(at url: URL) {
+        guard let session else { return }
+
+        perform {
+            let backupURL = backupURLWithExpectedExtension(url)
+            let manifest = try container.workspaceService.createBackup(for: session.storage, at: backupURL)
+            let integrityReport = try container.workspaceService.validateBackup(at: backupURL)
+            backupIntegrityResult = BackupIntegrityResult(
+                backupName: backupURL.lastPathComponent,
+                report: integrityReport
+            )
+            backupStatusMessage = "Created \(backupURL.lastPathComponent) for \(manifest.workspaceName)."
+            reloadRecentWorkspaces()
+            selectedSection = .settings
+        }
+    }
+
+    func validateBackup(at url: URL) {
+        perform {
+            let integrityReport = try container.workspaceService.validateBackup(at: url)
+            backupIntegrityResult = BackupIntegrityResult(
+                backupName: url.lastPathComponent,
+                report: integrityReport
+            )
+            backupStatusMessage = "Checked \(url.lastPathComponent)."
+            selectedSection = .settings
+        }
+    }
+
+    func restoreBackup(from url: URL) {
+        perform {
+            let integrityReport = try container.workspaceService.validateBackup(at: url)
+            backupIntegrityResult = BackupIntegrityResult(
+                backupName: url.lastPathComponent,
+                report: integrityReport
+            )
+            guard integrityReport.isRestorable else {
+                selectedSection = .settings
+                throw DomainError.invalidWorkspaceBackup
             }
+
+            let restoredStorage = try container.workspaceService.restoreBackup(from: url)
+            configure(restoredStorage)
+            backupStatusMessage = "Restored \(restoredStorage.manifest.workspace.name) from \(url.lastPathComponent)."
+            selectedSection = .settings
+        }
+    }
+
+    func deleteCurrentWorkspace(confirmingName confirmation: String) {
+        guard let session else { return }
+        let workspaceId = session.storage.manifest.workspace.id
+
+        perform {
+            try container.workspaceService.deleteWorkspace(
+                session.storage,
+                confirmingWorkspaceName: confirmation
+            )
+            uiPreferencesStore.setWorkspaceLockEnabled(false, workspaceId: workspaceId)
+            clearWorkspaceState()
+            reloadRecentWorkspaces()
+        }
+    }
+
+    func exportDiagnostics(to url: URL) {
+        guard let session else { return }
+
+        perform {
+            let diagnosticsURL = diagnosticsURLWithExpectedExtension(url)
+            let report = try session.storage.exportSupportDiagnostics(
+                to: diagnosticsURL,
+                generatedAt: container.nowProvider()
+            )
+            latestDiagnosticsReport = report
+            diagnosticsStatusMessage = "Exported \(diagnosticsURL.lastPathComponent)."
+            selectedSection = .settings
+        }
+    }
+
+    func exportSupportBundle(to url: URL) {
+        guard let session else { return }
+
+        perform {
+            let bundleURL = supportBundleURLWithExpectedExtension(url)
+            let bundle = try session.storage.exportSupportBundle(
+                to: bundleURL,
+                generatedAt: container.nowProvider()
+            )
+            latestSupportBundle = bundle
+            diagnosticsStatusMessage = "Exported \(bundleURL.lastPathComponent)."
+            selectedSection = .settings
         }
     }
 
@@ -209,8 +479,11 @@ final class WorkspaceAppModel {
         perform {
             let deletionCheck = try session.legalEntityService.deleteEntity(entityId)
             if deletionCheck.canDelete == false {
-                errorMessage = blockedEntityDeletionMessage(for: deletionCheck)
-                isShowingErrorAlert = true
+                presentError(
+                    title: "Entity cannot be removed",
+                    message: blockedEntityDeletionMessage(for: deletionCheck),
+                    recoverySuggestion: "Remove or reassign the dependent records before deleting this entity."
+                )
                 return
             }
 
@@ -235,6 +508,49 @@ final class WorkspaceAppModel {
         toggleInspectorForActiveSection()
     }
 
+    // MARK: - Global Search
+
+    func presentGlobalSearch() {
+        guard hasWorkspace else { return }
+        isShowingGlobalSearch = true
+        refreshGlobalSearchResults()
+    }
+
+    func dismissGlobalSearch() {
+        isShowingGlobalSearch = false
+    }
+
+    func refreshGlobalSearchResults() {
+        guard let session else {
+            globalSearchResults = []
+            return
+        }
+
+        let trimmedQuery = globalSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedQuery.isEmpty == false else {
+            globalSearchResults = []
+            return
+        }
+
+        perform {
+            globalSearchResults = try session.storage.searchIndex.search(
+                workspaceId: session.storage.manifest.workspace.id,
+                query: trimmedQuery,
+                limit: 12
+            )
+        }
+    }
+
+    func clearGlobalSearch() {
+        globalSearchQuery = ""
+        globalSearchResults = []
+    }
+
+    func openGlobalSearchHit(_ hit: GlobalSearchHit) {
+        dismissGlobalSearch()
+        openObjectRef(hit.objectRef)
+    }
+
     // MARK: - Inbox Actions
 
     func performInboxAction(_ action: InboxAction) {
@@ -257,6 +573,36 @@ final class WorkspaceAppModel {
             }
             selectedSection = .ledger
             importCSVFromPanel()
+        case let .retryImport(importJobId):
+            guard let session else { return }
+            guard let accountId = statementImportAccountId() else {
+                presentError(DomainError.financialAccountNotFound)
+                return
+            }
+            perform {
+                let retrySource = try session.importJobService
+                    .listImportJobs()
+                    .first { $0.id == importJobId }?
+                    .source
+                _ = try session.importJobService.retryStatementImport(
+                    importJobId: importJobId,
+                    accountId: accountId
+                )
+                try refreshData(recomputeEvidence: true)
+                selectedSection = .inbox
+                if let retrySource,
+                   let completedJob = importJobs
+                    .sorted(by: importSortOrder)
+                    .first(where: {
+                        $0.id != importJobId &&
+                            $0.source == retrySource &&
+                            $0.status == .completed
+                    }) {
+                    selectedInboxSelection = .importJob(completedJob.id)
+                } else {
+                    selectedInboxSelection = .importJob(importJobId)
+                }
+            }
         case let .linkDocument(transactionId):
             guard let transaction = transactionById(transactionId) else { return }
             openLedger(accountId: transaction.accountId, transactionId: transaction.id)
@@ -266,6 +612,24 @@ final class WorkspaceAppModel {
             presentTransactionLinkSheet()
         case let .openProposalTarget(objectRef):
             openObjectRef(objectRef)
+        case let .approveProposal(proposalId):
+            guard let session else { return }
+            perform {
+                _ = try session.reconciliationService.approveDocumentMatchProposal(
+                    proposalId,
+                    now: container.nowProvider()
+                )
+                try refreshData(recomputeEvidence: true)
+            }
+        case let .revokeProposalApproval(proposalId):
+            guard let session else { return }
+            perform {
+                _ = try session.reconciliationService.revokeDocumentMatchProposalApproval(
+                    proposalId,
+                    now: container.nowProvider()
+                )
+                try refreshData(recomputeEvidence: true)
+            }
         case let .rejectProposal(proposalId):
             guard let session else { return }
             perform {
@@ -297,6 +661,30 @@ final class WorkspaceAppModel {
         }
     }
 
+    // MARK: - Copilot Actions
+
+    func performCopilotAction(_ action: CopilotAction) {
+        switch action {
+        case let .openInbox(selection):
+            selectedSection = .inbox
+            selectedInboxSelection = selection
+        case let .openTaxStudio(entityId, taxYearId):
+            openTaxStudio(
+                entityId: entityId ?? selectedTaxEntityId,
+                taxYearId: taxYearId ?? selectedTaxYearId,
+                factId: nil
+            )
+        case let .openLedger(accountId, transactionId):
+            openLedger(accountId: accountId, transactionId: transactionId)
+        case let .openDocuments(documentId):
+            openDocuments(documentId: documentId)
+        case let .openSource(ref):
+            openCopilotSource(ref)
+        case let .createTaskFromAnswer(task):
+            createCopilotTask(from: task)
+        }
+    }
+
     // MARK: - Document Import
 
     func importDocumentURLs(_ urls: [URL]) {
@@ -310,8 +698,9 @@ final class WorkspaceAppModel {
     }
 
     func importSampleData() {
-        importSampleCSV()
-        importSampleDocument()
+        perform {
+            try importBundledSampleData()
+        }
     }
 
     func importSampleCSV() {
@@ -346,6 +735,27 @@ final class WorkspaceAppModel {
         }
     }
 
+    func setDefaultStatementImportAccount(_ accountId: FinancialAccountID?) {
+        guard let session else { return }
+
+        if let accountId, financialAccounts.contains(where: { $0.id == accountId }) == false {
+            presentError(DomainError.financialAccountNotFound)
+            return
+        }
+
+        uiPreferencesStore.setPreferredStatementImportAccountId(
+            accountId,
+            workspaceId: session.storage.manifest.workspace.id
+        )
+        preferredStatementImportAccountId = accountId
+        if let account = financialAccounts.first(where: { $0.id == accountId }) {
+            importDefaultsStatusMessage = "Statement imports default to \(account.displayName)."
+        } else {
+            importDefaultsStatusMessage = "Statement imports use the selected ledger account, then the first available account."
+        }
+        selectedSection = .settings
+    }
+
     // MARK: - Tax Studio Selection
 
     func selectTaxStudioSelection(_ selection: TaxStudioSelection?) {
@@ -373,6 +783,28 @@ final class WorkspaceAppModel {
         selectedTaxStudioSelection = nil
         perform {
             try refreshTaxStudio(recomputeFacts: true)
+        }
+    }
+
+    func lockSelectedTaxYear() {
+        guard let session, let selectedTaxEntityId, let selectedTaxYearId else { return }
+        perform {
+            _ = try session.taxYearService.lockTaxYear(
+                entityId: selectedTaxEntityId,
+                taxYearId: selectedTaxYearId
+            )
+            try refreshTaxStudio(recomputeFacts: false)
+        }
+    }
+
+    func unlockSelectedTaxYear() {
+        guard let session, let selectedTaxEntityId, let selectedTaxYearId else { return }
+        perform {
+            _ = try session.taxYearService.unlockTaxYear(
+                entityId: selectedTaxEntityId,
+                taxYearId: selectedTaxYearId
+            )
+            try refreshTaxStudio(recomputeFacts: false)
         }
     }
 
@@ -429,7 +861,7 @@ final class WorkspaceAppModel {
             toggleLedgerInspector()
         case .documents:
             toggleDocumentsInspector()
-        case .overview, .inbox, .taxStudio, .settings:
+        case .overview, .inbox, .copilot, .taxStudio, .settings:
             break
         }
     }
@@ -465,7 +897,7 @@ final class WorkspaceAppModel {
     }
 
     func presentTransactionLinkSheet() {
-        guard selectedDocumentId != nil else { return }
+        guard canLinkSelectedTransaction else { return }
         isShowingTransactionLinkSheet = true
     }
 
@@ -479,11 +911,86 @@ final class WorkspaceAppModel {
     }
 
     func linkCurrentDocumentToTransaction(transactionId: TransactionID) {
-        guard let selectedDocumentId, let session else { return }
+        guard canLinkSelectedTransaction, let selectedDocumentId, let session else { return }
         perform {
             try session.documentService.linkDocument(selectedDocumentId, to: transactionId)
             isShowingTransactionLinkSheet = false
             try refreshData(recomputeEvidence: true)
+        }
+    }
+
+    // MARK: - Document Metadata Review
+
+    func reviewDocumentMetadata(
+        documentId: DocumentID,
+        documentType: DocumentType,
+        issueDate: Date?
+    ) {
+        guard selectedSection == .documents, let session else { return }
+        perform {
+            let reviewed = try session.documentService.reviewDocumentMetadata(
+                documentId,
+                documentType: documentType,
+                issueDate: issueDate
+            )
+            if documentFilterScope.matches(reviewed) == false {
+                documentFilterScope = .all
+            }
+            try refreshData(recomputeEvidence: true)
+            selectedDocumentId = reviewed.id
+            try refreshSelectionArtifacts()
+        }
+    }
+
+    // MARK: - Document Retention
+
+    func archiveSelectedDocumentFromPanel() {
+        guard canArchiveSelectedDocument else { return }
+        guard let reason = documentRetentionReasonFromPanel(
+            title: "Archive Document?",
+            message: "Enter a reviewer reason before moving this document out of the active vault.",
+            defaultReason: "Archived from document review."
+        ) else {
+            return
+        }
+        archiveSelectedDocument(reason: reason)
+    }
+
+    func restoreSelectedDocumentFromPanel() {
+        guard canRestoreSelectedDocument else { return }
+        guard let reason = documentRetentionReasonFromPanel(
+            title: "Restore Document?",
+            message: "Enter a reviewer reason before returning this document to the active vault.",
+            defaultReason: "Restored from archive review."
+        ) else {
+            return
+        }
+        restoreSelectedDocument(reason: reason)
+    }
+
+    func archiveSelectedDocument(reason: String) {
+        guard canArchiveSelectedDocument, let selectedDocumentId, let session else { return }
+        perform {
+            _ = try session.documentService.archiveDocument(selectedDocumentId, reason: reason)
+            documentFilterScope = .archived
+            try refreshData(recomputeEvidence: false)
+            self.selectedDocumentId = session.archivedDocuments.contains(where: { $0.id == selectedDocumentId })
+                ? selectedDocumentId
+                : nil
+            try refreshSelectionArtifacts()
+        }
+    }
+
+    func restoreSelectedDocument(reason: String) {
+        guard canRestoreSelectedDocument, let selectedDocumentId, let session else { return }
+        perform {
+            _ = try session.documentService.restoreArchivedDocument(selectedDocumentId, reason: reason)
+            documentFilterScope = .all
+            try refreshData(recomputeEvidence: false)
+            self.selectedDocumentId = session.documents.contains(where: { $0.id == selectedDocumentId })
+                ? selectedDocumentId
+                : nil
+            try refreshSelectionArtifacts()
         }
     }
 
@@ -548,26 +1055,212 @@ final class WorkspaceAppModel {
         }
     }
 
+    private func openCopilotSource(_ ref: ObjectRef) {
+        switch ref.kind {
+        case .taxYear:
+            let taxYearId = UUID(uuidString: ref.id).map(TaxYearID.init(rawValue:))
+            let entityId = taxYearId.flatMap { taxYearId in
+                taxYears.first(where: { $0.id == taxYearId })?.entityId
+            }
+            openTaxStudio(
+                entityId: entityId ?? selectedTaxEntityId,
+                taxYearId: taxYearId ?? selectedTaxYearId,
+                factId: nil
+            )
+        case .requirement:
+            selectedSection = .taxStudio
+            if let uuid = UUID(uuidString: ref.id) {
+                selectedTaxStudioSelection = .requirement(RequirementID(rawValue: uuid))
+            }
+        case .vatPeriod:
+            selectedSection = .taxStudio
+            if let uuid = UUID(uuidString: ref.id) {
+                selectedTaxStudioSelection = .vatPeriod(VATPeriodID(rawValue: uuid))
+            }
+        case .legalEntity:
+            let entityId = UUID(uuidString: ref.id).map(LegalEntityID.init(rawValue:))
+            openTaxStudio(entityId: entityId ?? selectedTaxEntityId, taxYearId: selectedTaxYearId, factId: nil)
+        case .statementImport:
+            let statementImportId = UUID(uuidString: ref.id).map(StatementImportID.init(rawValue:))
+            let transaction = statementImportId.flatMap { statementImportId in
+                transactions.first { $0.statementImportId == statementImportId }
+            }
+            openLedger(accountId: transaction?.accountId ?? selectedAccountId, transactionId: transaction?.id)
+        default:
+            openObjectRef(ref)
+        }
+    }
+
+    private func createCopilotTask(from draft: CopilotTaskDraft) {
+        guard let session else { return }
+
+        let sourceRef = draft.sourceRef ?? ObjectRef(kind: .workspace, id: session.storage.manifest.workspace.id.rawValue)
+        let entityFingerprint = draft.entityId?.rawValue.uuidString.lowercased() ?? "workspace"
+        let taxYearFingerprint = draft.taxYearId?.rawValue.uuidString.lowercased() ?? "no-tax-year"
+        let fingerprint = [
+            "copilot-task",
+            draft.answerId,
+            entityFingerprint,
+            taxYearFingerprint,
+            sourceRef.stringValue,
+        ].joined(separator: "|")
+
+        perform {
+            let input = AgentIssueOpenOrUpdateInput(
+                fingerprint: fingerprint,
+                entityId: draft.entityId,
+                taxYearId: draft.taxYearId,
+                issueCode: .copilotTask,
+                severity: .warning,
+                status: .open,
+                summary: draft.summary,
+                objectRef: sourceRef
+            )
+            let result = try session.agentToolService.execute(
+                AgentToolInvocation(
+                    toolName: "issues.open_or_update",
+                    inputJSON: try JSONEncoder.alpenLedger.encode(input),
+                    grantedScopes: [.issuesWrite]
+                )
+            )
+            let output = try JSONDecoder.alpenLedger.decode(AgentIssueToolOutput.self, from: result.outputJSON)
+            guard output.issueCode == .copilotTask else {
+                throw WorkspaceAgentToolError.invalidInput("issues.open_or_update")
+            }
+            let issueId = output.issueId
+            guard try session.storage.issueRepository.fetchIssue(id: issueId) != nil else {
+                throw WorkspaceAgentToolError.invalidInput("issues.open_or_update")
+            }
+            try refreshData(recomputeEvidence: false)
+            selectedSection = .inbox
+            selectedInboxSelection = .issue(issueId)
+        }
+    }
+
     // MARK: - Session Configuration
+
+    private func clearWorkspaceState() {
+        session = nil
+        entities = []
+        taxYears = []
+        financialAccounts = []
+        transactions = []
+        documents = []
+        archivedDocuments = []
+        importJobs = []
+        importDiagnosticsByJobId = [:]
+        issues = []
+        agentProposals = []
+        taxFacts = []
+        taxRequirements = []
+        taxIssues = []
+        filingPackages = []
+        vatPeriodReports = []
+        taxReadinessSummary = TaxReadinessSummary(
+            state: .notStarted,
+            openIssueCount: 0,
+            pendingRequirementCount: 0,
+            currentFactCount: 0,
+            missingConceptCodes: []
+        )
+        linkedDocuments = []
+        linkedTransactions = []
+        selectedDocumentPreviewURL = nil
+        entityDeletionChecks = [:]
+        accountBalanceById = [:]
+        entityWorkspaces = []
+        globalSearchResults = []
+        selectedAccountId = nil
+        selectedTransactionId = nil
+        selectedDocumentId = nil
+        selectedInboxSelection = nil
+        selectedTaxEntityId = nil
+        selectedTaxYearId = nil
+        selectedTaxFactId = nil
+        selectedTaxStudioSelection = nil
+        documentSearchQuery = ""
+        globalSearchQuery = ""
+        isShowingGlobalSearch = false
+        isShowingDocumentLinkSheet = false
+        isShowingTransactionLinkSheet = false
+        backupStatusMessage = nil
+        backupIntegrityResult = nil
+        importDefaultsStatusMessage = nil
+        diagnosticsStatusMessage = nil
+        workspaceLockStatusMessage = nil
+        latestDiagnosticsReport = nil
+        latestSupportBundle = nil
+        databaseHealthReport = nil
+        preferredStatementImportAccountId = nil
+        selectedSection = .overview
+    }
 
     private func configure(_ storage: WorkspaceStorage) {
         let newSession = ActiveWorkspaceSession(storage: storage, container: container)
         self.session = newSession
         selectedSection = .overview
         documentSearchQuery = ""
+        globalSearchQuery = ""
+        globalSearchResults = []
         ledgerTransactionScope = .all
         documentFilterScope = .all
         restoreInspectorVisibility(for: storage.manifest.workspace.id)
         reloadRecentWorkspaces()
         perform {
+            _ = try newSession.importJobService.recoverInterruptedImports(recoveredAt: container.nowProvider())
             try refreshData(recomputeEvidence: true)
         }
+    }
+
+    private func openWorkspace(at url: URL, knownWorkspaceId: WorkspaceID?, workspaceName: String?) {
+        let workspaceId = knownWorkspaceId ?? workspaceIdFromManifest(at: url)
+        guard let workspaceId,
+              uiPreferencesStore.workspaceLockEnabled(workspaceId: workspaceId)
+        else {
+            openWorkspaceAfterLockGate(at: url)
+            return
+        }
+
+        let displayName = workspaceName ?? "AlpenLedger workspace"
+        container.workspaceLockAuthenticationClient.authenticate(
+            "Unlock \(displayName) to open local finance data."
+        ) { [weak self] didAuthenticate in
+            guard let self else { return }
+            if didAuthenticate {
+                self.openWorkspaceAfterLockGate(at: url)
+            } else {
+                self.presentError(
+                    title: "Workspace locked",
+                    message: "\(displayName) was not opened because Mac authentication did not complete.",
+                    recoverySuggestion: "Try opening the workspace again and complete Touch ID, Apple Watch, or Mac password authentication."
+                )
+            }
+        }
+    }
+
+    private func openWorkspaceAfterLockGate(at url: URL) {
+        perform {
+            let openedStorage = try container.workspaceService.openWorkspace(at: url)
+            isShowingNewWorkspaceSheet = false
+            configure(openedStorage)
+        }
+    }
+
+    private func workspaceIdFromManifest(at rootURL: URL) -> WorkspaceID? {
+        let manifestURL = WorkspacePaths(rootURL: rootURL).manifestURL
+        guard let data = try? Data(contentsOf: manifestURL),
+              let manifest = try? JSONDecoder.alpenLedger.decode(WorkspaceManifest.self, from: data)
+        else {
+            return nil
+        }
+        return manifest.workspace.id
     }
 
     // MARK: - Refresh Methods (Delegating to Session)
 
     private func refreshData(recomputeEvidence: Bool = false) throws {
         guard let session else { return }
+        databaseHealthReport = try session.storage.databaseHealthReport()
         try session.loadEntityWorkspaces()
         let result = try session.refreshCoreData(
             recomputeEvidence: recomputeEvidence,
@@ -580,6 +1273,7 @@ final class WorkspaceAppModel {
             selectedInboxSelection: selectedInboxSelection
         )
         copySessionData()
+        reconcilePreferredStatementImportAccount()
         if result.shouldClearSelectedAccountId {
             selectedAccountId = nil
         }
@@ -609,6 +1303,7 @@ final class WorkspaceAppModel {
     private func refreshDocuments() throws {
         guard let session else {
             documents = []
+            archivedDocuments = []
             selectedDocumentId = nil
             linkedTransactions = []
             return
@@ -638,6 +1333,8 @@ final class WorkspaceAppModel {
             taxFacts = []
             taxRequirements = []
             taxIssues = []
+            filingPackages = []
+            vatPeriodReports = []
             taxReadinessSummary = TaxReadinessSummary(
                 state: .notStarted,
                 openIssueCount: 0,
@@ -706,12 +1403,16 @@ final class WorkspaceAppModel {
         financialAccounts = session.financialAccounts
         transactions = session.transactions
         documents = session.documents
+        archivedDocuments = session.archivedDocuments
         importJobs = session.importJobs
+        importDiagnosticsByJobId = session.importDiagnosticsByJobId
         issues = session.issues
         agentProposals = session.agentProposals
         taxFacts = session.taxFacts
         taxRequirements = session.taxRequirements
         taxIssues = session.taxIssues
+        filingPackages = session.filingPackages
+        vatPeriodReports = session.vatPeriodReports
         taxReadinessSummary = session.taxReadinessSummary
         linkedDocuments = session.linkedDocuments
         linkedTransactions = session.linkedTransactions
@@ -724,7 +1425,7 @@ final class WorkspaceAppModel {
     // MARK: - Import Helpers
 
     private func importCSV(url: URL) {
-        guard let session, let selectedAccount = selectedAccountId ?? financialAccounts.first?.id else {
+        guard let session, let selectedAccount = statementImportAccountId() else {
             return
         }
         perform {
@@ -739,6 +1440,75 @@ final class WorkspaceAppModel {
             _ = try session.documentService.importDocument(from: url, entityId: session.activeEntityId)
             try refreshData(recomputeEvidence: true)
         }
+    }
+
+    private func importBundledSampleData() throws {
+        guard let session, let selectedAccount = statementImportAccountId() else {
+            throw DomainError.financialAccountNotFound
+        }
+
+        let csvURL = try bundledSampleURL(resource: "sample-bank-statement", pathExtension: "csv")
+        let documentURL = try bundledSampleURL(resource: "sample-receipt", pathExtension: "pdf")
+
+        _ = try session.importJobService.importStatement(from: csvURL, accountId: selectedAccount)
+        _ = try session.documentService.importDocument(from: documentURL, entityId: session.activeEntityId)
+        selectedAccountId = selectedAccount
+        try refreshData(recomputeEvidence: true)
+    }
+
+    private func createDemoBusinessEntity() throws {
+        guard let session else { return }
+        let entity = try session.legalEntityService.createSoleProprietor(name: "Demo Sole Proprietor")
+        try session.loadEntityWorkspaces()
+        if let entityWorkspace = session.entityWorkspaces.first(where: { $0.entityId == entity.id }) {
+            try session.switchEntity(to: entityWorkspace.id)
+        }
+        try refreshData(recomputeEvidence: false)
+    }
+
+    private func bundledSampleURL(resource: String, pathExtension: String) throws -> URL {
+        guard let url = Bundle.main.url(forResource: resource, withExtension: pathExtension) else {
+            throw BundledSampleResourceError(resourceName: "\(resource).\(pathExtension)")
+        }
+        return url
+    }
+
+    private func statementImportAccountId() -> FinancialAccountID? {
+        if let preferredStatementImportAccountId,
+           financialAccounts.contains(where: { $0.id == preferredStatementImportAccountId }) {
+            return preferredStatementImportAccountId
+        }
+
+        if let selectedAccountId,
+           financialAccounts.contains(where: { $0.id == selectedAccountId }) {
+            return selectedAccountId
+        }
+
+        return financialAccounts.first?.id
+    }
+
+    private func demoWorkspaceName() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH.mm"
+        return "AlpenLedger Demo \(formatter.string(from: container.nowProvider()))"
+    }
+
+    private func reconcilePreferredStatementImportAccount() {
+        guard let workspaceId = session?.storage.manifest.workspace.id else {
+            preferredStatementImportAccountId = nil
+            importDefaultsStatusMessage = nil
+            return
+        }
+
+        guard let storedAccountId = uiPreferencesStore.preferredStatementImportAccountId(workspaceId: workspaceId),
+              financialAccounts.contains(where: { $0.id == storedAccountId })
+        else {
+            preferredStatementImportAccountId = nil
+            importDefaultsStatusMessage = nil
+            return
+        }
+
+        preferredStatementImportAccountId = storedAccountId
     }
 
     // MARK: - Inspector Persistence
@@ -759,22 +1529,104 @@ final class WorkspaceAppModel {
         do {
             try work()
         } catch {
-            errorMessage = error.localizedDescription
-            isShowingErrorAlert = true
+            presentError(error)
         }
+    }
+
+    func dismissErrorAlert() {
+        isShowingErrorAlert = false
+        errorTitle = "Action could not be completed"
+        errorMessage = nil
+        errorRecoverySuggestion = nil
+    }
+
+    private func presentError(_ error: Error) {
+        if let domainError = error as? DomainError {
+            presentError(
+                title: domainError.userFacingTitle,
+                message: domainError.localizedDescription,
+                recoverySuggestion: domainError.recoverySuggestion
+            )
+            return
+        }
+
+        let localizedError = error as? LocalizedError
+        let nsError = error as NSError
+        presentError(
+            title: "Action could not be completed",
+            message: localizedError?.errorDescription ?? nsError.localizedDescription,
+            recoverySuggestion: localizedError?.recoverySuggestion
+                ?? nsError.localizedRecoverySuggestion
+                ?? "Try again. If the problem persists, export a support bundle from Settings when a workspace is available."
+        )
+    }
+
+    private func presentError(title: String, message: String, recoverySuggestion: String?) {
+        errorTitle = title
+        errorMessage = message
+        errorRecoverySuggestion = recoverySuggestion
+        isShowingErrorAlert = true
+    }
+
+    private func defaultBackupFilename() -> String {
+        let safeWorkspaceName = workspaceName
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { $0.isEmpty == false }
+            .joined(separator: "-")
+        let baseName = safeWorkspaceName.isEmpty ? "AlpenLedger" : safeWorkspaceName
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        return "\(baseName)-\(formatter.string(from: container.nowProvider())).alpenledgerbackup"
+    }
+
+    private func backupURLWithExpectedExtension(_ url: URL) -> URL {
+        guard url.pathExtension != "alpenledgerbackup" else { return url }
+        return url.appendingPathExtension("alpenledgerbackup")
+    }
+
+    private func defaultDiagnosticsFilename() -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        return "AlpenLedger-Diagnostics-\(formatter.string(from: container.nowProvider())).json"
+    }
+
+    private func diagnosticsURLWithExpectedExtension(_ url: URL) -> URL {
+        guard url.pathExtension != "json" else { return url }
+        return url.appendingPathExtension("json")
+    }
+
+    private func defaultSupportBundleFilename() -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        return "AlpenLedger-Support-Bundle-\(formatter.string(from: container.nowProvider())).json"
+    }
+
+    private func supportBundleURLWithExpectedExtension(_ url: URL) -> URL {
+        guard url.pathExtension != "json" else { return url }
+        return url.appendingPathExtension("json")
     }
 
     // MARK: - Debug / QA
 
 #if DEBUG
     func seedUIStateForTesting(
+        entities: [LegalEntity] = [],
         financialAccounts: [FinancialAccount] = [],
         transactions: [Transaction] = [],
         documents: [Document] = [],
+        archivedDocuments: [Document] = [],
         issues: [Issue] = [],
         agentProposals: [AgentProposal] = [],
+        importJobs: [ImportJob] = [],
+        importDiagnosticsByJobId: [ImportJobID: [ImportDiagnostic]] = [:],
+        taxYears: [TaxYear] = [],
         taxRequirements: [Requirement] = [],
         taxFacts: [TaxFact] = [],
+        filingPackages: [FilingPackage] = [],
+        vatPeriodReports: [VATReconciliationReport] = [],
         selectedTaxEntityId: LegalEntityID? = nil,
         selectedTaxYearId: TaxYearID? = nil,
         taxReadinessSummary: TaxReadinessSummary = TaxReadinessSummary(
@@ -785,24 +1637,29 @@ final class WorkspaceAppModel {
             missingConceptCodes: []
         )
     ) {
+        self.entities = entities
         self.financialAccounts = financialAccounts
         self.transactions = transactions
         self.documents = documents
+        self.archivedDocuments = archivedDocuments
         self.issues = issues
         self.agentProposals = agentProposals
+        self.importJobs = importJobs
+        self.importDiagnosticsByJobId = importDiagnosticsByJobId
+        self.taxYears = taxYears
         self.taxRequirements = taxRequirements
         self.taxFacts = taxFacts
+        self.filingPackages = filingPackages
+        self.vatPeriodReports = vatPeriodReports
         self.selectedTaxEntityId = selectedTaxEntityId
         self.selectedTaxYearId = selectedTaxYearId
         self.taxReadinessSummary = taxReadinessSummary
         self.accountBalanceById = Dictionary(
             uniqueKeysWithValues: financialAccounts.compactMap { account in
-                let latestBalance = transactions
-                    .filter { $0.accountId == account.id }
-                    .sorted { $0.bookingDate > $1.bookingDate }
-                    .compactMap(\.balanceAfterMinor)
-                    .first
-                return latestBalance.map { (account.id, $0) }
+                let balance = account.currentBalanceMinor(
+                    transactions: transactions.filter { $0.accountId == account.id }
+                )
+                return balance.map { (account.id, $0) }
             }
         )
     }
@@ -810,7 +1667,7 @@ final class WorkspaceAppModel {
 
 #if DEBUG
     func importQAValidationFixtures() {
-        guard session != nil else { return }
+        guard canImportQAValidationFixtures else { return }
 
         perform {
             let fixtureDirectory = try materializeQAValidationFixtures()
@@ -932,4 +1789,16 @@ final class WorkspaceAppModel {
         return fixtureDirectory
     }
 #endif
+}
+
+private struct BundledSampleResourceError: LocalizedError {
+    let resourceName: String
+
+    var errorDescription: String? {
+        "Bundled sample resource is missing: \(resourceName)."
+    }
+
+    var recoverySuggestion: String? {
+        "Reinstall the app or verify that the sample resources are included in the app bundle."
+    }
 }

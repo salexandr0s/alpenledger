@@ -81,6 +81,50 @@ public final class WorkspaceService: Sendable {
         return reopenedStorage
     }
 
+    public func createBackup(for storage: WorkspaceStorage, at backupURL: URL) throws -> WorkspaceBackupManifest {
+        let manifest = try storageManager.createBackup(
+            for: storage,
+            at: backupURL,
+            now: nowProvider()
+        )
+        let logger = AuditLogger(storage: storage)
+        try logger.log(
+            actorType: .user,
+            actorId: "user",
+            eventType: .workspaceBackupCreated,
+            objectRef: ObjectRef(kind: .workspace, id: storage.manifest.workspace.id.rawValue),
+            payload: backupURL.lastPathComponent
+        )
+        return manifest
+    }
+
+    public func validateBackup(at backupURL: URL) throws -> WorkspaceBackupIntegrityReport {
+        try storageManager.validateBackup(at: backupURL)
+    }
+
+    public func restoreBackup(from backupURL: URL) throws -> WorkspaceStorage {
+        let restoredStorage = try storageManager.restoreBackup(from: backupURL)
+        let logger = AuditLogger(storage: restoredStorage)
+        try logger.log(
+            actorType: .user,
+            actorId: "user",
+            eventType: .workspaceRestored,
+            objectRef: ObjectRef(kind: .workspace, id: restoredStorage.manifest.workspace.id.rawValue),
+            payload: backupURL.lastPathComponent
+        )
+        recentStore.upsert(recentReference(for: restoredStorage))
+        return restoredStorage
+    }
+
+    public func deleteWorkspace(
+        _ storage: WorkspaceStorage,
+        confirmingWorkspaceName confirmation: String
+    ) throws {
+        let workspaceId = storage.manifest.workspace.id
+        try storageManager.deleteWorkspace(storage, confirmingWorkspaceName: confirmation)
+        recentStore.remove(workspaceId: workspaceId)
+    }
+
     private func recentReference(for storage: WorkspaceStorage) -> RecentWorkspaceReference {
         RecentWorkspaceReference(
             workspaceId: storage.manifest.workspace.id,

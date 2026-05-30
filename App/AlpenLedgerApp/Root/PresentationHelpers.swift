@@ -17,7 +17,7 @@ extension WorkspaceAppModel {
             openDocuments(documentId: documentId(from: objectRef))
         case .transaction:
             if let transactionId = transactionId(from: objectRef),
-               let transaction = transactionById(transactionId) {
+               let transaction = transactionForNavigation(transactionId) {
                 openLedger(accountId: transaction.accountId, transactionId: transaction.id)
             }
         case .financialAccount:
@@ -26,6 +26,21 @@ extension WorkspaceAppModel {
             selectedSection = .inbox
             if let issueId = issueId(from: objectRef) {
                 selectedInboxSelection = .issue(issueId)
+            }
+        case .counterparty:
+            if let counterpartyId = counterpartyId(from: objectRef),
+               let transaction = transactionForNavigation(counterpartyId: counterpartyId) {
+                openLedger(accountId: transaction.accountId, transactionId: transaction.id)
+            } else {
+                selectedSection = .ledger
+            }
+        case .filingPackage:
+            if let filingPackageId = filingPackageId(from: objectRef),
+               let filingPackage = filingPackages.first(where: { $0.id == filingPackageId }) {
+                selectedSection = .taxStudio
+                selectedTaxEntityId = filingPackage.entityId
+                selectedTaxYearId = filingPackage.taxYearId
+                selectedTaxStudioSelection = .filingPackage(filingPackage.id)
             }
         default:
             break
@@ -74,6 +89,8 @@ extension WorkspaceAppModel {
         switch kind {
         case .bankStatementCSV:
             return "Bank Statement"
+        case .bankStatementCAMT:
+            return "CAMT Statement"
         case .documentIntake:
             return "Document Intake"
         }
@@ -85,6 +102,8 @@ extension WorkspaceAppModel {
             return "Started"
         case .completed:
             return "Completed"
+        case .cancelled:
+            return "Cancelled"
         case .failed:
             return "Failed"
         }
@@ -101,6 +120,8 @@ extension WorkspaceAppModel {
             return .warning
         case .completed:
             return .success
+        case .cancelled:
+            return .warning
         case .failed:
             return .critical
         }
@@ -139,12 +160,88 @@ extension WorkspaceAppModel {
         }
     }
 
+    func filingPackageStatusLabel(_ status: FilingPackageStatus) -> String {
+        switch status {
+        case .draft:
+            return "Draft"
+        case .generated:
+            return "Generated, Not Filed"
+        case .finalized:
+            return "Finalized, Not Filed"
+        case .submitted:
+            return "Submitted Externally"
+        case .accepted:
+            return "Accepted Externally"
+        }
+    }
+
+    func filingPackageStatusTone(_ status: FilingPackageStatus) -> StatusBadge.Tone {
+        switch status {
+        case .draft:
+            return .neutral
+        case .generated:
+            return .info
+        case .finalized:
+            return .warning
+        case .submitted, .accepted:
+            return .success
+        }
+    }
+
+    func filingPackageTitle(_ filingPackage: FilingPackage) -> String {
+        "\(filingPackage.exportFormat) package"
+    }
+
+    func filingPackageBoundaryText(_ filingPackage: FilingPackage) -> String {
+        switch filingPackage.status {
+        case .draft:
+            return "Draft package record; no filing has been prepared."
+        case .generated:
+            return "Prepared for reviewer export; not filed."
+        case .finalized:
+            return "Reviewer finalized this export; not filed by AlpenLedger."
+        case .submitted:
+            return "Marked as submitted outside AlpenLedger."
+        case .accepted:
+            return "Marked as accepted outside AlpenLedger."
+        }
+    }
+
+    func filingPackageFinalizationDetail(_ filingPackage: FilingPackage) -> String {
+        guard let finalizedAt = filingPackage.finalizedAt else {
+            return "n/a"
+        }
+
+        let finalizedDate = formattedDate(finalizedAt)
+        guard let reviewer = filingPackage.finalizedBy, reviewer.isEmpty == false else {
+            return finalizedDate
+        }
+        return "\(finalizedDate) by \(reviewer)"
+    }
+
+    func filingPackageSystemImage(_ status: FilingPackageStatus) -> String {
+        switch status {
+        case .draft:
+            return "doc.badge.gearshape"
+        case .generated:
+            return "shippingbox"
+        case .finalized:
+            return "checkmark.seal"
+        case .submitted:
+            return "paperplane"
+        case .accepted:
+            return "checkmark.seal.fill"
+        }
+    }
+
     func shortIssueTitle(_ issue: Issue) -> String {
         switch issue.issueCode {
         case .missingStatementCoverage:
             return "Statement missing"
         case .missingExpenseEvidence:
             return "Expense evidence missing"
+        case .copilotTask:
+            return "Copilot task"
         }
     }
 
@@ -184,9 +281,29 @@ extension WorkspaceAppModel {
         return IssueID(rawValue: uuid)
     }
 
+    func counterpartyId(from ref: ObjectRef) -> CounterpartyID? {
+        guard ref.kind == .counterparty, let uuid = UUID(uuidString: ref.id) else { return nil }
+        return CounterpartyID(rawValue: uuid)
+    }
+
+    func filingPackageId(from ref: ObjectRef) -> FilingPackageID? {
+        guard ref.kind == .filingPackage, let uuid = UUID(uuidString: ref.id) else { return nil }
+        return FilingPackageID(rawValue: uuid)
+    }
+
     func transactionById(_ transactionId: TransactionID) -> Transaction? {
         transactions.first(where: { $0.id == transactionId })
             ?? linkedTransactions.first(where: { $0.id == transactionId })
+    }
+
+    func transactionForNavigation(_ transactionId: TransactionID) -> Transaction? {
+        transactionById(transactionId)
+            ?? (try? session?.storage.transactionRepository.fetchTransactions(ids: [transactionId]).first)
+    }
+
+    func transactionForNavigation(counterpartyId: CounterpartyID) -> Transaction? {
+        transactions.first(where: { $0.counterpartyId == counterpartyId })
+            ?? (try? session?.storage.transactionRepository.fetchTransactions(counterpartyId: counterpartyId).first)
     }
 
     // MARK: Date / Money Formatting
@@ -261,6 +378,8 @@ extension WorkspaceAppModel {
             return "Receipt"
         case .invoice:
             return "Invoice"
+        case .qrBill:
+            return "QR-bill"
         case .bankStatement:
             return "Statement"
         case .salaryCertificate:
@@ -269,6 +388,12 @@ extension WorkspaceAppModel {
             return "Health Insurance"
         case .pillar3aCertificate:
             return "Pillar 3a"
+        case .eCH0196TaxStatement:
+            return "eCH-0196 Tax Statement"
+        case .eCH0248PensionCertificate:
+            return "eCH-0248 Pension"
+        case .eCH0275HealthInsuranceCertificate:
+            return "eCH-0275 Health Insurance"
         }
     }
 
@@ -281,6 +406,20 @@ extension WorkspaceAppModel {
         }
     }
 
+    func documentStatusLabel(_ document: Document) -> String {
+        if document.status == .archived {
+            return "Archived"
+        }
+        return metadataLabel(document.metadataStatus)
+    }
+
+    func documentStatusTone(_ document: Document) -> StatusBadge.Tone {
+        if document.status == .archived {
+            return .neutral
+        }
+        return document.metadataStatus == .confirmed ? .success : .warning
+    }
+
     func documentSymbol(_ documentType: DocumentType) -> String {
         switch documentType {
         case .bankStatement:
@@ -291,6 +430,14 @@ extension WorkspaceAppModel {
             return "cross.case"
         case .pillar3aCertificate:
             return "leaf"
+        case .eCH0196TaxStatement:
+            return "doc.text.magnifyingglass"
+        case .eCH0248PensionCertificate:
+            return "building.columns"
+        case .eCH0275HealthInsuranceCertificate:
+            return "cross.case"
+        case .qrBill:
+            return "qrcode"
         case .receipt, .invoice:
             return "doc.richtext"
         case .unknown:
@@ -374,10 +521,36 @@ extension WorkspaceAppModel {
 
     func provenanceTitle(for ref: ObjectRef) -> String {
         switch ref.kind {
+        case .agentProposal:
+            return "Agent proposal"
+        case .counterparty:
+            return "Counterparty"
         case .document:
             return "Source document"
+        case .financialAccount:
+            return "Financial account"
+        case .filingPackage:
+            return "Filing package"
+        case .importJob:
+            return "Import job"
+        case .statementImport:
+            return "Statement import"
+        case .journalEntry:
+            return "Journal entry"
+        case .ledgerAccount:
+            return "Ledger account"
+        case .legalEntity:
+            return "Legal entity"
         case .transaction:
             return "Linked transaction"
+        case .transactionCategory:
+            return "Transaction category"
+        case .taxFact:
+            return "Tax fact"
+        case .taxYear:
+            return "Tax year"
+        case .vatPeriod:
+            return "VAT period"
         case .requirement:
             return "Requirement"
         case .issue:
@@ -389,16 +562,55 @@ extension WorkspaceAppModel {
 
     func provenanceSymbol(for ref: ObjectRef) -> String {
         switch ref.kind {
+        case .agentProposal:
+            return "sparkles"
+        case .counterparty:
+            return "person.crop.circle"
         case .document:
             return "doc.text"
+        case .financialAccount:
+            return "building.columns"
+        case .filingPackage:
+            return "shippingbox"
+        case .importJob:
+            return "tray.and.arrow.down"
+        case .statementImport:
+            return "doc.text.magnifyingglass"
+        case .journalEntry:
+            return "book.pages"
+        case .ledgerAccount:
+            return "number"
+        case .legalEntity:
+            return "person.text.rectangle"
         case .transaction:
             return "list.bullet.rectangle"
+        case .transactionCategory:
+            return "tag"
+        case .taxFact:
+            return "function"
+        case .taxYear:
+            return "calendar"
+        case .vatPeriod:
+            return "percent"
         case .requirement:
             return "list.bullet.clipboard"
         case .issue:
             return "exclamationmark.triangle"
         default:
             return "link"
+        }
+    }
+
+    func provenanceRows(for refs: [ObjectRef]) -> [DocumentReferenceRowModel] {
+        var seenRefs = Set<ObjectRef>()
+        return refs.compactMap { ref in
+            guard seenRefs.insert(ref).inserted else { return nil }
+            return DocumentReferenceRowModel(
+                id: ref.stringValue,
+                title: provenanceTitle(for: ref),
+                subtitle: ref.stringValue,
+                systemImage: provenanceSymbol(for: ref)
+            )
         }
     }
 

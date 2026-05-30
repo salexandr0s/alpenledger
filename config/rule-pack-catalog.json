@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-05-30",
+  "reviewedBy": "Codex readiness audit",
+  "policyDoc": "docs/rule-pack-validation.md",
+  "rulePacks": [
+    {
+      "id": "ch-zh-personal-2026-v1",
+      "adapterType": "ZurichPersonalTaxAdapter2026",
+      "jurisdictionCode": "CH-ZH",
+      "rulesetVersion": "zh-personal-2026-v1",
+      "taxYear": 2026,
+      "appliesToEntityKinds": [
+        "naturalPerson",
+        "soleProprietor"
+      ],
+      "fixturePack": "zh-personal-tax-2026",
+      "goldenExpectedFactsPath": "Fixtures/Tax/Zurich/2026/expected-tax-facts.json",
+      "expectedConceptCodesByEntityKind": {
+        "naturalPerson": [
+          "personal.deduction.health_insurance_premiums",
+          "personal.deduction.pillar3a_contributions",
+          "personal.income.salary_gross",
+          "personal.readiness.has_health_insurance_certificate",
+          "personal.readiness.has_pillar3a_certificate",
+          "personal.readiness.has_salary_certificate"
+        ],
+        "soleProprietor": [
+          "personal.self_employment.expense_total",
+          "personal.self_employment.net_profit",
+          "personal.self_employment.revenue_gross"
+        ]
+      },
+      "coverageTests": [
+        "RulePackValidationTests.rulePackCatalogMatchesRegisteredZurichAdapter",
+        "RulePackValidationTests.rulePackValidationAcceptsCatalogFixtureSamples",
+        "TaxComputationServiceTests.zurichNaturalPersonFixtureImportProducesObservedFacts",
+        "TaxComputationServiceTests.zurichSoleProprietorFixtureImportProducesProfitAndLossFacts"
+      ]
+    }
+  ]
+}

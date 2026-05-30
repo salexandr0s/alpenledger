@@ -16,6 +16,11 @@ public struct ImportedStatementPayload: Sendable {
 public protocol Importer: Sendable {
     var parserKey: String { get }
     var parserVersion: String { get }
+    var importJobKind: ImportJobKind { get }
     func canRecognize(_ url: URL) throws -> Bool
     func parse(_ url: URL, accountId: FinancialAccountID, importJobId: ImportJobID, sourceBlobHash: String) throws -> ImportedStatementPayload
+}
+
+public extension Importer {
+    var importJobKind: ImportJobKind { .bankStatementCSV }
 }

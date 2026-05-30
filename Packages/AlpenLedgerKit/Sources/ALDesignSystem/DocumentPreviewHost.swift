@@ -35,6 +35,7 @@ private struct PDFPreview: NSViewRepresentable {
 
     func makeNSView(context: Context) -> PDFView {
         let view = PDFView()
+        view.setAccessibilityIdentifier("documents.previewPane")
         view.autoScales = true
         view.displayMode = .singlePageContinuous
         view.document = PDFDocument(url: fileURL)

@@ -20,9 +20,14 @@ struct SidebarView: View {
             ForEach(AppSection.Group.allCases) { group in
                 Section(group.title) {
                     ForEach(group.sections) { section in
-                        NavigationLink(value: section) {
+                        Button {
+                            model.navigate(to: section)
+                        } label: {
                             Label(section.title, systemImage: section.systemImage)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        .buttonStyle(.plain)
+                        .tag(section)
                         .badge(model.sidebarBadgeText(for: section).flatMap { Text($0) })
                         .accessibilityIdentifier("nav.\(section.rawValue)")
                     }

@@ -3,6 +3,7 @@ import Foundation
 public enum IssueCode: String, Codable, CaseIterable, Sendable {
     case missingStatementCoverage
     case missingExpenseEvidence
+    case copilotTask
 }
 
 public enum IssueSeverity: String, Codable, CaseIterable, Sendable {

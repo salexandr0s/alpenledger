@@ -1,0 +1,24 @@
+SPC
+0200
+1
+SYNTHETIC-QR-ACCOUNT
+S
+Alpine Utilities AG
+Ledgerstrasse
+8
+8000
+Zurich
+CH
+S
+Sample Customer
+Balanceweg
+4
+3000
+Bern
+CH
+1949.75
+CHF
+QRR
+210000000003139471430009017
+Synthetic invoice QR-2026-001
+EPD

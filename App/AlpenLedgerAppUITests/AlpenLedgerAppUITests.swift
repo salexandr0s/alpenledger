@@ -21,6 +21,13 @@ final class AlpenLedgerAppUITests: XCTestCase {
         app.launchEnvironment["ALPENLEDGER_SECRET_STORE_ROOT"] = secretRoot.path
         app.launchEnvironment["ALPENLEDGER_DEFAULTS_SUITE"] = "AlpenLedgerUITests.\(UUID().uuidString)"
         app.launchEnvironment["ALPENLEDGER_FIXED_NOW"] = "2026-03-19T12:00:00Z"
+        app.launchEnvironment["ALPENLEDGER_FEATURE_FLAGS"] = "qa-validation-fixtures"
+        let requestedBackupURL = harnessRoot
+            .appendingPathComponent("workspace-backup", isDirectory: true)
+        let expectedBackupURL = requestedBackupURL.appendingPathExtension("alpenledgerbackup")
+        app.launchEnvironment["ALPENLEDGER_UI_TEST_CREATE_BACKUP_URL"] = requestedBackupURL.path
+        app.launchEnvironment["ALPENLEDGER_UI_TEST_VALIDATE_BACKUP_URL"] = expectedBackupURL.path
+        app.launchEnvironment["ALPENLEDGER_UI_TEST_RESTORE_BACKUP_URL"] = expectedBackupURL.path
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
     }
 
@@ -38,6 +45,7 @@ final class AlpenLedgerAppUITests: XCTestCase {
         createWorkspace(named: "Recent Workspace")
         app.terminate()
         app.launch()
+        app.activate()
 
         let recentWorkspace = waitForElement(
             "workspace.recent.recent-workspace",
@@ -45,6 +53,7 @@ final class AlpenLedgerAppUITests: XCTestCase {
             timeout: 10
         )
         recentWorkspace.click()
+        app.activate()
 
         XCTAssertTrue(element("toolbar.importMenu").waitForExistence(timeout: 10))
     }
@@ -172,6 +181,44 @@ final class AlpenLedgerAppUITests: XCTestCase {
         XCTAssertTrue(element("documents.showAllTypesButton").waitForExistence(timeout: 5))
     }
 
+    func testGlobalSearchFindsDocumentAndOpensPreview() throws {
+        app.launch()
+
+        createWorkspace(named: "Global Search Workspace")
+        importSampleDataFromMenu()
+
+        let searchButton = element("toolbar.globalSearch")
+        XCTAssertTrue(searchButton.waitForExistence(timeout: 5))
+        searchButton.click()
+
+        let queryField = element("globalSearch.queryField")
+        XCTAssertTrue(queryField.waitForExistence(timeout: 5))
+        replaceText(in: queryField, with: "receipt")
+
+        XCTAssertTrue(element("globalSearch.results").waitForExistence(timeout: 5))
+        let receiptResult = element(identifierPrefix: "globalSearch.result.document.")
+        XCTAssertTrue(receiptResult.waitForExistence(timeout: 5))
+        clickElement(receiptResult)
+
+        XCTAssertTrue(element("documents.document.sample-receipt-pdf").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("documents.previewPane").waitForExistence(timeout: 5))
+    }
+
+    func testCopilotAnswerCanCreateInboxTaskFromButton() throws {
+        app.launch()
+
+        createWorkspace(named: "Copilot Task Workspace")
+        navigate(to: "nav.copilot")
+
+        let turnIntoTask = element("copilot.answer.missing-tax-evidence.secondaryAction")
+        XCTAssertTrue(turnIntoTask.waitForExistence(timeout: 5))
+        clickElement(turnIntoTask)
+
+        XCTAssertTrue(element("inbox.list").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("inbox.issue.copilot-task").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("inbox.inspector.issue").waitForExistence(timeout: 5))
+    }
+
     func testSettingsAllowsRenameAndEntityAddRemove() throws {
         app.launch()
 
@@ -199,6 +246,40 @@ final class AlpenLedgerAppUITests: XCTestCase {
         XCTAssertTrue(removeButton.waitForExistence(timeout: 5))
         removeButton.click()
         waitForNonExistence("settings.entity.remove.advisory-studio")
+    }
+
+    func testSettingsBackupCheckAndRestoreFlowUsesPanelSelection() throws {
+        app.launch()
+
+        createWorkspace(named: "Backup Panel Workspace")
+        navigate(to: "nav.settings")
+
+        let createBackupButton = element("settings.createBackupButton")
+        XCTAssertTrue(createBackupButton.waitForExistence(timeout: 5))
+        clickElement(createBackupButton)
+        XCTAssertTrue(element("settings.backupIntegrity.status").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Backup can be restored"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Created workspace-backup.alpenledgerbackup for Backup Panel Workspace."].waitForExistence(timeout: 5))
+
+        let workspaceNameField = element("settings.workspaceNameField")
+        XCTAssertTrue(workspaceNameField.waitForExistence(timeout: 5))
+        replaceText(in: workspaceNameField, with: "Renamed After Backup")
+        let renameButton = element("settings.renameWorkspaceButton")
+        XCTAssertTrue(renameButton.waitForExistence(timeout: 5))
+        renameButton.click()
+        XCTAssertEqual(workspaceNameField.value as? String, "Renamed After Backup")
+
+        let validateBackupButton = element("settings.validateBackupButton")
+        XCTAssertTrue(validateBackupButton.waitForExistence(timeout: 5))
+        clickElement(validateBackupButton)
+        XCTAssertTrue(app.staticTexts["Checked workspace-backup.alpenledgerbackup."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["No integrity issues found."].waitForExistence(timeout: 5))
+
+        let restoreBackupButton = element("settings.restoreBackupButton")
+        XCTAssertTrue(restoreBackupButton.waitForExistence(timeout: 5))
+        clickElement(restoreBackupButton)
+        XCTAssertTrue(app.staticTexts["Restored Backup Panel Workspace from workspace-backup.alpenledgerbackup."].waitForExistence(timeout: 5))
+        XCTAssertEqual(workspaceNameField.value as? String, "Backup Panel Workspace")
     }
 
     func testEntitySwitcherScopesDataByEntity() throws {
@@ -232,8 +313,7 @@ final class AlpenLedgerAppUITests: XCTestCase {
 
         // Navigate to Documents — verify scoped filtering
         navigate(to: "nav.documents")
-        let documentsList = element("documents.list")
-        XCTAssertTrue(documentsList.waitForExistence(timeout: 5))
+        XCTAssertTrue(element("documents.emptyDropZone").waitForExistence(timeout: 5))
 
         // Switch back to natural person
         entitySwitcher.click()
@@ -262,6 +342,12 @@ final class AlpenLedgerAppUITests: XCTestCase {
 
     private func element(_ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    private func element(identifierPrefix prefix: String) -> XCUIElement {
+        app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", prefix))
+            .firstMatch
     }
 
     private func waitForElement(
@@ -376,9 +462,44 @@ final class AlpenLedgerAppUITests: XCTestCase {
     }
 
     private func navigate(to identifier: String) {
-        let navigation = element(identifier)
-        XCTAssertTrue(navigation.waitForExistence(timeout: 5))
+        let buttons = app.buttons.matching(identifier: identifier)
+        for index in 0..<buttons.count {
+            let candidate = buttons.element(boundBy: index)
+            if candidate.exists && candidate.isHittable {
+                candidate.click()
+                return
+            }
+        }
+
+        if let shortcut = navigationKeyboardShortcut(for: identifier) {
+            app.typeKey(shortcut, modifierFlags: .command)
+            return
+        }
+
+        let navigation = waitForElement(identifier, type: .button)
+        XCTAssertTrue(navigation.isHittable, "Expected \(identifier) to be hittable before navigation")
         navigation.click()
+    }
+
+    private func navigationKeyboardShortcut(for identifier: String) -> String? {
+        switch identifier {
+        case "nav.overview":
+            return "1"
+        case "nav.inbox":
+            return "2"
+        case "nav.ledger":
+            return "3"
+        case "nav.documents":
+            return "4"
+        case "nav.taxStudio":
+            return "5"
+        case "nav.settings":
+            return "6"
+        case "nav.copilot":
+            return "7"
+        default:
+            return nil
+        }
     }
 
     private func selectFileMenuItem(_ title: String) {

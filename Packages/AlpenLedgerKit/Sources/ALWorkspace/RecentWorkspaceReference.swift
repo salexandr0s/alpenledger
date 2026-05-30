@@ -41,4 +41,9 @@ public final class RecentWorkspacesStore: @unchecked Sendable {
         items = Array(items.prefix(10))
         defaults.set(try? JSONEncoder.alpenLedger.encode(items), forKey: key)
     }
+
+    public func remove(workspaceId: WorkspaceID) {
+        let items = load().filter { $0.workspaceId != workspaceId }
+        defaults.set(try? JSONEncoder.alpenLedger.encode(items), forKey: key)
+    }
 }

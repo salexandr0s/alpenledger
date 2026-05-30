@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "jurisdiction": "CH-ZH",
+  "taxYear": 2026,
+  "entityKind": "soleProprietor",
+  "exportFormat": "business-tax-draft-review",
+  "sourceFixtureRefs": [
+    "bank.sample_statement.csv.v1",
+    "tax.business.2026.expected_facts.json.v1"
+  ],
+  "requiredConceptCodes": [
+    "personal.self_employment.revenue_gross",
+    "personal.self_employment.expense_total",
+    "personal.self_employment.net_profit"
+  ],
+  "blockingIssues": [],
+  "warnings": [
+    {
+      "code": "business_tax.semantic_export_not_implemented",
+      "message": "This fixture proves draft business-tax readiness facts for the v0.1 sole-proprietor pilot; eCH-0276 generation remains out of this fixture's scope."
+    }
+  ],
+  "expectedSummary": {
+    "revenueGrossMinor": 250000,
+    "expenseTotalMinor": 16250,
+    "netProfitMinor": 233750,
+    "currency": "CHF"
+  }
+}

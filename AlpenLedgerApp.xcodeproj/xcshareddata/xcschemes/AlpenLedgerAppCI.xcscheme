@@ -21,20 +21,6 @@
                ReferencedContainer = "container:AlpenLedgerApp.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "6802F60D284D992C0B3B4D3E"
-               BuildableName = "AlpenLedgerAppUITests.xctest"
-               BlueprintName = "AlpenLedgerAppUITests"
-               ReferencedContainer = "container:AlpenLedgerApp.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -62,17 +48,6 @@
                BlueprintIdentifier = "B1C9906640D784341B09CC00"
                BuildableName = "AlpenLedgerAppTests.xctest"
                BlueprintName = "AlpenLedgerAppTests"
-               ReferencedContainer = "container:AlpenLedgerApp.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "6802F60D284D992C0B3B4D3E"
-               BuildableName = "AlpenLedgerAppUITests.xctest"
-               BlueprintName = "AlpenLedgerAppUITests"
                ReferencedContainer = "container:AlpenLedgerApp.xcodeproj">
             </BuildableReference>
          </TestableReference>

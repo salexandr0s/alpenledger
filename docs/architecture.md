@@ -16,7 +16,7 @@ The architecture must satisfy seven constraints at once:
 ## 2. Architectural stance
 
 ### 2.1 Core principle
-**The ledger, evidence graph, and tax engine are the system of record.  
+**The ledger, evidence graph, and tax engine are the system of record.
 The LLM is a consumer of system state, not the owner of system truth.**
 
 ### 2.2 Design consequence
@@ -134,7 +134,7 @@ The AI layer also talks to the system only through the same typed use-case / too
 5. **Optional vector index**: local embedding store if semantic retrieval is used.
 
 ### Recommendation
-Use **SQLite + GRDB-style relational control** rather than a higher-level opaque persistence layer.  
+Use **SQLite + GRDB-style relational control** rather than a higher-level opaque persistence layer.
 Reasons:
 - precise migrations,
 - raw SQL views,
@@ -554,7 +554,7 @@ RulePack
 ```
 
 ### Why this matters
-Tax rules change more often than app shells.  
+Tax rules change more often than app shells.
 The architecture should allow shipping rule-pack updates independently.
 
 ## 11. AI architecture

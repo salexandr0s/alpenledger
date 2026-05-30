@@ -506,6 +506,8 @@ public struct LedgerFeatureView: View {
             return "Receipt"
         case .invoice:
             return "Invoice"
+        case .qrBill:
+            return "QR-bill"
         case .bankStatement:
             return "Statement"
         case .salaryCertificate:
@@ -514,6 +516,12 @@ public struct LedgerFeatureView: View {
             return "Health Insurance"
         case .pillar3aCertificate:
             return "Pillar 3a"
+        case .eCH0196TaxStatement:
+            return "eCH-0196"
+        case .eCH0248PensionCertificate:
+            return "eCH-0248"
+        case .eCH0275HealthInsuranceCertificate:
+            return "eCH-0275"
         }
     }
 }

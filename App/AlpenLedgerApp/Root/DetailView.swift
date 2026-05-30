@@ -19,6 +19,11 @@ struct DetailView: View {
                 selection: $model.selectedInboxSelection,
                 performAction: model.performInboxAction
             )
+        case .copilot:
+            CopilotFeatureView(
+                snapshot: model.copilotSnapshot,
+                performAction: model.performCopilotAction
+            )
         case .ledger:
             LedgerFeatureView(
                 accounts: model.ledgerAccountSummaries,
@@ -42,7 +47,7 @@ struct DetailView: View {
                 query: $model.documentSearchQuery,
                 scope: $model.documentFilterScope,
                 items: model.documentBrowserItems,
-                allDocumentsCount: model.documentCount,
+                allDocumentsCount: model.documentVaultCount,
                 selectedDocumentId: model.selectedDocumentId,
                 previewURL: model.selectedDocumentPreviewURL,
                 linkedTransactions: model.linkedTransactions,
@@ -55,7 +60,10 @@ struct DetailView: View {
                 onClearSearch: model.clearDocumentSearch,
                 onResetScope: model.resetDocumentScope,
                 onSetScope: model.setDocumentFilterScope,
-                onLinkTransaction: model.presentTransactionLinkSheet
+                onLinkTransaction: model.presentTransactionLinkSheet,
+                onArchiveDocument: model.archiveSelectedDocumentFromPanel,
+                onRestoreDocument: model.restoreSelectedDocumentFromPanel,
+                onReviewMetadata: model.reviewDocumentMetadata
             )
         case .taxStudio:
             TaxStudioFeatureView(
@@ -64,7 +72,9 @@ struct DetailView: View {
                 selection: $model.selectedTaxStudioSelection,
                 entities: model.entities,
                 taxYears: model.taxYears,
-                snapshot: model.taxStudioSnapshot
+                snapshot: model.taxStudioSnapshot,
+                onLockTaxYear: model.lockSelectedTaxYear,
+                onUnlockTaxYear: model.unlockSelectedTaxYear
             )
             .onChange(of: model.selectedTaxEntityId) { _, _ in
                 model.selectTaxEntity(model.selectedTaxEntityId)
@@ -80,6 +90,16 @@ struct DetailView: View {
                 snapshot: model.settingsSnapshot,
                 newSolePropName: $model.newSolePropName,
                 onRenameWorkspace: model.renameWorkspace,
+                onSetWorkspaceLockEnabled: model.setWorkspaceLockEnabled,
+                onLockWorkspace: model.lockCurrentWorkspace,
+                onCreateBackup: model.createBackupFromPanel,
+                onValidateBackup: model.validateBackupFromPanel,
+                onRestoreBackup: model.restoreBackupFromPanel,
+                onSetDefaultImportAccount: model.setDefaultStatementImportAccount,
+                onShowHelp: model.presentHelpCenter,
+                onExportDiagnostics: model.exportDiagnosticsFromPanel,
+                onExportSupportBundle: model.exportSupportBundleFromPanel,
+                onDeleteWorkspace: model.deleteCurrentWorkspaceFromPanel,
                 onRenameEntity: model.updateEntityName,
                 onRemoveEntity: model.removeEntity,
                 onCreateSoleProp: model.createSoleProp

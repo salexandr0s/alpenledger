@@ -18,7 +18,7 @@ public final class TransactionService: Sendable {
     public func linkedDocumentIDs(for transactionId: TransactionID) throws -> [DocumentID] {
         let objectRef = ObjectRef(kind: .transaction, id: transactionId.rawValue)
         let links = try evidenceLinkRepository.fetchEvidenceLinks(for: objectRef)
-        return links.compactMap { link in
+        return links.filter { $0.status == .confirmed }.compactMap { link in
             if link.sourceRef.kind == .document, let uuid = UUID(uuidString: link.sourceRef.id) {
                 return DocumentID(rawValue: uuid)
             }

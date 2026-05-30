@@ -4,6 +4,7 @@ import ALDomain
 
 public protocol AuditEventRepository: Sendable {
     func fetchAuditEvents(workspaceId: WorkspaceID, objectRef: ObjectRef?) throws -> [AuditEvent]
+    func fetchAuditEvent(id: AuditEventID) throws -> AuditEvent?
     func saveAuditEvent(_ event: AuditEvent) throws
 }
 
@@ -24,6 +25,14 @@ public final class GRDBAuditEventRepository: AuditEventRepository, Sendable {
                 request = request.filter(Column("objectRef") == objectRef)
             }
             return try request.fetchAll(db)
+        }
+    }
+
+    public func fetchAuditEvent(id: AuditEventID) throws -> AuditEvent? {
+        try dbPool.read { db in
+            try AuditEvent
+                .filter(Column("id") == id)
+                .fetchOne(db)
         }
     }
 

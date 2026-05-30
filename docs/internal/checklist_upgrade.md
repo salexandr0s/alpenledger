@@ -2,7 +2,7 @@
 
 # AlpenLedger Upgrade Checklist
 
-Use this checklist as the working execution tracker.  
+Use this checklist as the working execution tracker.
 Do not skip earlier sections and jump to feature work.
 
 ---

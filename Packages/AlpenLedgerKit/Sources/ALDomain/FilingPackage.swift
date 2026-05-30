@@ -3,6 +3,7 @@ import Foundation
 public enum FilingPackageStatus: String, Codable, CaseIterable, Sendable {
     case draft
     case generated
+    case finalized
     case submitted
     case accepted
 }
@@ -13,6 +14,8 @@ public struct FilingPackage: Hashable, Codable, Sendable {
     public let taxYearId: TaxYearID
     public var status: FilingPackageStatus
     public var generatedAt: Date?
+    public var finalizedAt: Date?
+    public var finalizedBy: String?
     public var submittedAt: Date?
     public var snapshotHash: String?
     public var exportFormat: String
@@ -25,6 +28,8 @@ public struct FilingPackage: Hashable, Codable, Sendable {
         taxYearId: TaxYearID,
         status: FilingPackageStatus = .draft,
         generatedAt: Date? = nil,
+        finalizedAt: Date? = nil,
+        finalizedBy: String? = nil,
         submittedAt: Date? = nil,
         snapshotHash: String? = nil,
         exportFormat: String,
@@ -36,6 +41,8 @@ public struct FilingPackage: Hashable, Codable, Sendable {
         self.taxYearId = taxYearId
         self.status = status
         self.generatedAt = generatedAt
+        self.finalizedAt = finalizedAt
+        self.finalizedBy = finalizedBy
         self.submittedAt = submittedAt
         self.snapshotHash = snapshotHash
         self.exportFormat = exportFormat

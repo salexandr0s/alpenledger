@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eCH-0248:pensionContributionCertificate xmlns:eCH-0248="http://www.ech.ch/xmlns/eCH-0248/1">
+  <eCH-0248:standard>eCH-0248</eCH-0248:standard>
+  <eCH-0248:version>1.0.0</eCH-0248:version>
+  <eCH-0248:taxYear>2026</eCH-0248:taxYear>
+  <eCH-0248:issuer>Synthetic Pension Foundation</eCH-0248:issuer>
+  <eCH-0248:certificate>
+    <eCH-0248:pillar>3a</eCH-0248:pillar>
+    <eCH-0248:contribution currency="CHF">7056.00</eCH-0248:contribution>
+    <eCH-0248:barcodeStandard>eCH-0270</eCH-0248:barcodeStandard>
+  </eCH-0248:certificate>
+</eCH-0248:pensionContributionCertificate>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eCH-0275:healthInsuranceTaxCertificate xmlns:eCH-0275="http://www.ech.ch/xmlns/eCH-0275/1">
+  <eCH-0275:standard>eCH-0275</eCH-0275:standard>
+  <eCH-0275:version>1.0.0</eCH-0275:version>
+  <eCH-0275:taxYear>2026</eCH-0275:taxYear>
+  <eCH-0275:issuer>Synthetic Health Fund</eCH-0275:issuer>
+  <eCH-0275:certificate>
+    <eCH-0275:premiums currency="CHF">4200.00</eCH-0275:premiums>
+    <eCH-0275:costSharing currency="CHF">650.00</eCH-0275:costSharing>
+    <eCH-0275:accidentCoverage>false</eCH-0275:accidentCoverage>
+  </eCH-0275:certificate>
+</eCH-0275:healthInsuranceTaxCertificate>

@@ -90,6 +90,17 @@ public final class RulePackRegistry: @unchecked Sendable {
         ] = rulePack
     }
 
+    public func registeredPersonalTaxRulePacks() -> [any PersonalTaxRulePack] {
+        lock.lock()
+        defer { lock.unlock() }
+        return personalRulePacks.values.sorted {
+            if $0.jurisdictionCode == $1.jurisdictionCode {
+                return $0.rulesetVersion < $1.rulesetVersion
+            }
+            return $0.jurisdictionCode < $1.jurisdictionCode
+        }
+    }
+
     public func personalTaxRulePack(
         jurisdictionCode: String,
         rulesetVersion: String

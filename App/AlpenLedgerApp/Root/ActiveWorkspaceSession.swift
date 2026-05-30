@@ -45,9 +45,11 @@ final class ActiveWorkspaceSession {
     let evidenceRefreshService: EvidenceRefreshService
     let issueService: IssueService
     let reconciliationService: ReconciliationService
+    let agentToolService: WorkspaceAgentToolService
     let taxFactService: TaxFactService
     let taxComputationService: TaxComputationService
     let taxValidationService: TaxValidationService
+    let vatPeriodService: VATPeriodService
     let entityWorkspaceService: EntityWorkspaceService
 
     // MARK: - Active Entity
@@ -62,12 +64,16 @@ final class ActiveWorkspaceSession {
     private(set) var financialAccounts: [FinancialAccount] = []
     private(set) var transactions: [Transaction] = []
     private(set) var documents: [Document] = []
+    private(set) var archivedDocuments: [Document] = []
     private(set) var importJobs: [ImportJob] = []
+    private(set) var importDiagnosticsByJobId: [ImportJobID: [ImportDiagnostic]] = [:]
     private(set) var issues: [Issue] = []
     private(set) var agentProposals: [AgentProposal] = []
     private(set) var taxFacts: [TaxFact] = []
     private(set) var taxRequirements: [Requirement] = []
     private(set) var taxIssues: [Issue] = []
+    private(set) var filingPackages: [FilingPackage] = []
+    private(set) var vatPeriodReports: [VATReconciliationReport] = []
     private(set) var taxReadinessSummary = TaxReadinessSummary(
         state: .notStarted,
         openIssueCount: 0,
@@ -103,7 +109,7 @@ final class ActiveWorkspaceSession {
             auditLogger: auditLogger,
             nowProvider: container.nowProvider
         )
-        self.taxYearService = TaxYearService(storage: storage)
+        self.taxYearService = TaxYearService(storage: storage, auditLogger: auditLogger)
         self.ledgerAccountService = LedgerAccountService(storage: storage)
         self.financialAccountService = FinancialAccountService(storage: storage)
         self.transactionService = TransactionService(storage: storage)
@@ -120,6 +126,134 @@ final class ActiveWorkspaceSession {
 
         let rulePackRegistry = RulePackRegistry()
         rulePackRegistry.registerPersonalTaxRulePack(ZurichPersonalTaxAdapter2026())
+        let vatCodeBook = SwissVATCodeBook.current2026()
+        let nowProvider = container.nowProvider
+        let applicationVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
+        let taxValidationService = TaxValidationService(
+            storage: storage,
+            rulePackRegistry: rulePackRegistry
+        )
+        self.agentToolService = WorkspaceAgentToolService(
+            storage: storage,
+            auditLogger: auditLogger,
+            taxStatusProvider: { entityId, taxYearId in
+                let summary = try taxValidationService.readinessSummary(
+                    entityId: entityId,
+                    taxYearId: taxYearId
+                )
+                return AgentTaxReadinessToolOutput(
+                    state: AgentTaxReadinessState(rawValue: summary.state.rawValue) ?? .needsAttention,
+                    openIssueCount: summary.openIssueCount,
+                    pendingRequirementCount: summary.pendingRequirementCount,
+                    currentFactCount: summary.currentFactCount,
+                    missingConceptCodes: summary.missingConceptCodes
+                )
+            },
+            exportValidationProvider: { input in
+                guard input.exportFormat == SwissVATDeclarationExportService.exportFormat,
+                      let vatPeriodId = input.vatPeriodId,
+                      let typeOfSubmission = SwissVATDeclarationSubmissionType(
+                        rawValue: input.typeOfSubmission ?? SwissVATDeclarationSubmissionType.initial.rawValue
+                      ),
+                      let formOfReporting = SwissVATDeclarationFormOfReporting(
+                        rawValue: input.formOfReporting ?? SwissVATDeclarationFormOfReporting.agreedConsideration.rawValue
+                      )
+                else {
+                    throw WorkspaceAgentToolError.invalidInput("exports.validate")
+                }
+
+                let metadata = SwissVATDeclarationMetadata(
+                    uid: input.uid ?? "",
+                    organisationName: input.organisationName ?? "",
+                    generationTime: input.generationTime ?? nowProvider(),
+                    typeOfSubmission: typeOfSubmission,
+                    formOfReporting: formOfReporting,
+                    businessReferenceId: input.businessReferenceId ?? "",
+                    sendingApplication: SwissVATDeclarationSendingApplication(
+                        productVersion: input.applicationProductVersion ?? applicationVersion
+                    )
+                )
+                let report = try VATPeriodService(storage: storage, codeBook: vatCodeBook)
+                    .reconcileVATPeriod(vatPeriodId)
+                let validator = SwissVATDeclarationExportService(codeBook: vatCodeBook)
+                let reportIssues = validator.validate(report: report, metadata: metadata)
+                let issues: [SwissVATDeclarationValidationIssue]
+                if reportIssues.contains(where: { $0.severity == .blocker }) {
+                    issues = reportIssues
+                } else {
+                    do {
+                        issues = try validator
+                            .generateEffectiveReportingMethodExport(report: report, metadata: metadata)
+                            .validationIssues
+                    } catch let error as SwissVATDeclarationExportError {
+                        switch error {
+                        case let .validationFailed(validationIssues):
+                            issues = validationIssues
+                        }
+                    }
+                }
+
+                return AgentExportValidationProviderResult(
+                    schemaVersion: SwissVATDeclarationExportService.schemaVersion,
+                    issues: issues.map {
+                        AgentExportValidationIssueToolOutput(
+                            severity: $0.severity,
+                            code: $0.code,
+                            message: $0.message,
+                            sourceRef: $0.sourceRef
+                        )
+                    }
+                )
+            },
+            exportPackageProvider: { input in
+                guard input.exportFormat == SwissVATDeclarationExportService.exportFormat,
+                      let vatPeriodId = input.vatPeriodId,
+                      let typeOfSubmission = SwissVATDeclarationSubmissionType(
+                        rawValue: input.typeOfSubmission ?? SwissVATDeclarationSubmissionType.initial.rawValue
+                      ),
+                      let formOfReporting = SwissVATDeclarationFormOfReporting(
+                        rawValue: input.formOfReporting ?? SwissVATDeclarationFormOfReporting.agreedConsideration.rawValue
+                      )
+                else {
+                    throw WorkspaceAgentToolError.invalidInput("exports.generate_package")
+                }
+
+                let metadata = SwissVATDeclarationMetadata(
+                    uid: input.uid ?? "",
+                    organisationName: input.organisationName ?? "",
+                    generationTime: input.generationTime ?? nowProvider(),
+                    typeOfSubmission: typeOfSubmission,
+                    formOfReporting: formOfReporting,
+                    businessReferenceId: input.businessReferenceId ?? "",
+                    sendingApplication: SwissVATDeclarationSendingApplication(
+                        productVersion: input.applicationProductVersion ?? applicationVersion
+                    )
+                )
+                let report = try VATPeriodService(storage: storage, codeBook: vatCodeBook)
+                    .reconcileVATPeriod(vatPeriodId)
+                let export = try SwissVATDeclarationExportService(codeBook: vatCodeBook)
+                    .generateEffectiveReportingMethodExport(report: report, metadata: metadata)
+                let businessReference = input.businessReferenceId?.isEmpty == false
+                    ? input.businessReferenceId!
+                    : vatPeriodId.rawValue.uuidString.lowercased()
+                return AgentExportPackageProviderResult(
+                    schemaVersion: export.schemaVersion,
+                    artifactFilename: "\(businessReference).xml",
+                    mediaType: "application/xml",
+                    artifactData: Data(export.xmlString.utf8),
+                    issues: export.validationIssues.map {
+                        AgentExportValidationIssueToolOutput(
+                            severity: $0.severity,
+                            code: $0.code,
+                            message: $0.message,
+                            sourceRef: $0.sourceRef
+                        )
+                    },
+                    sourceRefs: export.sourceRefs
+                )
+            },
+            nowProvider: container.nowProvider
+        )
 
         let taxFactService = TaxFactService(storage: storage)
         self.taxFactService = taxFactService
@@ -129,9 +263,11 @@ final class ActiveWorkspaceSession {
             factService: taxFactService,
             nowProvider: container.nowProvider
         )
-        self.taxValidationService = TaxValidationService(
+        self.taxValidationService = taxValidationService
+        self.vatPeriodService = VATPeriodService(
             storage: storage,
-            rulePackRegistry: rulePackRegistry
+            codeBook: vatCodeBook,
+            auditLogger: auditLogger
         )
         self.entityWorkspaceService = EntityWorkspaceService(
             storage: storage,
@@ -190,8 +326,8 @@ final class ActiveWorkspaceSession {
         financialAccounts = sortedAccounts
         accountBalanceById = try sortedAccounts.reduce(into: [:]) { balances, account in
             let accountTransactions = try storage.transactionRepository.fetchTransactions(accountId: account.id)
-            if let latestBalance = accountTransactions.first(where: { $0.balanceAfterMinor != nil })?.balanceAfterMinor {
-                balances[account.id] = latestBalance
+            if let balance = account.currentBalanceMinor(transactions: accountTransactions) {
+                balances[account.id] = balance
             }
         }
 
@@ -262,8 +398,10 @@ final class ActiveWorkspaceSession {
     ) throws {
         if let activeEntityId {
             documents = try documentQueryService.listDocuments(entityId: activeEntityId)
+            archivedDocuments = try documentQueryService.listArchivedDocuments(entityId: activeEntityId)
         } else {
             documents = try documentQueryService.listDocuments()
+            archivedDocuments = try documentQueryService.listArchivedDocuments()
         }
         try refreshSelectionArtifacts(
             selectedTransactionId: selectedTransactionId,
@@ -281,6 +419,10 @@ final class ActiveWorkspaceSession {
     @discardableResult
     func refreshInbox(selectedInboxSelection: InboxSelection?) throws -> Bool {
         importJobs = try importJobService.listImportJobs()
+        importDiagnosticsByJobId = Dictionary(
+            grouping: try importJobService.listImportDiagnostics(),
+            by: \.importJobId
+        )
         let allIssues = try evidenceRefreshService.listIssues(status: .open)
         if let activeEntityId {
             issues = allIssues.filter { $0.entityId == activeEntityId }
@@ -330,6 +472,8 @@ final class ActiveWorkspaceSession {
             taxFacts = []
             taxRequirements = []
             taxIssues = []
+            filingPackages = []
+            vatPeriodReports = []
             return result
         }
 
@@ -349,6 +493,8 @@ final class ActiveWorkspaceSession {
             taxFacts = []
             taxRequirements = []
             taxIssues = []
+            filingPackages = []
+            vatPeriodReports = []
             taxReadinessSummary = TaxReadinessSummary(
                 state: .notStarted,
                 openIssueCount: 0,
@@ -360,7 +506,7 @@ final class ActiveWorkspaceSession {
         }
 
         // Recompute facts if needed
-        if recomputeFacts {
+        if recomputeFacts && selectedTaxYear.status == .open {
             _ = try taxComputationService.refreshFacts(entityId: resolvedEntityId, taxYearId: resolvedYearId)
         }
 
@@ -375,11 +521,18 @@ final class ActiveWorkspaceSession {
             taxYearId: resolvedYearId,
             status: .open
         )
+        filingPackages = try storage.filingPackageRepository
+            .fetchFilingPackages(entityId: resolvedEntityId)
+            .filter { $0.taxYearId == resolvedYearId }
         taxReadinessSummary = try taxValidationService.readinessSummary(
             entity: selectedEntity,
             taxYear: selectedTaxYear,
             currentFacts: taxFacts
         )
+        vatPeriodReports = try vatPeriodService
+            .listVATPeriods(entityId: resolvedEntityId)
+            .filter { selectedTaxYear.periodStart <= $0.periodEnd && $0.periodStart <= selectedTaxYear.periodEnd }
+            .map { try vatPeriodService.reconcileVATPeriod($0.id) }
 
         return result
     }
@@ -437,6 +590,30 @@ final class ActiveWorkspaceSession {
             return taxFacts.contains { $0.id == factId }
         case let .missingConcept(conceptCode):
             return taxReadinessSummary.missingConceptCodes.contains(conceptCode)
+        case let .vatPeriod(periodId):
+            return vatPeriodReports.contains { $0.period.id == periodId }
+        case let .vatIssue(issueId):
+            return vatPeriodReports.contains { report in
+                report.issues.enumerated().contains { index, issue in
+                    Self.vatIssueSelectionID(periodId: report.period.id, index: index, issue: issue) == issueId
+                }
+            }
+        case let .filingPackage(packageId):
+            return filingPackages.contains { $0.id == packageId }
         }
+    }
+
+    static func vatIssueSelectionID(periodId: VATPeriodID, index: Int, issue: VATReconciliationIssue) -> String {
+        [
+            periodId.rawValue.uuidString,
+            index.formatted(),
+            issue.code,
+            issue.sourceRef?.stringValue ?? "period",
+        ]
+        .joined(separator: "-")
+        .components(separatedBy: CharacterSet.alphanumerics.inverted)
+        .filter { $0.isEmpty == false }
+        .joined(separator: "-")
+        .lowercased()
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import ALFeatures
 
 @main
 struct AlpenLedgerApp: App {
@@ -12,10 +13,12 @@ struct AlpenLedgerApp: App {
         WindowGroup {
             RootSplitView(model: model)
                 .frame(minWidth: 1200, minHeight: 720)
-                .alert("Error", isPresented: $model.isShowingErrorAlert) {
-                    Button("OK", role: .cancel) {}
+                .alert(model.errorTitle, isPresented: $model.isShowingErrorAlert) {
+                    Button("OK", role: .cancel) {
+                        model.dismissErrorAlert()
+                    }
                 } message: {
-                    Text(model.errorMessage ?? "Unknown error")
+                    Text(model.errorAlertBody)
                 }
                 .sheet(isPresented: $model.isShowingDocumentLinkSheet) {
                     DocumentLinkSheet(model: model)
@@ -23,12 +26,19 @@ struct AlpenLedgerApp: App {
                 .sheet(isPresented: $model.isShowingTransactionLinkSheet) {
                     TransactionLinkSheet(model: model)
                 }
+                .sheet(isPresented: $model.isShowingHelpCenter) {
+                    HelpCenterView(
+                        snapshot: model.helpCenterSnapshot,
+                        onDismiss: model.dismissHelpCenter
+                    )
+                }
         }
         .defaultSize(width: 1440, height: 900)
         .commands {
             WorkspaceCommandMenu(model: model)
             SelectionCommandMenu(model: model)
             ViewCommandMenu(model: model)
+            HelpCommandMenu(model: model)
             SidebarCommands()
         }
     }
@@ -42,11 +52,22 @@ private struct WorkspaceCommandMenu: Commands {
         CommandGroup(replacing: .newItem) {
             Button("New Workspace…", action: model.presentNewWorkspaceSheet)
                 .keyboardShortcut("n", modifiers: [.command])
+
+            Button("New Demo Workspace", action: model.createDemoWorkspace)
         }
 
         CommandGroup(after: .newItem) {
             Button("Open Workspace…", action: model.openExistingWorkspace)
                 .keyboardShortcut("o", modifiers: [.command])
+
+            Button("Close Workspace", action: model.closeCurrentWorkspace)
+                .keyboardShortcut("w", modifiers: [.command, .shift])
+                .disabled(model.canCloseCurrentWorkspace == false)
+
+            Button("Lock Workspace", action: model.lockCurrentWorkspace)
+                .keyboardShortcut("l", modifiers: [.command, .control])
+                .disabled(model.canLockCurrentWorkspace == false)
+
             Divider()
 
             Button("Import Bank Statement CSV…", action: model.importCSVFromPanel)
@@ -54,6 +75,28 @@ private struct WorkspaceCommandMenu: Commands {
 
             Button("Import Document…", action: model.importDocumentFromPanel)
                 .disabled(model.canImportDocument == false)
+
+            Divider()
+
+            Button("Create Backup…", action: model.createBackupFromPanel)
+                .disabled(model.canCreateBackup == false)
+
+            Button("Check Backup Integrity…", action: model.validateBackupFromPanel)
+                .disabled(model.canValidateBackup == false)
+
+            Button("Restore Backup…", action: model.restoreBackupFromPanel)
+                .disabled(model.canRestoreBackup == false)
+
+            Button("Export Diagnostics…", action: model.exportDiagnosticsFromPanel)
+                .disabled(model.canExportDiagnostics == false)
+
+            Button("Export Support Bundle…", action: model.exportSupportBundleFromPanel)
+                .disabled(model.canExportSupportBundle == false)
+
+            Divider()
+
+            Button("Delete Current Workspace…", action: model.deleteCurrentWorkspaceFromPanel)
+                .disabled(model.canDeleteCurrentWorkspace == false)
 
             Divider()
 
@@ -67,10 +110,12 @@ private struct WorkspaceCommandMenu: Commands {
                 .disabled(model.canImportSampleData == false)
 
 #if DEBUG
-            Divider()
+            if model.shouldShowQAValidationFixturesCommand {
+                Divider()
 
-            Button("Import QA Validation Fixtures", action: model.importQAValidationFixtures)
-                .disabled(model.hasWorkspace == false)
+                Button("Import QA Validation Fixtures", action: model.importQAValidationFixtures)
+                    .disabled(model.canImportQAValidationFixtures == false)
+            }
 #endif
         }
 
@@ -105,9 +150,24 @@ private struct ViewCommandMenu: Commands {
 
     var body: some Commands {
         CommandGroup(after: .sidebar) {
+            Button("Find in Workspace", action: model.presentGlobalSearch)
+                .keyboardShortcut("f", modifiers: [.command, .shift])
+                .disabled(model.canUseGlobalSearch == false)
+
             Button(model.activeInspectorToggleTitle, action: model.toggleInspectorForActiveSection)
                 .keyboardShortcut("0", modifiers: [.command, .option])
                 .disabled(model.canToggleActiveInspector == false)
+        }
+    }
+}
+
+private struct HelpCommandMenu: Commands {
+    let model: WorkspaceAppModel
+
+    var body: some Commands {
+        CommandGroup(replacing: .help) {
+            Button("AlpenLedger Help", action: model.presentHelpCenter)
+                .keyboardShortcut("?", modifiers: [.command])
         }
     }
 }

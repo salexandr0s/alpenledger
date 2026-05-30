@@ -5,7 +5,9 @@ import ALDomain
 public protocol BlobStore: Sendable {
     func store(data: Data) throws -> String
     func store(contentsOf url: URL) throws -> String
+    func contains(hash: String) throws -> Bool
     func read(hash: String) throws -> Data
+    func delete(hash: String) throws
     func materialize(hash: String, fileExtension: String?) throws -> URL
     func cleanupMaterialized() throws
     func cleanupMaterialized(hash: String, fileExtension: String?) throws
@@ -40,10 +42,20 @@ public final class EncryptedBlobStore: BlobStore, @unchecked Sendable {
         try store(data: Data(contentsOf: url))
     }
 
+    public func contains(hash: String) throws -> Bool {
+        fileManager.fileExists(atPath: encryptedBlobURL(for: hash).path)
+    }
+
     public func read(hash: String) throws -> Data {
         let encryptedData = try Data(contentsOf: encryptedBlobURL(for: hash))
         let sealedBox = try AES.GCM.SealedBox(combined: encryptedData)
         return try AES.GCM.open(sealedBox, using: key)
+    }
+
+    public func delete(hash: String) throws {
+        let url = encryptedBlobURL(for: hash)
+        guard fileManager.fileExists(atPath: url.path) else { return }
+        try fileManager.removeItem(at: url)
     }
 
     public func materialize(hash: String, fileExtension: String?) throws -> URL {

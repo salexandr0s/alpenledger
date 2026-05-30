@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-05-30",
+  "reviewedBy": "Codex readiness audit",
+  "policy": "docs/dependency-review.md",
+  "swiftPackageResolution": {
+    "path": "Packages/AlpenLedgerKit/Package.resolved",
+    "originHash": "c4259be08469c926358133cfa40b8956233b45dcb630443b7b43fa4f50b7268e"
+  },
+  "swiftPackagePins": [
+    {
+      "identity": "sqlcipher.swift",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/sqlcipher/SQLCipher.swift.git",
+      "version": "4.13.0",
+      "revision": "7da3c29da67ef5f6dac915647087d966451f00d3",
+      "purpose": "SQLCipher binary framework used by the vendored GRDB SQLCipher build.",
+      "risk": "Cryptographic database dependency. Updates require database-open, migration, backup/restore, and data-health verification.",
+      "review": "docs/dependency-review.md#sqlcipherswift"
+    }
+  ],
+  "vendoredDependencies": [
+    {
+      "name": "GRDB.swift",
+      "path": "Packages/Vendor/GRDB.swift",
+      "packageManifestPath": "../Vendor/GRDB.swift",
+      "upstream": "https://github.com/groue/GRDB.swift",
+      "tag": "v7.10.0",
+      "commit": "36e30a6f1ef10e4194f6af0cff90888526f0c115",
+      "patch": "scripts/grdb-v7.10.0-sqlcipher.patch",
+      "purpose": "SQLite access layer patched for SQLCipher-backed local storage.",
+      "risk": "Database persistence dependency. Updates require vendor drift verification, package tests, app CI tests, migration checks, and backup/restore drills.",
+      "review": "docs/grdb-vendor.md"
+    }
+  ]
+}

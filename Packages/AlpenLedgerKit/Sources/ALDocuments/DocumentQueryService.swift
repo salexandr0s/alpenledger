@@ -13,6 +13,14 @@ public final class DocumentQueryService: Sendable {
         try storage.documentRepository.fetchDocuments(entityId: entityId)
     }
 
+    public func listArchivedDocuments(entityId: LegalEntityID) throws -> [Document] {
+        try storage.documentRepository.fetchDocuments(entityId: entityId, status: .archived)
+    }
+
+    public func listArchivedDocuments() throws -> [Document] {
+        try storage.documentRepository.fetchDocuments(workspaceId: storage.manifest.workspace.id, status: .archived)
+    }
+
     public func listDocuments(query: String = "") throws -> [Document] {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmedQuery.isEmpty == false else {

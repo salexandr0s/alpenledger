@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "AlpenLedgerKit",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v15),
     ],
@@ -130,15 +131,19 @@ let package = Package(
             name: "ALStorageTests",
             dependencies: [
                 "ALStorage",
+                "ALAudit",
                 "ALDomain",
                 "ALWorkspace",
                 "ALTaxCore",
+                .product(name: "GRDB", package: "GRDB.swift"),
             ]
         ),
         .testTarget(
             name: "ALImportsTests",
             dependencies: [
                 "ALImports",
+                "ALAudit",
+                "ALDomain",
                 "ALStorage",
                 "ALDocuments",
                 "ALLedger",
@@ -156,7 +161,12 @@ let package = Package(
             name: "ALDocumentsTests",
             dependencies: [
                 "ALDocuments",
+                "ALAudit",
+                "ALDomain",
+                "ALEvidence",
+                "ALImports",
                 "ALStorage",
+                "ALWorkspace",
             ]
         ),
         .testTarget(

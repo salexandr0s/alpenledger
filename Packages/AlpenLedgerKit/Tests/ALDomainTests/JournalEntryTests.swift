@@ -61,3 +61,30 @@ func journalEntryRejectsUnbalancedLines() throws {
         )
     }
 }
+
+@Test
+func journalEntryRejectsEmptyLines() throws {
+    #expect(throws: DomainError.self) {
+        _ = try JournalEntry(
+            entityId: LegalEntityID(),
+            entryNumber: "JE-EMPTY",
+            effectiveDate: .now,
+            createdBy: "test",
+            lines: []
+        )
+    }
+}
+
+@Test
+func journalLineCarriesTaxCodeMapping() throws {
+    let line = try JournalLine(
+        journalEntryId: JournalEntryID(),
+        ledgerAccountId: LedgerAccountID(),
+        debitMinor: 10810,
+        creditMinor: 0,
+        currency: .chf,
+        taxCode: "CH-VAT-INPUT-STD"
+    )
+
+    #expect(line.taxCode == "CH-VAT-INPUT-STD")
+}

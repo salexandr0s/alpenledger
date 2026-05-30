@@ -3,9 +3,11 @@ import ALDomain
 import ALStorage
 
 public final class TaxFactService: Sendable {
+    private let storage: WorkspaceStorage
     private let repository: any TaxFactRepository
 
     public init(storage: WorkspaceStorage) {
+        self.storage = storage
         self.repository = storage.taxFactRepository
     }
 
@@ -54,6 +56,11 @@ public final class TaxFactService: Sendable {
             }
 
             if let existing = existingCurrentFacts.removeValue(forKey: fingerprint) {
+                if existing.status == .overridden {
+                    currentFacts.append(existing)
+                    continue
+                }
+
                 if Self.matches(existing: existing, computed: computed, jurisdictionCode: jurisdictionCode, rulesetVersion: rulesetVersion) {
                     currentFacts.append(existing)
                     continue
@@ -113,6 +120,11 @@ public final class TaxFactService: Sendable {
         }
 
         for obsolete in existingCurrentFacts.values {
+            if obsolete.status == .overridden {
+                currentFacts.append(obsolete)
+                continue
+            }
+
             var retired = obsolete
             retired.isCurrent = false
             retired.updatedAt = now
@@ -120,6 +132,32 @@ public final class TaxFactService: Sendable {
         }
 
         return currentFacts.sorted { $0.conceptCode < $1.conceptCode }
+    }
+
+    @discardableResult
+    public func markFactOverridden(
+        factId: TaxFactID,
+        reason: String,
+        now: Date
+    ) throws -> TaxFact {
+        let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedReason.isEmpty == false else {
+            throw DomainError.invalidOverrideReason
+        }
+        guard var fact = try repository.fetchTaxFact(id: factId) else {
+            throw DomainError.taxFactNotFound
+        }
+
+        let taxYear = try storage.requireTaxYear(entityId: fact.entityId, taxYearId: fact.taxYearId)
+        guard taxYear.status == .open else {
+            throw DomainError.lockedPeriod
+        }
+
+        fact.status = .overridden
+        fact.overrideReason = trimmedReason
+        fact.updatedAt = now
+        try repository.saveTaxFact(fact)
+        return fact
     }
 
     public static func fingerprint(

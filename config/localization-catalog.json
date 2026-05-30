@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "defaultLanguage": "en",
+  "developmentRegion": "en",
+  "releaseBoundary": "The v0.1 pilot is English-first. German and French are planned readiness languages, not shipped localizations.",
+  "languages": [
+    {
+      "code": "en",
+      "name": "English",
+      "status": "release-ready",
+      "scope": "Pilot UI, help, error, support, and release-note copy."
+    },
+    {
+      "code": "de",
+      "name": "German",
+      "status": "planned",
+      "scope": "Requires translated app/package UI strings, Swiss finance/tax glossary review, and layout checks before availability can be claimed."
+    },
+    {
+      "code": "fr",
+      "name": "French",
+      "status": "planned",
+      "scope": "Requires translated app/package UI strings, Swiss finance/tax glossary review, and layout checks before availability can be claimed."
+    }
+  ],
+  "requiredGlossaryTerms": [
+    {
+      "key": "prepared-not-filed",
+      "english": "Prepared, not filed",
+      "note": "Used wherever an export or return package exists but has not been submitted."
+    },
+    {
+      "key": "local-only",
+      "english": "Local-only",
+      "note": "Used for the default privacy/runtime mode."
+    },
+    {
+      "key": "evidence-required",
+      "english": "Evidence required",
+      "note": "Used for missing document or support states."
+    },
+    {
+      "key": "sanitized-support-bundle",
+      "english": "Sanitized support bundle",
+      "note": "Used for support exports that omit raw finance/source data."
+    },
+    {
+      "key": "locked-period",
+      "english": "Locked period",
+      "note": "Used for tax years or VAT periods that reject ledger/tax mutations."
+    }
+  ]
+}

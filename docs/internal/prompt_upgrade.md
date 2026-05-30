@@ -4,8 +4,8 @@ You are upgrading the repository `https://github.com/salexandr0s/alpenledger`.
 
 Your job is to turn the existing codebase into a production-grade, local-first Swiss finance management application for both personal and business use.
 
-This is **not** a greenfield project.  
-This is **not** a web rewrite.  
+This is **not** a greenfield project.
+This is **not** a web rewrite.
 This is **not** a demo polish pass.
 
 You must work inside the current native macOS Swift architecture and upgrade it correctly.
@@ -341,12 +341,12 @@ If the live code changes architecture, update docs in the same branch/PR.
 
 ### Always protect real data
 
-Do not destroy or silently reinterpret existing workspace data.  
+Do not destroy or silently reinterpret existing workspace data.
 If migration/backfill is ambiguous, surface it as a review state or migration issue.
 
 ### Always keep design continuity
 
-The upgraded app should still look and feel like AlpenLedger.  
+The upgraded app should still look and feel like AlpenLedger.
 Do not introduce a new visual system unless explicitly required.
 
 ---

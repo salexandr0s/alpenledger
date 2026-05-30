@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "jurisdiction": "CH",
+  "rulesetVersion": "ch-vat-2026",
+  "period": {
+    "start": "2026-04-01T00:00:00Z",
+    "end": "2026-06-30T23:59:59Z",
+    "currency": "CHF"
+  },
+  "transactions": [
+    {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "bookingDate": "2026-04-03T00:00:00Z",
+      "amountMinor": 10810,
+      "currency": "CHF",
+      "counterpartyName": "Standard Client AG",
+      "memo": "Standard-rated consulting sale",
+      "taxCode": "CH-VAT-OUTPUT-STD"
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "bookingDate": "2026-04-10T00:00:00Z",
+      "amountMinor": 10260,
+      "currency": "CHF",
+      "counterpartyName": "Reduced Goods Customer AG",
+      "memo": "Reduced-rated goods sale",
+      "taxCode": "CH-VAT-OUTPUT-RED"
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333333",
+      "bookingDate": "2026-05-02T00:00:00Z",
+      "amountMinor": 10380,
+      "currency": "CHF",
+      "counterpartyName": "Accommodation Guest AG",
+      "memo": "Accommodation sale",
+      "taxCode": "CH-VAT-OUTPUT-ACC"
+    },
+    {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "bookingDate": "2026-05-18T00:00:00Z",
+      "amountMinor": -5405,
+      "currency": "CHF",
+      "counterpartyName": "Office Supplier AG",
+      "memo": "Standard-rated office expense",
+      "taxCode": "CH-VAT-INPUT-STD"
+    },
+    {
+      "id": "55555555-5555-4555-8555-555555555555",
+      "bookingDate": "2026-06-03T00:00:00Z",
+      "amountMinor": -10260,
+      "currency": "CHF",
+      "counterpartyName": "Book Supplier AG",
+      "memo": "Reduced-rated book purchase",
+      "taxCode": "CH-VAT-INPUT-RED"
+    },
+    {
+      "id": "66666666-6666-4666-8666-666666666666",
+      "bookingDate": "2026-06-20T00:00:00Z",
+      "amountMinor": 50000,
+      "currency": "CHF",
+      "counterpartyName": "Exempt Service Customer AG",
+      "memo": "VAT-exempt service",
+      "taxCode": "CH-VAT-EXEMPT"
+    },
+    {
+      "id": "77777777-7777-4777-8777-777777777777",
+      "bookingDate": "2026-07-02T00:00:00Z",
+      "amountMinor": 10810,
+      "currency": "CHF",
+      "counterpartyName": "Next Quarter Client AG",
+      "memo": "Outside the VAT period",
+      "taxCode": "CH-VAT-OUTPUT-STD"
+    }
+  ],
+  "expected": {
+    "lineCount": 6,
+    "outputTaxMinor": 1450,
+    "inputTaxMinor": 665,
+    "netTaxPayableMinor": 785,
+    "issueCount": 0
+  }
+}

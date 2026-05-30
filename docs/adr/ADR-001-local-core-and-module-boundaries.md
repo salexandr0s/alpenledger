@@ -4,13 +4,18 @@
 Local-core macOS app with multi-module Swift package boundaries
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 
-AlpenLedger is being defined as a local-first Swiss finance manager and tax-return studio for macOS. The system must preserve auditability, deterministic financial truth, explicit approvals, and future compatibility with typed tool exposure for AI and MCP-style integrations.
+AlpenLedger is a local-first Swiss finance manager and tax-return studio for
+macOS. The system must preserve auditability, deterministic financial truth,
+explicit approvals, and future compatibility with typed tool exposure for AI
+and MCP-style integrations.
 
-The repo currently has architecture and product documents, but no checked-in Xcode workspace or Swift package scaffold yet. This is the point where boundary decisions are cheap to make and expensive to undo later.
+The repo now contains a checked-in Xcode workspace, macOS app target, and local
+Swift package. This ADR records the boundary decision that those artifacts must
+continue to follow as the product moves from scaffold to production-readiness.
 
 ## Decision Drivers
 
@@ -69,7 +74,12 @@ Cons:
 
 Choose option 2: a native macOS app target backed by a multi-module local Swift package.
 
-The workspace should follow the `AlpenLedgerApp` + `AlpenLedgerKit` structure described in [`architecture-pass-v1.md`](../architecture-pass-v1.md). `ALDomain`, `ALStorage`, `ALAudit`, `ALWorkspace`, `ALLedger`, `ALDocuments`, `ALEvidence`, `ALTaxCore`, `ALTaxCH`, `ALExports`, `ALToolBus`, `ALAI`, `ALDesignSystem`, and `ALFeatures` should be separate targets from the beginning.
+The workspace should follow the `AlpenLedgerApp` + `AlpenLedgerKit` structure
+described in [`architecture-pass-v1.md`](../architecture-pass-v1.md). The
+current implementation keeps domain, storage, audit, workspace, ledger,
+documents, evidence, tax, design-system, and feature concerns in separate local
+package targets where they exist, and new production surfaces should preserve
+that boundary discipline.
 
 ## Consequences
 
@@ -93,7 +103,9 @@ Negative:
 
 ## Follow-ups
 
-- Scaffold the workspace and package graph described in the architecture pass
-- Add a dependency-graph check so UI and AI targets cannot import storage directly
+- Keep the checked-in workspace and package graph aligned with the architecture
+  pass
+- Add or preserve dependency-graph checks so UI and AI targets cannot import
+  storage directly
 - Keep the first UI screens inside one `ALFeatures` target until the team or surface area justifies splitting them further
 - Document exact package pins and toolchain selection when `Package.swift` and the Xcode workspace are added

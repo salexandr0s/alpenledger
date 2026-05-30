@@ -28,11 +28,23 @@ public final class EntityWorkspaceService: Sendable {
     }
 
     public func setActiveEntityWorkspace(_ id: EntityWorkspaceID) throws {
-        guard var workspace = try storage.entityWorkspaceRepository.fetchEntityWorkspace(id: id) else {
+        guard let selectedWorkspace = try storage.entityWorkspaceRepository.fetchEntityWorkspace(id: id),
+              selectedWorkspace.workspaceId == storage.manifest.workspace.id else {
             return
         }
-        workspace.lastAccessedAt = nowProvider()
-        try storage.entityWorkspaceRepository.saveEntityWorkspace(workspace)
+
+        let now = nowProvider()
+        let workspaces = try storage.entityWorkspaceRepository.fetchEntityWorkspaces(
+            workspaceId: selectedWorkspace.workspaceId
+        )
+        for var workspace in workspaces {
+            let isSelected = workspace.id == selectedWorkspace.id
+            workspace.isDefault = isSelected
+            if isSelected {
+                workspace.lastAccessedAt = now
+            }
+            try storage.entityWorkspaceRepository.saveEntityWorkspace(workspace)
+        }
     }
 
     @discardableResult

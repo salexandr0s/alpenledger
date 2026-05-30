@@ -4,7 +4,9 @@ import ALDomain
 
 public protocol TaxFactRepository: Sendable {
     func fetchTaxFacts(entityId: LegalEntityID, taxYearId: TaxYearID, currentOnly: Bool) throws -> [TaxFact]
+    func fetchTaxFact(id: TaxFactID) throws -> TaxFact?
     func fetchTaxFact(fingerprint: String, isCurrent: Bool?) throws -> TaxFact?
+    func fetchCurrentTaxFacts(sourceRef: ObjectRef) throws -> [TaxFact]
     func saveTaxFact(_ fact: TaxFact) throws
 }
 
@@ -38,6 +40,21 @@ public final class GRDBTaxFactRepository: TaxFactRepository, Sendable {
                 request = request.filter(Column("isCurrent") == isCurrent)
             }
             return try request.fetchOne(db)
+        }
+    }
+
+    public func fetchTaxFact(id: TaxFactID) throws -> TaxFact? {
+        try dbPool.read { db in
+            try TaxFact.fetchOne(db, key: id)
+        }
+    }
+
+    public func fetchCurrentTaxFacts(sourceRef: ObjectRef) throws -> [TaxFact] {
+        try dbPool.read { db in
+            let facts = try TaxFact
+                .filter(Column("isCurrent") == true)
+                .fetchAll(db)
+            return facts.filter { $0.provenanceRefs.contains(sourceRef) }
         }
     }
 

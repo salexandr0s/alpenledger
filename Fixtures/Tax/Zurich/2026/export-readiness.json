@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "jurisdiction": "CH-ZH",
+  "taxYear": 2026,
+  "entityKind": "naturalPerson",
+  "exportFormat": "personal-tax-draft-review",
+  "sourceFixtureRefs": [
+    "tax.zh.2026.salary_certificate.txt.v1",
+    "tax.zh.2026.health_insurance_certificate.txt.v1",
+    "tax.zh.2026.pillar3a_certificate.txt.v1",
+    "tax.zh.2026.expected_facts.json.v1"
+  ],
+  "requiredConceptCodes": [
+    "personal.income.salary_gross",
+    "personal.deduction.health_insurance_premiums",
+    "personal.deduction.pillar3a_contributions",
+    "personal.readiness.has_salary_certificate",
+    "personal.readiness.has_health_insurance_certificate",
+    "personal.readiness.has_pillar3a_certificate"
+  ],
+  "blockingIssues": [],
+  "warnings": [
+    {
+      "code": "personal_tax.semantic_export_not_implemented",
+      "message": "This fixture proves draft personal-tax readiness facts for the Zurich 2026 pilot; eCH-0119 generation remains out of this fixture's scope."
+    }
+  ],
+  "expectedSummary": {
+    "salaryGrossMinor": 9800000,
+    "healthInsurancePremiumsMinor": 420000,
+    "pillar3aContributionsMinor": 705600,
+    "currency": "CHF"
+  }
+}

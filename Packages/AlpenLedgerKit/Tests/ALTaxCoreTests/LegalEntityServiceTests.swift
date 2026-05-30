@@ -44,6 +44,36 @@ func legalEntityDeleteReturnsBlockingDependenciesWhenTransactionsExist() throws 
     #expect(entities.contains(where: { $0.id == entity.id }))
 }
 
+@Test
+func entityWorkspaceSwitchPersistsSingleDefaultWithFixedClock() throws {
+    let harness = try LegalEntityHarness()
+    let personalEntity = try #require(
+        try harness.legalEntityService.listEntities().first { $0.kind == .naturalPerson }
+    )
+    let soleProprietor = try harness.legalEntityService.createSoleProprietor(name: "Advisory Studio")
+
+    let entityWorkspaceService = EntityWorkspaceService(
+        storage: harness.storage,
+        auditLogger: AuditLogger(storage: harness.storage),
+        nowProvider: { harness.fixedNow }
+    )
+    let initialWorkspaces = try entityWorkspaceService.listEntityWorkspaces()
+    let personalWorkspace = try #require(initialWorkspaces.first { $0.entityId == personalEntity.id })
+    let soleProprietorWorkspace = try #require(initialWorkspaces.first { $0.entityId == soleProprietor.id })
+
+    #expect(initialWorkspaces.filter(\.isDefault).map(\.entityId) == [personalEntity.id])
+
+    try entityWorkspaceService.setActiveEntityWorkspace(soleProprietorWorkspace.id)
+    let soleProprietorActive = try #require(try entityWorkspaceService.activeEntityWorkspace())
+    #expect(soleProprietorActive.entityId == soleProprietor.id)
+    #expect(try entityWorkspaceService.listEntityWorkspaces().filter(\.isDefault).map(\.entityId) == [soleProprietor.id])
+
+    try entityWorkspaceService.setActiveEntityWorkspace(personalWorkspace.id)
+    let personalActive = try #require(try entityWorkspaceService.activeEntityWorkspace())
+    #expect(personalActive.entityId == personalEntity.id)
+    #expect(try entityWorkspaceService.listEntityWorkspaces().filter(\.isDefault).map(\.entityId) == [personalEntity.id])
+}
+
 private struct LegalEntityHarness {
     let fixedNow = try! #require(ISO8601DateFormatter().date(from: "2026-03-19T12:00:00Z"))
     let storage: WorkspaceStorage

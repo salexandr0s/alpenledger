@@ -1,0 +1,5 @@
+/* App name shown in app metadata and release-owned app chrome. */
+"app.name" = "AlpenLedger";
+
+/* Release boundary used by localization verification and release notes. */
+"localization.releaseBoundary" = "English-first pilot";

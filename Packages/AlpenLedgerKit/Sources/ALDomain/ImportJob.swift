@@ -2,12 +2,14 @@ import Foundation
 
 public enum ImportJobKind: String, Codable, CaseIterable, Sendable {
     case bankStatementCSV
+    case bankStatementCAMT
     case documentIntake
 }
 
 public enum ImportJobStatus: String, Codable, CaseIterable, Sendable {
     case started
     case completed
+    case cancelled
     case failed
 }
 
@@ -16,6 +18,8 @@ public struct ImportJob: Hashable, Codable, Sendable {
     public let workspaceId: WorkspaceID
     public var kind: ImportJobKind
     public var source: String
+    public var sourceBlobHash: String?
+    public var sourceFingerprint: String?
     public var parserKey: String
     public var parserVersion: String
     public var status: ImportJobStatus
@@ -28,6 +32,8 @@ public struct ImportJob: Hashable, Codable, Sendable {
         workspaceId: WorkspaceID,
         kind: ImportJobKind,
         source: String,
+        sourceBlobHash: String? = nil,
+        sourceFingerprint: String? = nil,
         parserKey: String,
         parserVersion: String,
         status: ImportJobStatus = .started,
@@ -39,6 +45,8 @@ public struct ImportJob: Hashable, Codable, Sendable {
         self.workspaceId = workspaceId
         self.kind = kind
         self.source = source
+        self.sourceBlobHash = sourceBlobHash
+        self.sourceFingerprint = sourceFingerprint
         self.parserKey = parserKey
         self.parserVersion = parserVersion
         self.status = status

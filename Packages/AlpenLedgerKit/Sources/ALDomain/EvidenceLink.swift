@@ -7,6 +7,7 @@ public enum EvidenceLinkType: String, Codable, CaseIterable, Sendable {
 public enum EvidenceLinkStatus: String, Codable, CaseIterable, Sendable {
     case proposed
     case confirmed
+    case revoked
 }
 
 public enum EvidenceActorKind: String, Codable, CaseIterable, Sendable {

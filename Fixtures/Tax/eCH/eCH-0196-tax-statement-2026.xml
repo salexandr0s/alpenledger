@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eCH-0196:eTaxStatement xmlns:eCH-0196="http://www.ech.ch/xmlns/eCH-0196/2">
+  <eCH-0196:standard>eCH-0196</eCH-0196:standard>
+  <eCH-0196:version>2.2.0</eCH-0196:version>
+  <eCH-0196:taxYear>2026</eCH-0196:taxYear>
+  <eCH-0196:institution>Synthetic Cantonal Bank</eCH-0196:institution>
+  <eCH-0196:portfolio>
+    <eCH-0196:cashBalance currency="CHF">12500.00</eCH-0196:cashBalance>
+    <eCH-0196:securityIncome currency="CHF">375.45</eCH-0196:securityIncome>
+    <eCH-0196:withholdingTax currency="CHF">131.40</eCH-0196:withholdingTax>
+  </eCH-0196:portfolio>
+</eCH-0196:eTaxStatement>

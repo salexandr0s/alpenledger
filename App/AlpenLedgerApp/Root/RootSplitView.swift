@@ -14,10 +14,12 @@ struct RootSplitView: View {
                 WorkspaceChooserView(
                     snapshot: model.workspaceChooserSnapshot,
                     onCreateWorkspace: model.presentNewWorkspaceSheet,
+                    onCreateDemoWorkspace: model.createDemoWorkspace,
                     onOpenWorkspace: { workspace in
                         model.openWorkspace(workspace.reference)
                     },
-                    onOpenExistingWorkspace: model.openExistingWorkspace
+                    onOpenExistingWorkspace: model.openExistingWorkspace,
+                    onShowHelp: model.presentHelpCenter
                 )
             }
         }

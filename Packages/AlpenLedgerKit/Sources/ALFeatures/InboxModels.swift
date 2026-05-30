@@ -25,13 +25,16 @@ public enum InboxAction: Hashable, Sendable {
     case resolveIssue(IssueID)
     case dismissIssue(IssueID)
     case importStatement(FinancialAccountID?)
+    case retryImport(ImportJobID)
     case linkDocument(TransactionID)
     case linkTransaction(DocumentID)
     case openProposalTarget(ObjectRef)
+    case approveProposal(AgentProposalID)
+    case revokeProposalApproval(AgentProposalID)
     case rejectProposal(AgentProposalID)
 }
 
-public enum InboxInspectorActionRole: Sendable {
+public enum InboxInspectorActionRole: Hashable, Sendable {
     case primary
     case secondary
     case destructive
@@ -110,6 +113,7 @@ public struct InboxInspectorModel: Sendable {
     public let tone: StatusBadge.Tone
     public let description: String
     public let details: [InboxInspectorDetail]
+    public let evidence: [DocumentReferenceRowModel]
     public let actions: [InboxInspectorAction]
 
     public init(
@@ -119,6 +123,7 @@ public struct InboxInspectorModel: Sendable {
         tone: StatusBadge.Tone,
         description: String,
         details: [InboxInspectorDetail],
+        evidence: [DocumentReferenceRowModel] = [],
         actions: [InboxInspectorAction]
     ) {
         self.title = title
@@ -127,6 +132,7 @@ public struct InboxInspectorModel: Sendable {
         self.tone = tone
         self.description = description
         self.details = details
+        self.evidence = evidence
         self.actions = actions
     }
 }

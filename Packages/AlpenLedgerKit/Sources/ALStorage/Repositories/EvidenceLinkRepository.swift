@@ -4,6 +4,7 @@ import ALDomain
 
 public protocol EvidenceLinkRepository: Sendable {
     func fetchEvidenceLinks(for objectRef: ObjectRef) throws -> [EvidenceLink]
+    func fetchEvidenceLink(id: EvidenceLinkID) throws -> EvidenceLink?
     func saveEvidenceLink(_ evidenceLink: EvidenceLink) throws
 }
 
@@ -19,6 +20,14 @@ public final class GRDBEvidenceLinkRepository: EvidenceLinkRepository, Sendable 
             try EvidenceLink
                 .filter(Column("sourceRef") == objectRef || Column("targetRef") == objectRef)
                 .fetchAll(db)
+        }
+    }
+
+    public func fetchEvidenceLink(id: EvidenceLinkID) throws -> EvidenceLink? {
+        try dbPool.read { db in
+            try EvidenceLink
+                .filter(Column("id") == id)
+                .fetchOne(db)
         }
     }
 

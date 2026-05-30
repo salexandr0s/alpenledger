@@ -30,3 +30,10 @@ As of March 19, 2026, AlpenLedger vendors [GRDB.swift](https://github.com/groue/
 ## Guardrail
 
 Do not edit `Packages/Vendor/GRDB.swift` by hand without also updating `scripts/grdb-v7.10.0-sqlcipher.patch` and re-running `scripts/verify-grdb-vendor.sh`.
+
+`scripts/verify-readiness.sh` runs `scripts/verify-grdb-vendor.sh --offline`
+so local readiness checks catch missing vendor files, forbidden nested
+metadata, and SQLCipher-critical package wiring without cloning upstream on
+every run. Use the default verifier mode before changing or releasing the
+vendor snapshot because it compares against upstream `v7.10.0` plus the
+checked-in patch.

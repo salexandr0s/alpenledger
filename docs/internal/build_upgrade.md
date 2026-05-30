@@ -10,7 +10,7 @@ It is written for a coding agent that will work directly in the existing reposit
 
 The most important instruction is this:
 
-**Do not rewrite the product into a web/TypeScript stack.**  
+**Do not rewrite the product into a web/TypeScript stack.**
 The repository is already a substantial native macOS Swift codebase with encrypted local storage, modular packages, migrations, tests, and a coherent UI shell. Upgrade the existing architecture instead of discarding it.
 
 ---
@@ -147,7 +147,7 @@ This preserves the existing storage architecture while giving the user the separ
 
 ### 1. Wrong scoping model
 
-Today, the UI and storage are still built around a single workspace holding multiple entities.  
+Today, the UI and storage are still built around a single workspace holding multiple entities.
 This causes:
 
 - mixed personal/business navigation
@@ -173,7 +173,7 @@ This must be decomposed before further expansion.
 
 ### 3. Docs are stale relative to live code
 
-Architecture docs and ADRs still read like the scaffold is not built yet.  
+Architecture docs and ADRs still read like the scaffold is not built yet.
 The repository already contains real app and storage code. Docs must be brought back in sync.
 
 ### 4. The data model is incomplete for the target product
@@ -194,7 +194,7 @@ The repo has legal entity concepts, but the live UI and services are still close
 
 ### 6. Tax support is still narrow in practice
 
-The live app wires a Zurich personal tax adapter directly.  
+The live app wires a Zurich personal tax adapter directly.
 The architecture must become truly rule-pack based, with Zurich as the first working implementation rather than the hidden default for everything.
 
 ---
@@ -849,6 +849,6 @@ A feature is done only when:
 
 Upgrade this repository as a **serious native local-first finance product**, not as a demo and not as a rewrite.
 
-Preserve what is already strong.  
-Refactor what is currently wrong.  
+Preserve what is already strong.
+Refactor what is currently wrong.
 Make entity separation real before adding more surface area.

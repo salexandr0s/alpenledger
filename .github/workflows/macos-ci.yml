@@ -7,13 +7,22 @@ on:
       - "codex/**"
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  macos-build-and-test:
+  readiness:
     runs-on: macos-15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Select Xcode 26.3
         uses: maxim-lobanov/setup-xcode@v1
@@ -23,29 +32,40 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: Check Patch Hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="${{ github.event.before }}"
+          fi
+
+          if [[ "$base" =~ ^0+$ ]]; then
+            echo "Skipping patch hygiene for initial branch push."
+            exit 0
+          fi
+
+          git diff --check "$base" "${{ github.sha }}" -- . ':!docs/internal/**'
+
+      - name: Verify Dependency Review Policy
+        run: scripts/verify-dependency-review.sh
+
+      - name: Verify Fixture Catalog
+        run: scripts/verify-fixtures.sh
+
       - name: Verify GRDB Vendor Snapshot
         run: scripts/verify-grdb-vendor.sh
 
       - name: Generate Project
         run: xcodegen generate
 
-      - name: Run Package Tests
-        run: swift test --package-path Packages/AlpenLedgerKit
+      - name: Verify Generated Project Is Current
+        run: git diff --exit-code -- AlpenLedgerApp.xcodeproj
 
-      - name: Build macOS App
-        run: >
-          xcodebuild
-          -project AlpenLedgerApp.xcodeproj
-          -scheme AlpenLedgerApp
-          -destination 'platform=macOS'
-          -derivedDataPath "$RUNNER_TEMP/alpenledger-build-derived"
-          build
+      - name: Verify Release Preflight Configuration
+        run: scripts/verify-release-preflight.sh --allow-missing-secrets
 
-      - name: Run App Unit Tests
-        run: >
-          xcodebuild
-          -project AlpenLedgerApp.xcodeproj
-          -scheme AlpenLedgerAppCI
-          -destination 'platform=macOS'
-          -derivedDataPath "$RUNNER_TEMP/alpenledger-test-derived"
-          test
+      - name: Run Readiness Gate
+        run: scripts/verify-readiness.sh

@@ -3,6 +3,7 @@ import GRDB
 import ALDomain
 
 public protocol FinancialAccountRepository: Sendable {
+    func fetchFinancialAccount(id: FinancialAccountID) throws -> FinancialAccount?
     func fetchFinancialAccounts(entityId: LegalEntityID) throws -> [FinancialAccount]
     func saveFinancialAccount(_ account: FinancialAccount) throws
     func deleteFinancialAccounts(entityId: LegalEntityID) throws
@@ -13,6 +14,14 @@ public final class GRDBFinancialAccountRepository: FinancialAccountRepository, S
 
     public init(dbPool: DatabasePool) {
         self.dbPool = dbPool
+    }
+
+    public func fetchFinancialAccount(id: FinancialAccountID) throws -> FinancialAccount? {
+        try dbPool.read { db in
+            try FinancialAccount
+                .filter(Column("id") == id)
+                .fetchOne(db)
+        }
     }
 
     public func fetchFinancialAccounts(entityId: LegalEntityID) throws -> [FinancialAccount] {

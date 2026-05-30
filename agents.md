@@ -714,7 +714,7 @@ This keeps the product stable even if external auth surfaces evolve.
 
 ## 14. Bottom line
 
-The right agent design for this product is **many narrow agents over one typed tool bus**, not one omnipotent chatbot.  
+The right agent design for this product is **many narrow agents over one typed tool bus**, not one omnipotent chatbot.
 That gives you:
 - better safety,
 - better explainability,
@@ -725,9 +725,9 @@ That gives you:
 ---
 
 ## Cross-links
-- [vision.md](vision.md)
-- [architecture.md](architecture.md)
-- [buildplan.md](buildplan.md)
+- [docs/vision.md](docs/vision.md)
+- [docs/architecture.md](docs/architecture.md)
+- [docs/buildplan.md](docs/buildplan.md)
 
 ---
 

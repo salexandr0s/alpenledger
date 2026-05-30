@@ -5,6 +5,7 @@ import ALDomain
 public protocol RequirementRepository: Sendable {
     func fetchRequirements(entityId: LegalEntityID, taxYearId: TaxYearID?) throws -> [Requirement]
     func fetchRequirement(fingerprint: String) throws -> Requirement?
+    func fetchRequirements(satisfiedByRef: ObjectRef) throws -> [Requirement]
     func saveRequirement(_ requirement: Requirement) throws
 }
 
@@ -40,6 +41,14 @@ public final class GRDBRequirementRepository: RequirementRepository, Sendable {
             try Requirement
                 .filter(Column("fingerprint") == fingerprint)
                 .fetchOne(db)
+        }
+    }
+
+    public func fetchRequirements(satisfiedByRef: ObjectRef) throws -> [Requirement] {
+        try dbPool.read { db in
+            try Requirement
+                .filter(Column("satisfiedByRef") == satisfiedByRef)
+                .fetchAll(db)
         }
     }
 

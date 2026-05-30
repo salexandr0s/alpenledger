@@ -9,22 +9,41 @@ public enum AuditEventType: String, Codable, CaseIterable, Sendable {
     case workspaceCreated
     case workspaceOpened
     case workspaceRenamed
+    case workspaceBackupCreated
+    case workspaceRestored
     case legalEntityCreated
     case legalEntityUpdated
     case legalEntityRemoved
+    case counterpartyMerged
     case ledgerSeeded
     case financialAccountCreated
     case importJobCreated
     case importJobCompleted
+    case importJobCancelled
+    case importJobRecovered
     case documentImported
+    case documentMetadataReviewed
+    case documentArchived
+    case documentRestored
     case statementImported
     case evidenceLinked
+    case evidenceLinkRevoked
     case proposalCreated
     case proposalResolved
     case proposalRejected
+    case taxYearLocked
+    case taxYearUnlocked
+    case vatPeriodCreated
+    case vatPeriodLocked
+    case vatPeriodUnlocked
+    case journalEntryPosted
+    case taxFactOverridden
+    case filingPackageFinalized
     case issueOpened
     case issueResolved
     case issueDismissed
+    case agentToolExecuted
+    case agentToolRejected
     case entityWorkspaceCreated
     case entityWorkspaceDeleted
 }

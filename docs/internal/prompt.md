@@ -24,7 +24,7 @@ The product must cover both **personal** and **business** finances and include:
 - AI-assisted chat and specialist agents over the local data model,
 - strong provenance, auditability, and user trust.
 
-This is **not** a demo, mockup, landing page, or generic finance toy.  
+This is **not** a demo, mockup, landing page, or generic finance toy.
 Build real code, real persistence, real workflows, real validators, real fixtures, and real tests.
 
 ## Success definition
@@ -46,20 +46,20 @@ A successful v1 result is a working macOS app that can:
 
 Treat these files as required source of truth:
 
-1. `vision.md`
-2. `architecture.md`
+1. `docs/vision.md`
+2. `docs/architecture.md`
 3. `agents.md`
-4. `buildplan.md`
-5. `checklist.md`
+4. `docs/buildplan.md`
+5. `docs/checklist.md`
 
 If anything conflicts, use this precedence order:
 
 1. this prompt
-2. `architecture.md`
-3. `buildplan.md`
-4. `vision.md`
+2. `docs/architecture.md`
+3. `docs/buildplan.md`
+4. `docs/vision.md`
 5. `agents.md`
-6. `checklist.md`
+6. `docs/checklist.md`
 
 If you need to refine the implementation, keep the core product thesis intact and update docs as part of the work.
 
@@ -307,7 +307,7 @@ Support:
 
 ### Filing access patterns
 Assume **export-first + guided submission**.
-Do not hard-code the product around universal automatic filing.  
+Do not hard-code the product around universal automatic filing.
 Portal handoff and submission checklists are valuable even when true end-to-end submission varies by canton or authority.
 
 ### Payroll
@@ -690,7 +690,8 @@ A feature is done only when:
 
 ## Checklist discipline
 
-You must use `checklist.md` as the operational source for progress tracking.
+You must use `docs/checklist.md` as the operational source for progress
+tracking.
 
 Rules:
 - update it continuously,
@@ -742,18 +743,18 @@ Start with this sequence:
 
 Build AlpenLedger as a **deterministic local finance engine with an evidence graph**, then layer Swiss filing adapters and AI on top.
 
-Do not optimize for demo magic.  
+Do not optimize for demo magic.
 Optimize for **trust, reviewability, correctness, and native usability**.
 
 ---
 
 ## Reference standards and links
 
-- `vision.md`
-- `architecture.md`
+- `docs/vision.md`
+- `docs/architecture.md`
 - `agents.md`
-- `buildplan.md`
-- `checklist.md`
+- `docs/buildplan.md`
+- `docs/checklist.md`
 
 External references to align with:
 - eCH-0119 — personal tax export baseline

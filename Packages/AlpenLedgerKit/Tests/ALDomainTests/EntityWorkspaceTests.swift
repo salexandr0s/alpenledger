@@ -126,6 +126,8 @@ func filingPackageInitAndCodable() throws {
     )
     #expect(pkg.status == .generated)
     #expect(pkg.exportFormat == "eCH-0217")
+    #expect(pkg.finalizedAt == nil)
+    #expect(pkg.finalizedBy == nil)
     #expect(pkg.submittedAt == nil)
 
     let data = try iso8601Encoder().encode(pkg)
@@ -157,7 +159,7 @@ func invoiceDirectionCases() {
 
 @Test
 func filingPackageStatusCases() {
-    #expect(FilingPackageStatus.allCases.count == 4)
+    #expect(FilingPackageStatus.allCases.count == 5)
 }
 
 @Test

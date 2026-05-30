@@ -17,7 +17,9 @@ Use this checklist after any shell, Ledger, Documents, Overview, or design-syste
 
 - Create a fresh workspace.
 - Import the built-in sample CSV and sample PDF from Overview.
-- Use the debug-only File menu command `Import QA Validation Fixtures` to load the larger CSV and mixed long-name documents set.
+- In a Debug build launched with `ALPENLEDGER_FEATURE_FLAGS=qa-validation-fixtures`,
+  use the File menu command `Import QA Validation Fixtures` to load the larger
+  CSV and mixed long-name documents set.
 
 ## First Run and Shell
 
@@ -70,3 +72,35 @@ Use this checklist after any shell, Ledger, Documents, Overview, or design-syste
 - Ledger and Documents are fully usable with keyboard-only selection and tab navigation.
 - Inspector visibility persists across relaunch per workspace section.
 - Default-motion and Reduce Motion runs both feel native and stable.
+
+## Evidence Record
+
+For release candidates, archive a JSON evidence record at
+`docs/release-evidence/ui-smoke-v0.1.0.json` and verify it with:
+
+```sh
+scripts/verify-ui-smoke-evidence.sh --evidence docs/release-evidence/ui-smoke-v0.1.0.json
+```
+
+The record must include:
+
+- `schemaVersion`: `1`
+- `verifiedAt`: ISO-8601 timestamp
+- `verifier`: reviewer or release-machine identifier
+- `app.version`, `app.build`, and `app.gitRevision`
+- `automation.command`: `RUN_UI_TESTS=full scripts/verify-readiness.sh`
+- `automation.status`: `passed`
+- `automation.artifactRefs`: repo-relative archived `xcresult`, summary, or log
+  references under `docs/release-evidence/`
+- `manualPasses`: one `default` and one `reduceMotion` pass, both marked
+  `passed`, each covering `1200x720`, `1440x900`, and `1720x1100`
+- `manualPasses[].scenarios`: `firstRunAndShell`, `ledger`, `documents`, and
+  `overviewAndMotion`
+- `manualPasses[].artifactRefs`: repo-relative archived screenshot or
+  review-note references under `docs/release-evidence/`
+- `exitCriteria`: all checklist exit criteria marked `true`
+- `blockers`: empty array
+
+The strict verifier rejects absolute paths, URLs, `path/to/...` placeholders,
+missing files, and refs that point back to the UI smoke evidence JSON instead of
+supporting evidence.
